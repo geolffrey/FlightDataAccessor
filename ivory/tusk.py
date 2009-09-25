@@ -1,5 +1,5 @@
 
-Tusk class(Object):
+class Tusk(Object):
 
     def Tusk(self):
         print('Tusk class');

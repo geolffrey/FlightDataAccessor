@@ -1,32 +1,35 @@
 #!/usr/bin/env python
 
 # The purpose of Skeleton is to serve as an example of a basic Python package
-# including DistUtils capabilities. Comments have been adapted from
+# including SetupTools capabilities. Comments have been adapted from
 #
+#  - http://pypi.python.org/pypi/setuptools
+#  - http://peak.telecommunity.com/DevCenter/setuptools
 #  - http://docs.python.org/distutils/
 #  - http://docs.cython.org/docs/tutorial.html
+#  - http://ianbicking.org/docs/setuptools-presentation/
 #  - http://tarekziade.wordpress.com/2009/09/12/static-metadata-for-distutils/
+#  - http://github.com/ella/setuptools-dummy
 #
-# I have deliberatly not document everything, only the best practices and 
-# features the we require. Refer to the URL above for the complete DistUtils
-# documentation.
-
 # TODO
 #  - Cython extension modules
 #  - Platform specific requirements
+#  - pip compatibility
+#  - Distribute compatibility
 
-from distutils.core import setup
 import sys
-
-# Sometimes things go wrong, and the setup script doesn't do what the developer 
-# wants.
-#
-# For this purpose, the DISTUTILS_DEBUG environment variable can be set to 
-# anything except an empty string, and distutils will now print detailed 
-# information what it is doing, and prints the full traceback in case an 
-# exception occurs.
-
-DISTUTILS_DEBUG = ''
+ 
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    try:
+        from ez_setup import use_setuptools
+    except ImportError:
+        print "can't find ez_setup"
+        print "try: wget http://peak.telecommunity.com/dist/ez_setup.py"
+        sys.exit(1)
+    use_setuptools()
+    from setuptools import setup, find_packages
 
 setup(
     # Required meta data
@@ -38,8 +41,11 @@ setup(
     author='Flight Data Services Ltd',
     author_email='developers@flightdataservices.com',            
     description='A Skeleton Python Package with DistUtils script',    
-    long_decription='A Skeleton Python Package with DistUtils script',    
-    download_utl='http://www.flightdataservices.com/download/',
+    long_description='''
+    A Skeleton Python Package with DistUtils script you can
+    use reStructuredText here
+    ''',    
+    download_url='http://www.flightdataservices.com/download/',
     classifiers='',
     platforms='',
     license='',
@@ -97,6 +103,49 @@ setup(
     # default, it is replaced with the current interpreter location. 
 
     # The scripts option simply is a list of files to be handled in this way. 
-    scripts=['scripts/skull', 'scripts/cross_bones'],
+    scripts=['skeleton/scripts/skull', 'skeleton/scripts/cross_bones'],
+        
+    # Often, additional files need to be installed into a package. These files 
+    # are often data that's closely related to the package's implementation, or 
+    # text files containing documentation that might be of interest to 
+    # programmers using the package. These files are called package data.
+
+    package_data = {
+        # If any package contains *.txt or *.rst files, include them:
+        '': ['*.txt', '*.rst'],
+        # And include any *.msg files found in the 'hello' package, too:
+        'skeleton': ['*.dat'],
+    },
+
+    # The data_files option can be used to specify additional files needed by 
+    # the module distribution: configuration files, message catalogs, data 
+    # files, anything which doesn't fit in the previous categories.
+
+    # data_files specifies a sequence of (directory, files) pairs in the 
+    # following way:
+
+    # You can specify the directory names where the data files will be 
+    # installed, but you cannot rename the data files themselves.
+
+    # Each (directory, files) pair in the sequence specifies the installation 
+    # directory and the files to install there. If directory is a relative path, 
+    # it is interpreted relative to the installation prefix (Python's sys.prefix 
+    # for pure-Python packages, sys.exec_prefix for packages that contain 
+    # extension modules). Each file name in files is interpreted relative to the 
+    # setup.py script at the top of the package source distribution. No 
+    # directory information from files is used to determine the final location 
+    # of the installed file; only the name of the file is used.
+
+#    entry_points = {
+#        'console_scripts': ['cross_bones_too = skeleton:scripts:cross_bones:run'],
+#    },
+#
+#    entry_points = {
+#        'setuptools.file_finders': ['dummy = setuptools_dummy:dummylsfiles'],
+#    },
+
+
+    test_suite = "skeleton.tests.test_all",
+
     )
 
