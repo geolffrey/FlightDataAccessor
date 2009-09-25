@@ -18,7 +18,7 @@
 from distutils.core import setup
 import sys
 
-# Sometimes things go wrong, and the setup script doesn’t do what the developer 
+# Sometimes things go wrong, and the setup script doesn't do what the developer 
 # wants.
 #
 # For this purpose, the DISTUTILS_DEBUG environment variable can be set to 
@@ -60,14 +60,14 @@ setup(
     packages=['skeleton'],
       
     # For a small module distribution, you might prefer to list all modules 
-    # rather than listing packages—especially the case of a single module that 
-    # goes in the “root package” (i.e., no package at all). 
+    # rather than listing packages-especially the case of a single module that 
+    # goes in the "root package" (i.e., no package at all). 
 
-    # This describes two modules, one of them in the “root” package, the other 
+    # This describes two modules, one of them in the "root" package, the other 
     # in the ivory package. Again, the default package/directory layout implies 
     # that these two modules can be found in bones.py and ivory/tusk.py, and that 
     # ivory/__init__.py exists as well. 
-    py_modules = ['bones', 'ivory.tusk']
+    py_modules = ['bones', 'ivory.tusk'],
         
     # Dependencies on other Python modules and packages can be specified by 
     # supplying the requires keyword argument to setup(). The value must be a 
@@ -83,24 +83,20 @@ setup(
     
     #  <    >    ==
     #  <=   >=   !=
-    requires = ['mock']
+    requires = ['mock'],
     
     
     # So far we have been dealing with pure and non-pure Python modules, which 
     # are usually not run by themselves but imported by scripts.
     
     # Scripts are files containing Python source code, intended to be started 
-    # from the command line. Scripts don’t require Distutils to do anything very 
+    # from the command line. Scripts don't require Distutils to do anything very 
     # complicated. The only clever feature is that if the first line of the 
-    # script starts with #! and contains the word “python”, the Distutils will 
+    # script starts with #! and contains the word "python", the Distutils will 
     # adjust the first line to refer to the current interpreter location. By 
     # default, it is replaced with the current interpreter location. 
 
     # The scripts option simply is a list of files to be handled in this way. 
-    scripts=['scripts/skull', 'scripts/cross_bones']
-
-
-
-    
+    scripts=['scripts/skull', 'scripts/cross_bones'],
     )
 
