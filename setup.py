@@ -10,6 +10,7 @@
 #  - http://github.com/ella/setuptools-dummy
 #
 # TODO
+#  - Documentation and README, CHANGES, etc...
 #  - Cython extension modules
 #  `--- http://docs.cython.org/docs/tutorial.html
 #  - Platform specific requirements, Windows vs Linux vs Mac OS X
