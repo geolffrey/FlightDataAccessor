@@ -1,25 +1,5 @@
 #!/usr/bin/env python
 
-# The purpose of Skeleton is to serve as an example of a basic Python package
-# including SetupTools capabilities. Comments have been adapted from
-#
-#  - http://docs.python.org/distutils/
-#  - http://pypi.python.org/pypi/setuptools
-#  - http://peak.telecommunity.com/DevCenter/setuptools
-#  - http://ianbicking.org/docs/setuptools-presentation/
-#  - http://github.com/ella/setuptools-dummy
-#
-# TODO
-#  - Documentation and README, CHANGES, etc...
-#  - Cython extension modules
-#  `--- http://docs.cython.org/docs/tutorial.html
-#  - Platform specific requirements, Windows vs Linux vs Mac OS X
-#  `--- http://tarekziade.wordpress.com/2009/09/12/static-metadata-for-distutils/
-#  - pip compatibility
-#  `--- http://pypi.python.org/pypi/pip/
-#  - Distribute compatibility
-#  `--- http://pypi.python.org/pypi/distribute
-
 import sys
  
 try:
@@ -33,6 +13,7 @@ except ImportError:
         sys.exit(1)
     use_setuptools()
     from setuptools import setup, find_packages
+
 
 setup(
     # === Meta data ===
@@ -56,22 +37,41 @@ setup(
     license='',
 
     # === Include and Exclude ===
+   
+    # For simple projects, it's usually easy enough to manually add packages to 
+    # the packages argument of setup(). However, for very large projects it can 
+    # be a big burden to keep the package list updated. That's what 
+    # setuptools.find_packages() is for.
 
-    # The packages option tells the Distutils to process (build, distribute, 
-    # install, etc.) all pure Python modules found in each package mentioned in 
-    # the packages list. In order to do this, of course, there has to be a 
-    # correspondence between package names and directories in the filesystem. 
-    # The default correspondence is the most obvious one, i.e. package distutils 
-    # is found in the directory distutils relative to the distribution root. 
-    
-    # Thus, when you say packages = ['skeleton'] in your setup script, you are 
-    # promising that the Distutils will find a file skeleton/__init__.py (which 
-    # might be spelled differently on your system, but you get the idea) 
-    # relative to the directory where your setup script lives. If you break this 
-    # promise, the Distutils will issue a warning but still process the broken 
-    # package anyways.
-      
-    packages = find_packages(exclude=['ez_setup']),     
+    # find_packages() takes a source directory, and a list of package names or 
+    # patterns to exclude. If omitted, the source directory defaults to the 
+    # same directory as the setup script. Some projects use a src or lib 
+    # directory as the root of their source tree, and those projects would of 
+    # course use "src" or "lib" as the first argument to find_packages(). 
+    # (And such projects also need something like package_dir = {'':'src'} in 
+    # their setup() arguments, but that's just a normal distutils thing.)
+
+    # Anyway, find_packages() walks the target directory, and finds Python 
+    # packages by looking for __init__.py files. It then filters the list of 
+    # packages using the exclusion patterns.
+
+    # Exclusion patterns are package names, optionally including wildcards. For 
+    # example, find_packages(exclude=["*.tests"]) will exclude all packages 
+    # whose last name part is tests. Or, find_packages(exclude=["*.tests", 
+    # "*.tests.*"]) will also exclude any subpackages of packages named tests, 
+    # but it still won't exclude a top-level tests package or the children 
+    # thereof. The exclusion patterns are intended to cover simpler use cases 
+    # than this, like excluding a single, specified package and its subpackages.
+
+    # Regardless of the target directory or exclusions, the find_packages() 
+    # function returns a list of package names suitable for use as the packages 
+    # argument to setup(), and so is usually the easiest way to set that 
+    # argument in your setup script. Especially since it frees you from having 
+    # to remember to modify your setup script whenever your project grows 
+    # additional top-level packages or subpackages.
+
+    packages = find_packages(exclude=['ez_setup', '*.tests', '*.tests.*', 
+                                    'tests.*', 'tests']),      
                 
     # Often, additional files need to be installed into a package. These files 
     # are often data that's closely related to the package's implementation, or 
@@ -101,6 +101,22 @@ setup(
         'skeleton': ['data/*.dat'],
         'skeleton': ['scripts/*'],
     },
+
+    # === Test Suite ===
+
+    # A string naming a unittest.TestCase subclass (or a package or module 
+    # containing one or more of them, or a method of such a subclass), or naming 
+    # a function that can be called with no arguments and returns a 
+    # unittest.TestSuite. If the named suite is a module, and the module has an 
+    # additional_tests() function, it is called and the results are added to the 
+    # tests to be run. If the named suite is a package, any submodules and 
+    # subpackages are recursively added to the overall test suite.
+
+    # Specifying this argument enables use of the test command to run the 
+    # specified test suite, e.g. via setup.py test. See the section on the test 
+    # command below for more details.
+
+    test_suite = 'skeleton.tests',
         
     # === Dependancies ===        
         
@@ -118,12 +134,10 @@ setup(
     
     #  <    >    ==
     #  <=   >=   !=
-    requires = ['configobj'],
-
 
     # A string or list of strings specifying what other distributions need to be 
     # installed when this one is.
-    install_requires = ['cython'],
+    install_requires = ['configobj', 'ply'],
          
     # Sometimes a project has "recommended" dependencies, that are not required 
     # for all uses of the project. For example, a project might offer optional 
@@ -139,6 +153,31 @@ setup(
     extras_require = {
         'reST': ["docutils>=0.3"],
     },
+
+    
+    # A string or list of strings specifying what other distributions need to be 
+    # present in order for the setup script to run. setuptools will attempt to 
+    # obtain these (even going so far as to download them using EasyInstall) 
+    # before processing the rest of the setup script or commands. 
+    # This argument is needed if you are using distutils extensions as part of 
+    # your build process; for example, extensions that process setup() arguments 
+    # and turn them into EGG-INFO metadata files.
+
+    # (Note: projects listed in setup_requires will NOT be automatically 
+    # installed on the system where the setup script is being run. They are 
+    # simply downloaded to the setup directory if they're not locally available 
+    # already. If you want them to be installed, as well as being available when 
+    # the setup script is run, you should add them to install_requires and 
+    # setup_requires.)
+    setup_requires = ['cython'],
+
+
+    # If your project's tests need one or more additional packages besides those 
+    # needed to install it, you can use this option to specify them. It should 
+    # be a string or list of strings specifying what other distributions need to 
+    # be present for the package's tests to run.     
+    tests_require = ['nose>=0.11', 'coverage', 'figleaf'],
+
 
     # If your project depends on packages that aren't registered in PyPI, you 
     # may still be able to depend on them, as long as they are available for 
@@ -215,31 +254,14 @@ setup(
     #    ]
     #},
 
-    # A string naming a unittest.TestCase subclass (or a package or module 
-    # containing one or more of them, or a method of such a subclass), or naming 
-    # a function that can be called with no arguments and returns a 
-    # unittest.TestSuite. If the named suite is a module, and the module has an 
-    # additional_tests() function, it is called and the results are added to the 
-    # tests to be run. If the named suite is a package, any submodules and 
-    # subpackages are recursively added to the overall test suite.
-
-    # Specifying this argument enables use of the test command to run the 
-    # specified test suite, e.g. via setup.py test. See the section on the test 
-    # command below for more details.
-
-    #test_suite = "skeleton.tests, ivory.test",
-        
-    # If your project's tests need one or more additional packages besides those 
-    # needed to install it, you can use this option to specify them. It should 
-    # be a string or list of strings specifying what other distributions need to 
-    # be present for the package's tests to run. 
-    
-    test_requires = ['mock'],
-
+       
     # A boolean flag specifying whether the project can be safely installed and 
     # run from a zip file. If this argument is not supplied, the bdist_egg 
     # command will have to analyze all of your project's contents for possible 
     # problems each time it buids an egg. 
+    
+    # There are potential compatibility issue with zipped Eggs. So default to 
+    # False unless you really know why you want a zipped Egg.
     zip_safe = False,
     
     )
