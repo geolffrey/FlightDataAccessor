@@ -137,7 +137,7 @@ setup(
 
     # A string or list of strings specifying what other distributions need to be 
     # installed when this one is.
-    install_requires = ['configobj', 'ply'],
+    install_requires = [''],
          
     # Sometimes a project has "recommended" dependencies, that are not required 
     # for all uses of the project. For example, a project might offer optional 
@@ -169,7 +169,7 @@ setup(
     # already. If you want them to be installed, as well as being available when 
     # the setup script is run, you should add them to install_requires and 
     # setup_requires.)
-    setup_requires = ['cython'],
+    setup_requires = [''],
 
 
     # If your project's tests need one or more additional packages besides those 
@@ -200,7 +200,7 @@ setup(
     # already installed:
 
     dependency_links = [
-        'http://vindictive.flightdataservices.com/Trac/Nelson/snapshots/'
+        'http://vindictive.flightdataservices.com/Nest/'
     ],
 
     # === Script Creation ===
