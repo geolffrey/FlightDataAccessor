@@ -169,7 +169,7 @@ setup(
     # already. If you want them to be installed, as well as being available when 
     # the setup script is run, you should add them to install_requires and 
     # setup_requires.)
-    setup_requires = [''],
+    setup_requires = ['Cheesecake'],
 
 
     # If your project's tests need one or more additional packages besides those 
