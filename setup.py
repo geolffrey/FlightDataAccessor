@@ -169,14 +169,14 @@ setup(
     # already. If you want them to be installed, as well as being available when 
     # the setup script is run, you should add them to install_requires and 
     # setup_requires.)
-    setup_requires = ['Cheesecake'],
+    setup_requires = [''],
 
 
     # If your project's tests need one or more additional packages besides those 
     # needed to install it, you can use this option to specify them. It should 
     # be a string or list of strings specifying what other distributions need to 
     # be present for the package's tests to run.     
-    tests_require = ['nose>=0.11', 'coverage', 'figleaf'],
+    tests_require = ['nose>=0.11', 'figleaf'],
 
 
     # If your project depends on packages that aren't registered in PyPI, you 
