@@ -31,7 +31,7 @@ setup(
     A Skeleton Python Package with DistUtils script you can
     use reStructuredText here
     ''',    
-    download_url='http://www.flightdataservices.com/download/',
+    download_url='http://www.flightdataservices.com/',
     classifiers='',
     platforms='',
     license='',
