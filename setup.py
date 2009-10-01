@@ -200,7 +200,7 @@ setup(
     # already installed:
 
     dependency_links = [
-        'http://vindictive.flightdataservices.com/Nest/'
+        'http://vindictive.flightdataservices.com/Nest/dist/'
     ],
 
     # === Script Creation ===
