@@ -116,7 +116,7 @@ setup(
     # specified test suite, e.g. via setup.py test. See the section on the test 
     # command below for more details.
 
-    test_suite = 'skeleton.tests',
+    test_suite = 'skeleton.tests.suite',
         
     # === Dependancies ===        
         
