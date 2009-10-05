@@ -14,13 +14,14 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
+from skeleton import __version__ as VERSION
 
 setup(
     # === Meta data ===
     
     # Required meta data
     name='Skeleton',
-    version='0.1.0',
+    version = VERSION,
     url='http://www.flightdataservices.com/',
     
     # Optional meta data   
