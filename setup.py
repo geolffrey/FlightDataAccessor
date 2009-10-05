@@ -118,7 +118,8 @@ setup(
     # specified test suite, e.g. via setup.py test. See the section on the test 
     # command below for more details.
 
-    test_suite = 'skeleton.tests.suite',
+    test_suite = 'nose.collector',
+    test_loader = 'nose.collector',
         
     # === Dependancies ===        
         
@@ -178,7 +179,7 @@ setup(
     # needed to install it, you can use this option to specify them. It should 
     # be a string or list of strings specifying what other distributions need to 
     # be present for the package's tests to run.     
-    tests_require = ['nose>=0.11', 'figleaf'],
+    tests_require = ['nose>=0.11', 'figleaf', 'coverage==2.85'],
 
 
     # If your project depends on packages that aren't registered in PyPI, you 
