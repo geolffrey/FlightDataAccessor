@@ -119,7 +119,6 @@ setup(
     # command below for more details.
 
     test_suite = 'nose.collector',
-    test_loader = 'nose.collector',
         
     # === Dependancies ===        
         
@@ -140,7 +139,7 @@ setup(
 
     # A string or list of strings specifying what other distributions need to be 
     # installed when this one is.
-    install_requires = [''],
+    install_requires = ['setuptools>=0.6b1'],
          
     # Sometimes a project has "recommended" dependencies, that are not required 
     # for all uses of the project. For example, a project might offer optional 

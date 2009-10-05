@@ -63,8 +63,13 @@ References
  - http://docs.python.org/distutils/
  - http://pypi.python.org/pypi/setuptools
  - http://peak.telecommunity.com/DevCenter/setuptools
- - http://ianbicking.org/docs/setuptools-presentation/
  - http://github.com/ella/setuptools-dummy
+
+These are good introductions to setuptools.
+
+ - http://ianbicking.org/docs/setuptools-presentation/
+ - http://parijatmishra.wordpress.com/2008/10/08/python-packaging-setuptools-and-eggs/
+ - http://www.timecastle.net/static/2-python-setuptools.pdf
 
 TODO
  | Documentation and README, CHANGES, etc...
