@@ -118,7 +118,8 @@ setup(
     # specified test suite, e.g. via setup.py test. See the section on the test 
     # command below for more details.
 
-    test_suite = 'nose.collector',
+    #test_suite = 'nose.collector',
+    test_suite = 'skeleton.tests.suite',
         
     # === Dependancies ===        
         
