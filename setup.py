@@ -72,8 +72,7 @@ setup(
     # to remember to modify your setup script whenever your project grows 
     # additional top-level packages or subpackages.
 
-    packages = find_packages(exclude=['ez_setup', '*.tests', '*.tests.*', 
-                                    'tests.*', 'tests']),      
+    packages = find_packages(),      
                 
     # Often, additional files need to be installed into a package. These files 
     # are often data that's closely related to the package's implementation, or 
@@ -96,7 +95,7 @@ setup(
 
     package_data = {
         # If any package contains *.txt or *.rst files, include them:
-        '': ['*.txt', '*.rst'],
+        '': ['*.txt', '*.rst', '*.py'],
         # And include any *.dat files found in the 'data' directory of the 
         # 'skeleton' package amd all the files in the 'scripts' directory
         # of the 'skeleton' package too.
