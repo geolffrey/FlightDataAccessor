@@ -138,7 +138,10 @@ setup(
 
     # A string or list of strings specifying what other distributions need to be 
     # installed when this one is.
-    install_requires = ['setuptools>=0.6b1'],
+    install_requires = ['setuptools>=0.6b1',
+                        'numpy',
+                        'h5py',
+                        'Utilities'],
          
     # Sometimes a project has "recommended" dependencies, that are not required 
     # for all uses of the project. For example, a project might offer optional 
