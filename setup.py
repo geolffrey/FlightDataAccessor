@@ -21,17 +21,16 @@ setup(
     # === Meta data ===
     
     # Required meta data
-    name='Skeleton',
+    name='HDFAccess',
     version = VERSION,
     url='http://www.flightdataservices.com/',
     
     # Optional meta data   
     author='Flight Data Services Ltd',
     author_email='developers@flightdataservices.com',            
-    description='A Skeleton Python Package with DistUtils script',    
+    description='An interface for HDF files containing flight data.',
     long_description='''
-    A Skeleton Python Package with DistUtils script you can
-    use reStructuredText here
+    Provides a high-level interface for HDF files containing flight data.
     ''',    
     download_url='http://www.flightdataservices.com/',
     classifiers='',
@@ -99,8 +98,8 @@ setup(
         # And include any *.dat files found in the 'data' directory of the 
         # 'skeleton' package amd all the files in the 'scripts' directory
         # of the 'skeleton' package too.
-        'skeleton': ['data/*.dat'],
-        'skeleton': ['scripts/*'],
+        #'skeleton': ['data/*.dat'],
+        #'skeleton': ['scripts/*'],
     },
 
     # === Test Suite ===
@@ -218,7 +217,7 @@ setup(
     # default, it is replaced with the current interpreter location. 
 
     # The scripts option simply is a list of files to be handled in this way. 
-    scripts=['skeleton/scripts/skull', 'skeleton/scripts/cross_bones'],
+    scripts=[],#'skeleton/scripts/skull', 'skeleton/scripts/cross_bones'],
 
     # === Entry Points (are better than 'scripts') ===
 
@@ -238,9 +237,9 @@ setup(
     # Two notations are popular, the first is easy to read and maintain.
     
     entry_points = """
-        [console_scripts]
-        cross_bones_too = skeleton.cross_bones_too:run
-        skull_too = skeleton.skull_too:run
+        #[console_scripts]
+        #cross_bones_too = skeleton.cross_bones_too:run
+        #skull_too = skeleton.skull_too:run
         
         #[gui_scripts]
         #skull_gui = skeleton.gui.skull_gui:run
