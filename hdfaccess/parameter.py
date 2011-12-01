@@ -1,10 +1,12 @@
+'''
+Parameter container class.
+'''
+
+import numpy as np
 
 
-#-------------------------------------------------------------------------------
-# Parameter container Class
-# =========================
 class Parameter(object):
-    def __init__(self, name, array=[], frequency=1, offset=0):
+    def __init__(self, name, array=np.ma.masked_array([]), frequency=1, offset=0):
         '''
         :param name: Parameter name
         :type name: String
