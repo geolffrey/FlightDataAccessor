@@ -15,7 +15,7 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
-from skeleton import __version__ as VERSION
+from hdfaccess import __version__ as VERSION
 
 setup(
     # === Meta data ===
