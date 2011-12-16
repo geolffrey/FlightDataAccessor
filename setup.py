@@ -1,17 +1,9 @@
 #!/usr/bin/env python
 
-import os
-import sys
- 
 try:
     from setuptools import setup, find_packages
 except ImportError:
-    try:
-        from ez_setup import use_setuptools
-    except ImportError:
-        print "can't find ez_setup"
-        print "try: wget http://peak.telecommunity.com/dist/ez_setup.py"
-        sys.exit(1)
+    from distribute_setup import use_setuptools
     use_setuptools()
     from setuptools import setup, find_packages
 
@@ -137,7 +129,7 @@ setup(
 
     # A string or list of strings specifying what other distributions need to be 
     # installed when this one is.
-    install_requires = ['setuptools>=0.6b1',
+    install_requires = ['distribute',
                         'numpy',
                         'h5py',
                         'simplejson',
@@ -180,7 +172,7 @@ setup(
     # needed to install it, you can use this option to specify them. It should 
     # be a string or list of strings specifying what other distributions need to 
     # be present for the package's tests to run.     
-    tests_require = ['nosexcover>=1.0'],
+    tests_require = [],
 
 
     # If your project depends on packages that aren't registered in PyPI, you 
