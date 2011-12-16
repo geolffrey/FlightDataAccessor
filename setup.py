@@ -173,14 +173,14 @@ setup(
     # already. If you want them to be installed, as well as being available when 
     # the setup script is run, you should add them to install_requires and 
     # setup_requires.)
-    setup_requires = ['nosexcover>=1.0'],
+    setup_requires = ['nose>=1.0'],
 
 
     # If your project's tests need one or more additional packages besides those 
     # needed to install it, you can use this option to specify them. It should 
     # be a string or list of strings specifying what other distributions need to 
     # be present for the package's tests to run.     
-    tests_require = [],
+    tests_require = ['nosexcover>=1.0'],
 
 
     # If your project depends on packages that aren't registered in PyPI, you 
