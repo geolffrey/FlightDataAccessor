@@ -130,6 +130,7 @@ setup(
     # A string or list of strings specifying what other distributions need to be 
     # installed when this one is.
     install_requires = ['distribute',
+                        'numpy',
                         'h5py',
                         'simplejson',
                         'Utilities'],
@@ -164,7 +165,7 @@ setup(
     # already. If you want them to be installed, as well as being available when 
     # the setup script is run, you should add them to install_requires and 
     # setup_requires.)
-    setup_requires = ['nose>=1.0', 'numpy'],
+    setup_requires = ['nose>=1.0'],
 
 
     # If your project's tests need one or more additional packages besides those 
