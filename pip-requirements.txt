@@ -1,3 +1,0 @@
--e bzr+http://vindictive.flightdataservices.com/Bazaar/Utilities#egg=Utilities
-numpy
-h5py

@@ -140,6 +140,7 @@ setup(
     install_requires = ['setuptools>=0.6b1',
                         'numpy',
                         'h5py',
+                        'simplejson',
                         'Utilities'],
          
     # Sometimes a project has "recommended" dependencies, that are not required 
@@ -153,9 +154,9 @@ setup(
     # A dictionary mapping names of "extras" (optional features of your project) 
     # to strings or lists of strings specifying what other distributions must be 
     # installed to support those features.    
-    extras_require = {
-        'reST': ["docutils>=0.3"],
-    },
+    #extras_require = {
+    #    'reST': ["docutils>=0.3"],
+    #},
 
     
     # A string or list of strings specifying what other distributions need to be 
@@ -172,14 +173,14 @@ setup(
     # already. If you want them to be installed, as well as being available when 
     # the setup script is run, you should add them to install_requires and 
     # setup_requires.)
-    setup_requires = ['nose>=1.0'],
+    setup_requires = ['nosexcover>=1.0'],
 
 
     # If your project's tests need one or more additional packages besides those 
     # needed to install it, you can use this option to specify them. It should 
     # be a string or list of strings specifying what other distributions need to 
     # be present for the package's tests to run.     
-    tests_require = ['pylint'],
+    tests_require = [],
 
 
     # If your project depends on packages that aren't registered in PyPI, you 

@@ -9,3 +9,5 @@ build
 .coverage
 .build
 .static
+coverage.xml
+nosetests.xml
