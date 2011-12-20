@@ -1,4 +1,4 @@
-
+from analysis.library import align # WARNING: Circular dependency
 
 #-------------------------------------------------------------------------------
 # Parameter container Class
@@ -11,16 +11,23 @@ class Parameter(object):
         :param array: Masked array of data for the parameter.
         :type array: np.ma.masked_array
         :param frequency: Sample Rate / Frequency / Hz
-        :type frequency: Int
+        :type frequency: Float
         :param offset: Offset in Frame.
         :type offset: Float
         '''
         self.name = name
         self.array = array
-        self.frequency = self.sample_rate = self.hz = frequency
+        # ensure frequency is stored as a float
+        self.frequency = self.sample_rate = self.hz = float(frequency)
         self.offset = offset
         
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
+    
+    def get_aligned(self, param):
+        aligned_array = align(self, param)
+        return self.__class__(self.name, array=aligned_array,
+                              frequency=param.frequency, offset=param.offset)
+
 
 P = Parameter # shorthand
