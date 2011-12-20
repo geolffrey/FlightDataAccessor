@@ -1,21 +1,13 @@
 #!/usr/bin/env python
 
-import os
-import sys
- 
 try:
     from setuptools import setup, find_packages
 except ImportError:
-    try:
-        from ez_setup import use_setuptools
-    except ImportError:
-        print "can't find ez_setup"
-        print "try: wget http://peak.telecommunity.com/dist/ez_setup.py"
-        sys.exit(1)
+    from distribute_setup import use_setuptools
     use_setuptools()
     from setuptools import setup, find_packages
 
-from skeleton import __version__ as VERSION
+from hdfaccess import __version__ as VERSION
 
 setup(
     # === Meta data ===
@@ -116,8 +108,7 @@ setup(
     # specified test suite, e.g. via setup.py test. See the section on the test 
     # command below for more details.
 
-    #test_suite = 'nose.collector',
-    test_suite = 'skeleton.tests.suite',
+    test_suite = 'nose.collector',
         
     # === Dependancies ===        
         
@@ -138,9 +129,10 @@ setup(
 
     # A string or list of strings specifying what other distributions need to be 
     # installed when this one is.
-    install_requires = ['setuptools>=0.6b1',
+    install_requires = ['distribute',
                         'numpy',
                         'h5py',
+                        'simplejson',
                         'Utilities'],
          
     # Sometimes a project has "recommended" dependencies, that are not required 
@@ -154,9 +146,9 @@ setup(
     # A dictionary mapping names of "extras" (optional features of your project) 
     # to strings or lists of strings specifying what other distributions must be 
     # installed to support those features.    
-    extras_require = {
-        'reST': ["docutils>=0.3"],
-    },
+    #extras_require = {
+    #    'reST': ["docutils>=0.3"],
+    #},
 
     
     # A string or list of strings specifying what other distributions need to be 
@@ -173,14 +165,14 @@ setup(
     # already. If you want them to be installed, as well as being available when 
     # the setup script is run, you should add them to install_requires and 
     # setup_requires.)
-    setup_requires = ['pylint'],
+    setup_requires = ['nose>=1.0'],
 
 
     # If your project's tests need one or more additional packages besides those 
     # needed to install it, you can use this option to specify them. It should 
     # be a string or list of strings specifying what other distributions need to 
     # be present for the package's tests to run.     
-    tests_require = ['nose>=0.11', 'figleaf', 'coverage==2.85'],
+    tests_require = [],
 
 
     # If your project depends on packages that aren't registered in PyPI, you 
