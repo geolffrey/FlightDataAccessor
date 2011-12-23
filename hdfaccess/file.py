@@ -154,6 +154,9 @@ class hdf_file(object):    # rare case of lower case?!
             param_group = self.hdf['series'][param_name]
         else:
             param_group = self.hdf['series'].create_group(param_name)
+            param_group.attrs['name'] = param_name
+            param_group.attrs['external_datatype'] = 'float'
+            param_group.attrs['external_dataformat'] = '%.2f'
         return param_group
 
     def set_param(self, param):
