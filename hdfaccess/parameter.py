@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Parameter container Class
 # =========================
 '''
@@ -7,7 +7,7 @@ Parameter container class.
 
 import numpy as np
 
-from analysis.library import align # WARNING: Circular dependency
+from analysis.library import align, value_at_time # WARNING: Circular dependency on repository
 
 
 class Parameter(object):
@@ -35,6 +35,20 @@ class Parameter(object):
         aligned_array = align(self, param)
         return self.__class__(self.name, array=aligned_array,
                               frequency=param.frequency, offset=param.offset)
-
-
+    
+    def at(self, secs):
+        """
+        Interpolates to retrieve the most accurate value.
+        
+        :param secs: time delta from start of data in seconds
+        :type secs: float or timedelta
+        """
+        try:
+            # get seconds from timedelta
+            secs = float(secs.total_seconds)
+        except AttributeError:
+            # secs is a float
+            secs = float(secs)
+        return value_at_time(self.array, self.frequency, self.offset, secs)
+        
 P = Parameter # shorthand
