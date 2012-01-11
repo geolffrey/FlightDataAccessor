@@ -1,6 +1,3 @@
-# dot directories
-.*/
-
 # Transient files
 *.log
 *.tmp
@@ -12,6 +9,7 @@ __MACOSX
 .DS_Store
 
 # Sphinx transient files (old style)
+*_autogen.rst
 .build
 .static
 
@@ -34,5 +32,3 @@ build
 coverage.xml
 nosetests.xml
 cpd.xml
-pep8.log
-pylint.log
