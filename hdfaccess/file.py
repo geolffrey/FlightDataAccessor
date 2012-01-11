@@ -139,12 +139,24 @@ class hdf_file(object):    # rare case of lower case?!
         offset = param_group.attrs.get('latency', 0) # default=0sec for old CSV files #TODO: Remove .get
         return Parameter(name, array, frequency, offset)
     
+    def get(self, name, default=None):
+        """
+        Dictionary like .get operator
+        """
+        try:
+            return self.get_param(name)
+        except KeyError:
+            return default
+    
     def get_or_create(self, param_name):
         # Either get or create parameter.
         if param_name in self.hdf['series']:
             param_group = self.hdf['series'][param_name]
         else:
             param_group = self.hdf['series'].create_group(param_name)
+            param_group.attrs['name'] = param_name
+            param_group.attrs['external_datatype'] = 'float'
+            param_group.attrs['external_dataformat'] = '%.2f'
         return param_group
 
     def set_param(self, param):
