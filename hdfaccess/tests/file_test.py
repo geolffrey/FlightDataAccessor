@@ -25,8 +25,10 @@ class TestHdfFile(unittest.TestCase):
         param_group = series.create_group(self.param_name)
         self.param_frequency = 2
         self.param_latency = 1.5
+        self.param_arinc_429 = True
         param_group.attrs['frequency'] = self.param_frequency
         param_group.attrs['latency'] = self.param_latency
+        param_group.attrs['arinc_429'] = self.param_arinc_429
         self.param_data = np.arange(100)
         dataset = param_group.create_dataset('data', data=self.param_data)
         self.masked_param_name = 'TEST_PARAM11'
@@ -89,8 +91,10 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(len(params) == 2)
         param = params['TEST_PARAM10']
         self.assertEqual(param.frequency, self.param_frequency)
+        self.assertEqual(param.arinc_429, self.param_arinc_429)
         param = params['TEST_PARAM11']
         self.assertEqual(param.offset, self.masked_param_latency)
+        self.assertEqual(param.arinc_429, None)
         # Test retrieving single specified parameter.
         params = hdf_file.get_params(param_names=['TEST_PARAM10'])
         self.assertTrue(len(params) == 1)
@@ -104,28 +108,39 @@ class TestHdfFile(unittest.TestCase):
         '''
         set_param_data = self.hdf_file.__setitem__
         hdf_file = self.hdf_file
+        series = hdf_file.hdf['series']
         # Create new parameter with np.array.
         name1 = 'TEST_PARAM1'
         array = np.arange(100)
         set_param_data(name1, Parameter(name1, array))
-        self.assertTrue(np.all(hdf_file.hdf['series'][name1]['data'].value == array))
+        self.assertTrue(np.all(series[name1]['data'].value == array))
+        self.assertFalse('arinc_429' in series[name1].attrs)
         # Create new parameter with np.ma.masked_array.
         name2 = 'TEST_PARAM2'
         mask = [False] * len(array)
         masked_array = np.ma.masked_array(data=array, mask=mask)
-        set_param_data(name2, Parameter(name2, masked_array))
-        self.assertTrue(np.all(hdf_file.hdf['series'][name2]['data'].value == array))
-        self.assertTrue(np.all(hdf_file.hdf['series'][name2]['mask'].value == mask))
+        param2_frequency = 0.5
+        param2_offset = 2
+        param2_arinc_429 = True
+        set_param_data(name2, Parameter(name2, masked_array,
+                                        frequency=param2_frequency,
+                                        offset=param2_offset,
+                                        arinc_429=param2_arinc_429))
+        self.assertTrue(np.all(series[name2]['data'].value == array))
+        self.assertTrue(np.all(series[name2]['mask'].value == mask))
+        self.assertEqual(series[name2].attrs['frequency'], param2_frequency)
+        self.assertEqual(series[name2].attrs['latency'], param2_offset)
+        self.assertEqual(series[name2].attrs['arinc_429'], param2_arinc_429)
         # Set existing parameter's data with np.array.
         array = np.arange(200)
         set_param_data(name1, Parameter(name1, array))
-        self.assertTrue(np.all(hdf_file.hdf['series'][name1]['data'].value == array))
+        self.assertTrue(np.all(series[name1]['data'].value == array))
         # Set existing parameter's data with np.ma.masked_array.
         mask = [bool(random.randint(0, 1)) for x in range(len(array))]
         masked_array = np.ma.masked_array(data=array, mask=mask)
         set_param_data(name1, Parameter(name1, masked_array))
-        self.assertTrue(np.all(hdf_file.hdf['series'][name1]['data'].value == array))
-        self.assertTrue(np.all(hdf_file.hdf['series'][name1]['mask'].value == mask))
+        self.assertTrue(np.all(series[name1]['data'].value == array))
+        self.assertTrue(np.all(series[name1]['mask'].value == mask))
     
     def test_get_param_data(self):
         self.__test_get_param_data(self.hdf_file.get_param)

@@ -134,10 +134,15 @@ class hdf_file(object):    # rare case of lower case?!
         data = param_group['data']
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
-        frequency = param_group.attrs.get('frequency', 1) # default=1Hz for old CSV files #TODO: Remove .get
-        # Differing terms: latency is known internally as frame offset.
-        offset = param_group.attrs.get('latency', 0) # default=0sec for old CSV files #TODO: Remove .get
-        return Parameter(name, array, frequency, offset)
+        kwargs = {}
+        if 'frequency' in param_group.attrs:
+            kwargs['frequency'] = param_group.attrs['frequency']
+        if 'latency' in param_group.attrs:
+            # Differing terms: latency is known internally as frame offset.
+            kwargs['offset'] = param_group.attrs['latency']
+        if 'arinc_429' in param_group.attrs:
+            kwargs['arinc_429'] = param_group.attrs['arinc_429']
+        return Parameter(name, array, **kwargs)
     
     def get(self, name, default=None):
         """
@@ -168,8 +173,6 @@ class hdf_file(object):    # rare case of lower case?!
         '/series/CAS'.
         
         :param param: Parameter like object with attributes name (must not contain forward slashes), array. 
-        
-        :type name: str
         :param array: Array containing data and potentially a mask for the data.
         :type array: np.array or np.ma.masked_array
         '''
@@ -194,6 +197,9 @@ class hdf_file(object):    # rare case of lower case?!
         # Set parameter attributes
         param_group.attrs['latency'] = param.offset
         param_group.attrs['frequency'] = param.frequency
+        if param.arinc_429 is not None:
+            # A None value cannot be stored within the HDF file as an attribute.
+            param_group.attrs['arinc_429'] = param.arinc_429
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
     
