@@ -17,7 +17,12 @@ def create_hdf_test_file(hdf_path):
 
 
 class CreateHDFForTest(object):
+    '''
+    Test classes can derive from this class to be able to create an HDF file
+    for testing.
+    '''
     def _create_hdf_test_file(self, hdf_path):
+        self.data_secs = 100
         with h5py.File(hdf_path, 'w') as hdf_file:
             series = hdf_file.create_group('series')
             # 'IVV' - 1Hz parameter.
@@ -137,21 +142,34 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         Do not keep any parameters.
         '''
         strip_hdf(self.hdf_path, [], self.out_path)
-        with h5py.File(hdf_path, 'w') as hdf_file:
+        with h5py.File(self.hdf_path, 'r') as hdf_file:
             self.assertEqual(hdf_file['series'].keys(), [])
     
     def test_strip_hdf_ivv(self):
         params_to_keep = ['IVV']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
-        with h5py.File(hdf_path, 'w') as hdf_file:
+        with h5py.File(self.hdf_path, 'r') as hdf_file:
             self.assertEqual(hdf_file['series'].keys(), params_to_keep)
             # Ensure datasets are unchanged.
-            self.assertTrue(all(hdf_file['series']['IVV']['data'],
+            self.assertTrue(all(hdf_file['series']['IVV']['data'][:] == \
                                 self.ivv_data))
-            self.assertTrue(all(hdf_file['series']['IVV']['mask'],
+            self.assertTrue(all(hdf_file['series']['IVV']['mask'][:] == \
                                 self.ivv_mask))
             # Ensure attributes are unchanged.
-            ##self.assertEqual(hdf_file['series']['IVV']
+            self.assertEqual(hdf_file['series']['IVV'].attrs['latency'],
+                             self.ivv_latency)
+            self.assertEqual(hdf_file['series']['IVV'].attrs['frequency'],
+                             self.ivv_frequency)
+        
+    def test_strip_hdf_dme_wow(self):
+        '''
+        Does not test that datasets and attributes are maintained, see
+        test_strip_hdf_ivv.
+        '''
+        params_to_keep = ['DME', 'WOW']
+        strip_hdf(self.hdf_path, params_to_keep, self.out_path)
+        with h5py.File(self.hdf_path, 'r') as hdf_file:
+            self.assertEqual(hdf_file['series'].keys(), params_to_keep)
 
 
 class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
@@ -159,7 +177,6 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         self.hdf_path = os.path.join(TEMP_DIR_PATH,
                                      'hdf_for_write_segment.hdf5')
         self._create_hdf_test_file(self.hdf_path)
-        self.data_secs = 100
         self.out_path = os.path.join(TEMP_DIR_PATH,
                                      'hdf_segment.hdf5')
     

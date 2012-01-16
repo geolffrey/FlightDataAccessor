@@ -45,7 +45,8 @@ def concat_hdf(hdf_paths, dest=None):
 
 def strip_hdf(hdf_path, params_to_keep, dest):
     '''
-    Strip an HDF file of all parameters apart from those in param_names.
+    Strip an HDF file of all parameters apart from those in param_names. Does
+    not raise an exception if any of the params_to_keep are not in the HDF file.
     
     :param hdf_path: file path of hdf file.
     :type hdf_path: str
@@ -55,13 +56,13 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     :type dest: str
     :return: path to output hdf file containing specified segment.
     :rtype: str
-    
     '''
     # Q: Is there a better way to clone the contents of an hdf file?
     shutil.copy(hdf_path, dest)
-    for param_name in hdf_file['series'].keys():
-        if param_name not in params_to_keep:
-            del hdf_file['series'][param_name]
+    with h5py.File(hdf_path, 'r+') as hdf_file:
+        for param_name in hdf_file['series'].keys():
+            if param_name not in params_to_keep:
+                del hdf_file['series'][param_name]
     return dest
             
 
