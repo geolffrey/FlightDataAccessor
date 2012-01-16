@@ -42,7 +42,30 @@ def concat_hdf(hdf_paths, dest=None):
             param_group.create_dataset("data", data=concat_array, maxshape=(len(concat_array),))
     return dest
 
+
+def strip_hdf(hdf_path, params_to_keep, dest):
+    '''
+    Strip an HDF file of all parameters apart from those in param_names.
     
+    :param hdf_path: file path of hdf file.
+    :type hdf_path: str
+    :param params_to_keep: parameter names to keep.
+    :type param_to_keep: list of str
+    :param dest: destination path for stripped output file
+    :type dest: str
+    :return: path to output hdf file containing specified segment.
+    :rtype: str
+    
+    '''
+    # Q: Is there a better way to clone the contents of an hdf file?
+    shutil.copy(hdf_path, dest)
+    for param_name in hdf_file['series'].keys():
+        if param_name not in params_to_keep:
+            del hdf_file['series'][param_name]
+    return dest
+            
+
+
 def write_segment(hdf_path, segment, dest):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by 

@@ -197,7 +197,7 @@ class hdf_file(object):    # rare case of lower case?!
         # Set parameter attributes
         param_group.attrs['latency'] = param.offset
         param_group.attrs['frequency'] = param.frequency
-        if param.arinc_429 is not None:
+        if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
             # A None value cannot be stored within the HDF file as an attribute.
             param_group.attrs['arinc_429'] = param.arinc_429
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
