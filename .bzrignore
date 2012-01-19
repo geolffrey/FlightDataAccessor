@@ -32,3 +32,6 @@ build
 coverage.xml
 nosetests.xml
 cpd.xml
+
+# HDFAccess cruft
+tests/test_data/temp/*

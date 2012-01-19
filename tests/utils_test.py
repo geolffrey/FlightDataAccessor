@@ -1,8 +1,8 @@
-import unittest
-import os
 import errno
-import numpy as np
 import h5py
+import numpy as np
+import os
+import unittest
 
 from hdfaccess.utils import concat_hdf, strip_hdf, write_segment
 
@@ -10,10 +10,6 @@ TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 't
 TEMP_DIR_PATH = os.path.join(TEST_DATA_DIR_PATH, 'temp')
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'test_data')
-
-
-def create_hdf_test_file(hdf_path):
-    os.path.join(TEMP_DIR_PATH, 'hdf_for_write_segment.hdf5')
 
 
 class CreateHDFForTest(object):
@@ -347,7 +343,3 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         except OSError, err:
             if err.errno != errno.ENOENT:
                 raise
-
-
-if __name__ == "__main__":
-    unittest.main()
