@@ -12,10 +12,6 @@ TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'test_data')
 
 
-def create_hdf_test_file(hdf_path):
-    os.path.join(TEMP_DIR_PATH, 'hdf_for_write_segment.hdf5')
-
-
 class CreateHDFForTest(object):
     '''
     Test classes can derive from this class to be able to create an HDF file
