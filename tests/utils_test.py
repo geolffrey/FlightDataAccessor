@@ -1,8 +1,8 @@
-import unittest
-import os
 import errno
-import numpy as np
 import h5py
+import numpy as np
+import os
+import unittest
 
 from hdfaccess.utils import concat_hdf, write_segment
 
@@ -293,7 +293,3 @@ class TestWriteSegment(unittest.TestCase):
         except OSError, err:
             if err.errno != errno.ENOENT:
                 raise
-
-
-if __name__ == "__main__":
-    unittest.main()

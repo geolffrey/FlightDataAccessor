@@ -1,12 +1,8 @@
-import os
-import random
 import h5py
 import numpy as np
-
-try:
-    import unittest2 as unittest  # py2.6
-except ImportError:
-    import unittest
+import os
+import random
+import unittest
 
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import Parameter
@@ -177,7 +173,3 @@ class TestHdfFile(unittest.TestCase):
         '''
         self.assertEqual(sorted(self.hdf_file.keys()),
                          sorted([self.param_name, self.masked_param_name]))
-
-
-if __name__ == "__main__":
-    unittest.main()

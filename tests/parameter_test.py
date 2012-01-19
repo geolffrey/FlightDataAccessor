@@ -1,8 +1,5 @@
-try:
-    import unittest2 as unittest  # py2.6
-except ImportError:
-    import unittest
 import numpy as np
+import unittest
 
 from hdfaccess.parameter import Parameter
 
@@ -22,9 +19,8 @@ class TestParameter(unittest.TestCase):
         frequency = 8
         offset = 1
         arinc_429 = True
-        p = Parameter('param', array=array, np.frequency=frequency,
-                      offset=offset, arinc_429=arinc_429)
-        self.assertEqual(p.array, array)
+        p = Parameter('param', array=array, frequency=frequency, offset=offset, arinc_429=arinc_429)
+        np.testing.assert_array_equal(p.array, array)
         self.assertEqual(p.frequency, frequency)
         self.assertEqual(p.offset, offset)
         self.assertEqual(p.arinc_429, arinc_429)
