@@ -4,12 +4,56 @@ import numpy as np
 import os
 import unittest
 
-from hdfaccess.utils import concat_hdf, write_segment
+from hdfaccess.utils import concat_hdf, strip_hdf, write_segment
 
 TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 TEMP_DIR_PATH = os.path.join(TEST_DATA_DIR_PATH, 'temp')
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'test_data')
+
+
+def create_hdf_test_file(hdf_path):
+    os.path.join(TEMP_DIR_PATH, 'hdf_for_write_segment.hdf5')
+
+
+class CreateHDFForTest(object):
+    '''
+    Test classes can derive from this class to be able to create an HDF file
+    for testing.
+    '''
+    def _create_hdf_test_file(self, hdf_path):
+        self.data_secs = 100
+        with h5py.File(hdf_path, 'w') as hdf_file:
+            series = hdf_file.create_group('series')
+            # 'IVV' - 1Hz parameter.
+            ivv_group = series.create_group('IVV')
+            self.ivv_frequency = 1
+            ivv_group.attrs['frequency'] = self.ivv_frequency
+            self.ivv_latency = 2.1
+            ivv_group.attrs['latency'] = self.ivv_latency
+            self.ivv_data = np.arange(self.data_secs * self.ivv_frequency,
+                                      dtype=np.dtype(np.float))
+            self.ivv_mask = np.array([False] * len(self.ivv_data))
+            ivv_group.create_dataset('data', data=self.ivv_data)
+            ivv_group.create_dataset('mask', data=self.ivv_mask)
+            # 'WOW' - 4Hz parameter.
+            wow_group = series.create_group('WOW')
+            self.wow_frequency = 4
+            wow_group.attrs['frequency'] = self.wow_frequency
+            self.wow_data = np.arange(self.data_secs * self.wow_frequency, 
+                                      dtype=np.dtype(np.float))
+            self.wow_mask = np.array([False] * len(self.wow_data))
+            wow_group.create_dataset('data', data=self.wow_data)
+            wow_group.create_dataset('mask', data=self.wow_mask)            
+            # 'DME' - 0.15Hz parameter.
+            dme_group = series.create_group('DME')
+            self.dme_frequency = 0.15
+            dme_group.attrs['frequency'] = self.dme_frequency
+            self.dme_data = np.arange(self.data_secs * self.dme_frequency, 
+                                      dtype=np.dtype(np.float))
+            self.dme_mask = np.array([False] * len(self.dme_data))
+            dme_group.create_dataset('data', data=self.dme_data)
+            dme_group.create_dataset('mask', data=self.dme_mask) 
 
 
 class TestConcatHDF(unittest.TestCase):
@@ -85,44 +129,54 @@ class TestConcatHDF(unittest.TestCase):
                     raise
 
 
-class TestWriteSegment(unittest.TestCase):
+class TestStripHDF(unittest.TestCase, CreateHDFForTest):
+    def setUp(self):
+        self.hdf_path = os.path.join(TEMP_DIR_PATH,
+                                     'hdf_for_split_hdf.hdf5')
+        self._create_hdf_test_file(self.hdf_path)
+        self.out_path = os.path.join(TEMP_DIR_PATH,
+                                     'hdf_split.hdf5')
+    
+    def test_strip_hdf_all(self):
+        '''
+        Do not keep any parameters.
+        '''
+        strip_hdf(self.hdf_path, [], self.out_path)
+        with h5py.File(self.hdf_path, 'r') as hdf_file:
+            self.assertEqual(hdf_file['series'].keys(), [])
+    
+    def test_strip_hdf_ivv(self):
+        params_to_keep = ['IVV']
+        strip_hdf(self.hdf_path, params_to_keep, self.out_path)
+        with h5py.File(self.hdf_path, 'r') as hdf_file:
+            self.assertEqual(hdf_file['series'].keys(), params_to_keep)
+            # Ensure datasets are unchanged.
+            self.assertTrue(all(hdf_file['series']['IVV']['data'][:] == \
+                                self.ivv_data))
+            self.assertTrue(all(hdf_file['series']['IVV']['mask'][:] == \
+                                self.ivv_mask))
+            # Ensure attributes are unchanged.
+            self.assertEqual(hdf_file['series']['IVV'].attrs['latency'],
+                             self.ivv_latency)
+            self.assertEqual(hdf_file['series']['IVV'].attrs['frequency'],
+                             self.ivv_frequency)
+        
+    def test_strip_hdf_dme_wow(self):
+        '''
+        Does not test that datasets and attributes are maintained, see
+        test_strip_hdf_ivv.
+        '''
+        params_to_keep = ['DME', 'WOW']
+        strip_hdf(self.hdf_path, params_to_keep, self.out_path)
+        with h5py.File(self.hdf_path, 'r') as hdf_file:
+            self.assertEqual(hdf_file['series'].keys(), params_to_keep)
+
+
+class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
     def setUp(self):
         self.hdf_path = os.path.join(TEMP_DIR_PATH,
                                      'hdf_for_write_segment.hdf5')
-        self.data_secs = 100
-        
-        with h5py.File(self.hdf_path, 'w') as hdf_file:
-            series = hdf_file.create_group('series')
-            # 'IVV' - 1Hz parameter.
-            ivv_group = series.create_group('IVV')
-            self.ivv_frequency = 1
-            ivv_group.attrs['frequency'] = self.ivv_frequency
-            self.ivv_latency = 2.1
-            ivv_group.attrs['latency'] = self.ivv_latency
-            self.ivv_data = np.arange(self.data_secs * self.ivv_frequency,
-                                      dtype=np.dtype(np.float))
-            self.ivv_mask = np.array([False] * len(self.ivv_data))
-            ivv_group.create_dataset('data', data=self.ivv_data)
-            ivv_group.create_dataset('mask', data=self.ivv_mask)
-            # 'WOW' - 4Hz parameter.
-            wow_group = series.create_group('WOW')
-            self.wow_frequency = 4
-            wow_group.attrs['frequency'] = self.wow_frequency
-            self.wow_data = np.arange(self.data_secs * self.wow_frequency, 
-                                      dtype=np.dtype(np.float))
-            self.wow_mask = np.array([False] * len(self.wow_data))
-            wow_group.create_dataset('data', data=self.wow_data)
-            wow_group.create_dataset('mask', data=self.wow_mask)            
-            # 'DME' - 0.15Hz parameter.
-            dme_group = series.create_group('DME')
-            self.dme_frequency = 0.15
-            dme_group.attrs['frequency'] = self.dme_frequency
-            self.dme_data = np.arange(self.data_secs * self.dme_frequency, 
-                                      dtype=np.dtype(np.float))
-            self.dme_mask = np.array([False] * len(self.dme_data))
-            dme_group.create_dataset('data', data=self.dme_data)
-            dme_group.create_dataset('mask', data=self.dme_mask) 
-        
+        self._create_hdf_test_file(self.hdf_path)
         self.out_path = os.path.join(TEMP_DIR_PATH,
                                      'hdf_segment.hdf5')
     
