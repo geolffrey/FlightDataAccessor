@@ -160,7 +160,7 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
                              self.ivv_latency)
             self.assertEqual(hdf_file['series']['IVV'].attrs['frequency'],
                              self.ivv_frequency)
-        
+    
     def test_strip_hdf_dme_wow(self):
         '''
         Does not test that datasets and attributes are maintained, see
@@ -259,7 +259,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_expected_result = np.arange(7, 15, dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 50)
-        
+    
     def test_write_segment__stop_only(self):
         '''
         Tests that the correct segment of the dataset within the path matching

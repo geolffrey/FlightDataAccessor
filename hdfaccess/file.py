@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import h5py
 try:
@@ -208,7 +209,7 @@ class hdf_file(object):    # rare case of lower case?!
         Stores limits for a parameter in JSON format.
         
         :param name: Parameter name
-        :type name: string
+        :type name: str
         :param limits: Operating limits storage
         :type limits: dict
         '''
@@ -217,15 +218,35 @@ class hdf_file(object):    # rare case of lower case?!
         
     def get_param_limits(self, name):
         '''
+        Returns a parameter's operating limits stored within the groups
+        'limits' attribute. Decodes limits from JSON into dict.
+        
+        :param name: Parameter name
+        :type name: str
+        :returns: Parameter operating limits or None if 'limits' attribute does not exist.
+        :rtype: dict or None
+        :raises KeyError: If parameter name does not exist within the HDF file.
         '''
         if name not in self:
-            # catch exception otherwise HDF will crash and close
+            # Do not try to retrieve a non-existing group within the HDF 
+            # otherwise h5py.File object will crash and close.
             raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
-        if limits:
-            return json.loads(limits)
-        else:
-            return None
+        return json.loads(limits) if limits else None
+    
+    def get_matching(self, regex_str):
+        '''
+        Get parameters with names matching regex_str.
+        
+        :param regex_str: Regex to match against parameters.
+        :type regex_str: str
+        :returns: Parameters which match regex_str.
+        :rtype: list of Parameter
+        '''
+        compiled_regex = re.compile(regex_str)
+        param_names = filter(compiled_regex.match, self.keys())
+        return [self[param_name] for param_name in param_names]
+
 
 def print_hdf_info(hdf_file):
     hdf_file = hdf_file.hdf

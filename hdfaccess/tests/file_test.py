@@ -47,6 +47,18 @@ class TestHdfFile(unittest.TestCase):
         if self.hdf_file.hdf.id:
             self.hdf_file.close()
         os.remove(self.hdf_path)
+        
+    def test_get_matching(self):
+        regex_str = '^TEST_PARAM10$'
+        params = self.hdf_file.get_matching(regex_str)
+        self.assertEqual(len(params), 1)
+        self.assertEqual(params[0].name, self.param_name)
+        regex_str = '^TEST_PARAM1[01]$'
+        params = self.hdf_file.get_matching(regex_str)
+        self.assertEqual(len(params), 2)
+        param_names = [p.name for p in params]
+        self.assertTrue(self.param_name in param_names)
+        self.assertTrue(self.masked_param_name in param_names)
     
     def test_open_and_close_and_full_masks(self):
         self.hdf_file.close()
