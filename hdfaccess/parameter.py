@@ -14,7 +14,7 @@ class Parameter(object):
         :type array: np.ma.masked_array
         :param frequency: Sample Rate / Frequency / Hz
         :type frequency: Float
-        :param offset: Offset in Frame.
+        :param offset: Offset in Superframe.
         :type offset: Float
         '''
         self.name = name
