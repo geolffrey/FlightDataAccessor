@@ -17,3 +17,5 @@ exclude build
 exclude dist
 exclude nosetests.xml
 exclude coverage.xml
+
+exclude tests/test_data/temp/*

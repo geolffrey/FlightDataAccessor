@@ -36,3 +36,6 @@ nosetests.xml
 cpd.xml
 pep8.log
 pylint.log
+
+# HDFAccess cruft
+tests/test_data/temp/*
