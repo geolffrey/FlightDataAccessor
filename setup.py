@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import re
+
 try:
     from setuptools import setup, find_packages
 except ImportError:
