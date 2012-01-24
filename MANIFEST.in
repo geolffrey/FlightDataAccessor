@@ -1,0 +1,19 @@
+include doc/Makefile
+include doc/make.bat
+include doc/source/*.*
+include doc/source/_static/*.*
+include doc/source/_template/*.*
+
+include *.py
+include requirements.txt
+include CHANGES
+include LICENSE
+include README
+include TODO
+
+exclude .bzr
+exclude jenkins
+exclude build
+exclude dist
+exclude nosetests.xml
+exclude coverage.xml
