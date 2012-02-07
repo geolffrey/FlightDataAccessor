@@ -1,4 +1,5 @@
--e bzr+http://vindictive.flightdataservices.com/Bazaar/Utilities#egg=Utilities
+Utilities
+-f http://vindictive.flightdataservices.com:8080/packages/Utilities-0.1.1.dev.19.zip
 simplejson
 numpy
 h5py
