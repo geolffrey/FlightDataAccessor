@@ -143,6 +143,8 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['offset'] = param_group.attrs['latency']
         if 'arinc_429' in param_group.attrs:
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
+        if 'units' in param_group.attrs:
+            kwargs['units'] = param_group.attrs['units']
         return Parameter(name, array, **kwargs)
     
     def get(self, name, default=None):
@@ -201,6 +203,9 @@ class hdf_file(object):    # rare case of lower case?!
         if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
             # A None value cannot be stored within the HDF file as an attribute.
             param_group.attrs['arinc_429'] = param.arinc_429
+        if hasattr(param, 'units') and param.units is not None:
+            # A None value cannot be stored within the HDF file as an attribute.
+            param_group.attrs['units'] = param.units
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
     
