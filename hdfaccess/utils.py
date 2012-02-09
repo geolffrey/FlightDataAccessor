@@ -94,7 +94,13 @@ def write_segment(hdf_path, segment, dest):
             # for params lower than 1hz, floor the start and round the top to take more than the required values
             start_index = math.floor(segment.start * frequency) if segment.start else 0
             #TODO: Determine whether round or math.ceil is preferred option here:
-            stop_index = round(segment.stop * frequency) if segment.stop else len(param_group['data']) 
+            if segment.stop:
+                stop_index = round(segment.stop * frequency)
+                if stop_index > len(param_group['data']):
+                    # TODO: Log?
+                    stop_index = len(param_group['data'])
+            else:
+                stop_index = len(param_group['data'])
             seg_data = param_group['data'][int(start_index):int(stop_index)]
             seg_mask = param_group['mask'][int(start_index):int(stop_index)]
             param_name_to_array[param_name] = (seg_data, seg_mask)
