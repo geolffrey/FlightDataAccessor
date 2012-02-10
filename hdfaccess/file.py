@@ -39,7 +39,9 @@ class hdf_file(object):    # rare case of lower case?!
     def __init__(self, file_path):
         self.file_path = file_path
         self.hdf = h5py.File(self.file_path, 'r+')
-        self.duration = float(self.hdf.attrs.get('duration'))
+        self.duration = self.hdf.attrs.get('duration')
+        if self.duration:
+            self.duration = float(self.duration)
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
                 
