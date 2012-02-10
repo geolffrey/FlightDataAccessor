@@ -88,6 +88,7 @@ def write_segment(hdf_path, segment, dest):
     # Q: Is there a better way to clone the contents of an hdf file?
     shutil.copy(hdf_path, dest)
     param_name_to_array = {}
+    duration = None
     with h5py.File(hdf_path, 'r') as hdf_file:
         for param_name, param_group in hdf_file['series'].iteritems():
             frequency = param_group.attrs['frequency']
@@ -104,9 +105,8 @@ def write_segment(hdf_path, segment, dest):
             seg_data = param_group['data'][int(start_index):int(stop_index)]
             seg_mask = param_group['mask'][int(start_index):int(stop_index)]
             param_name_to_array[param_name] = (seg_data, seg_mask)
-        # duration taken from last parameter
-        #TODO: Change to a 1Hz param to avoid issues with less than 1Hz params setting incorrect duration due to rounding
-        duration = len(seg_data) / frequency
+            if not duration and frequency == 1:
+                duration = len(seg_data)
     with h5py.File(dest, 'r+') as hdf_file:
         for param_name, array in param_name_to_array.iteritems():
             param_group = hdf_file['series'][param_name]
