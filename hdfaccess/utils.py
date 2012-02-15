@@ -64,10 +64,9 @@ def strip_hdf(hdf_path, params_to_keep, dest):
             if param_name not in params_to_keep:
                 del hdf_file['series'][param_name]
     return dest
-            
 
 
-def write_segment(hdf_path, segment, dest):
+def write_segment(hdf_path, segment, dest, supf_boundary=True):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by 
     segments, a slice in seconds. Expects the HDF file to contain whole
@@ -81,6 +80,8 @@ def write_segment(hdf_path, segment, dest):
     :type segment: slice
     :param dest: destination path for output file containing segment.
     :type dest: str
+    :param supf_boundary: Split on superframe boundaries, masking data outside of the segment.
+    :type supf_boundary: bool
     :return: path to output hdf file containing specified segment.
     :rtype: str
     
@@ -90,65 +91,69 @@ def write_segment(hdf_path, segment, dest):
     shutil.copy(hdf_path, dest)
     param_name_to_array = {}
     duration = None
-    if segment.start:
-        supf_start_secs = (int(segment.start) / 64) * 64
-        param_start_secs = (segment.start - supf_start_secs)
-    if segment.stop:
-        supf_stop_secs = ((int(segment.stop) / 64) * 64) + 64
-        param_stop_secs = (supf_stop_secs - segment.stop)
+    
+    if supf_boundary:
+        if segment.start:
+            supf_start_secs = (int(segment.start) / 64) * 64
+            param_start_secs = (segment.start - supf_start_secs)
+        if segment.stop:
+            supf_stop_secs = ((int(segment.stop) / 64) * 64)
+            if segment.stop % 64 != 0:
+                # Segment does not end on a superframe boundary, include the 
+                # following superframe.
+                supf_stop_secs += 64
+            param_stop_secs = (supf_stop_secs - segment.stop)
         
     with h5py.File(hdf_path, 'r') as hdf_file:
         for param_name, param_group in hdf_file['series'].iteritems():
             data = param_group['data']
             mask = param_group['mask']
             frequency = param_group.attrs['frequency']
-            # for params lower than 1hz, floor the start and round the top to take more than the required values
-            if ((frequency * 64) % 1) != 0:
-                raise ValueError("Parameter '%s' does not record a consistent "
-                                 "number of values every superframe.",
-                                 param_name)
             
+            if supf_boundary:
+                if ((frequency * 64) % 1) != 0:
+                    raise ValueError("Parameter '%s' does not record a consistent "
+                                     "number of values every superframe. Check the "
+                                     "LFL definition." % param_name)
+                if segment.start:
+                    supf_start_index = int(supf_start_secs * frequency)
+                    param_start_index = int((segment.start - supf_start_secs) * frequency)
+                else:
+                    supf_start_index = 0
+                    param_start_index = supf_start_index
+                if segment.stop:
+                    supf_stop_index = int(supf_stop_secs * frequency)
+                    param_stop_index = int(segment.stop * frequency)
+                else:
+                    supf_stop_index = len(data)
+                    param_stop_index = supf_stop_index
             
-            if segment.start:
-                supf_start_index = int(supf_start_secs * frequency)
-                param_start_index = int((segment.start - supf_start_secs) * frequency)
+                segment_data = data[supf_start_index:supf_stop_index]
+                segment_mask = mask[supf_start_index:supf_stop_index]
+                # Mask data outside of split.
+                segment_mask[:param_start_index] = True
+                segment_mask[param_stop_index:] = True
             else:
-                supf_start_index = 0
-                param_start_index = supf_start_index
-            if segment.stop:
-                supf_stop_index = int(supf_stop_secs * frequency)
-                param_stop_index = int(segment.stop * frequency)
-            else:
-                supf_stop_index = len(data)
-                param_stop_index = supf_stop_index
+                start = int(segment.start * frequency) if segment.start else 0
+                stop = int(math.ceil(segment.stop * frequency)) if segment.stop else len(data)
+                segment_data = data[start:stop]
+                segment_mask = mask[start:stop]                
             
-            segment_data = data[supf_start_index:supf_stop_index]
-            segment_mask = mask[supf_start_index:supf_stop_index]
-            # Mask data outside of split.
-            segment_mask[:param_start_index] = True
-            segment_mask[param_stop_index:] = True
-            
-            #supf_stop_index = len(param_group['data'])
-            #start_index = math.floor(segment.start * frequency) if segment.start else 0
-            ##TODO: Determine whether round or math.ceil is preferred option here:
-            #if segment.stop:
-                #stop_index = round(segment.stop * frequency)
-                #if stop_index > len(param_group['data']):
-                    ## TODO: Log?
-                    #stop_index = len(param_group['data'])
-            #else:
-                #stop_index = len(param_group['data'])
-            #seg_data = param_group['data'][int(start_index):int(stop_index)]
-            #seg_mask = param_group['mask'][int(start_index):int(stop_index)]
             param_name_to_array[param_name] = (segment_data, segment_mask)
             if not duration and frequency == 1:
+                # Source duration from a 1Hz parameter.
                 duration = len(segment_data)
+    
     with h5py.File(dest, 'r+') as hdf_file:
-        for param_name, array in param_name_to_array.iteritems():
+        for param_name, arrays in param_name_to_array.iteritems():
+            data, mask = arrays
             param_group = hdf_file['series'][param_name]
             del param_group['data']
-            param_group.create_dataset("data", data=array[0], maxshape=(len(array[0]),))
+            param_group.create_dataset("data", data=data,
+                                       maxshape=(len(data),))
             del param_group['mask']
-            param_group.create_dataset("mask", data=array[1], maxshape=(len(array[1]),))
+            param_group.create_dataset("mask", data=mask,
+                                       maxshape=(len(mask),))
         hdf_file.attrs['duration'] = duration
+    
     return dest
