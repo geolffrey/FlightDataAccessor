@@ -121,7 +121,7 @@ class hdf_file(object):    # rare case of lower case?!
 
     def get_param(self, name):
         '''
-        name e.g. "Head Mag"
+        name e.g. "Heading"
         Returns a masked_array. If 'mask' is stored it will be the mask of the
         returned masked_array, otherwise it will be False.
         
