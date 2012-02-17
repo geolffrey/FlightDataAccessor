@@ -29,9 +29,13 @@ pip install nosexcover
 pip install pep8
 pip install pyflakes
 pip install sphinx
-pip install sphinx-pypi-upload
 if [ ${PYLINT} -eq 1 ]; then
   pip install pylint
+fi
+
+# Install requirements
+if [ -f requirements.txt ]; then
+    pip install -r requirements.txt
 fi
 
 # Install runtime requirements.
