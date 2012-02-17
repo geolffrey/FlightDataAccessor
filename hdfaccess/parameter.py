@@ -6,7 +6,8 @@ Parameter container class.
 '''
 
 class Parameter(object):
-    def __init__(self, name, array=[], frequency=1, offset=0):
+    def __init__(self, name, array=[], frequency=1, offset=0, arinc_429=None,
+                 units=None):
         '''
         :param name: Parameter name
         :type name: String
@@ -14,14 +15,18 @@ class Parameter(object):
         :type array: np.ma.masked_array
         :param frequency: Sample Rate / Frequency / Hz
         :type frequency: Float
-        :param offset: Offset in Frame.
+        :param offset: Offset in Superframe.
         :type offset: Float
+        :param units:
+        :type units: str
         '''
         self.name = name
         self.array = array
         # ensure frequency is stored as a float
         self.frequency = self.sample_rate = self.hz = float(frequency)
         self.offset = offset
+        self.arinc_429 = arinc_429
+        self.units = units
         
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)

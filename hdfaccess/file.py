@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import h5py
 try:
@@ -39,6 +40,8 @@ class hdf_file(object):    # rare case of lower case?!
         self.file_path = file_path
         self.hdf = h5py.File(self.file_path, 'r+')
         self.duration = self.hdf.attrs.get('duration')
+        if self.duration:
+            self.duration = float(self.duration)
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
                 
@@ -134,10 +137,17 @@ class hdf_file(object):    # rare case of lower case?!
         data = param_group['data']
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
-        frequency = param_group.attrs.get('frequency', 1) # default=1Hz for old CSV files #TODO: Remove .get
-        # Differing terms: latency is known internally as frame offset.
-        offset = param_group.attrs.get('latency', 0) # default=0sec for old CSV files #TODO: Remove .get
-        return Parameter(name, array, frequency, offset)
+        kwargs = {}
+        if 'frequency' in param_group.attrs:
+            kwargs['frequency'] = param_group.attrs['frequency']
+        if 'latency' in param_group.attrs:
+            # Differing terms: latency is known internally as frame offset.
+            kwargs['offset'] = param_group.attrs['latency']
+        if 'arinc_429' in param_group.attrs:
+            kwargs['arinc_429'] = param_group.attrs['arinc_429']
+        if 'units' in param_group.attrs:
+            kwargs['units'] = param_group.attrs['units']
+        return Parameter(name, array, **kwargs)
     
     def get(self, name, default=None):
         """
@@ -168,8 +178,6 @@ class hdf_file(object):    # rare case of lower case?!
         '/series/CAS'.
         
         :param param: Parameter like object with attributes name (must not contain forward slashes), array. 
-        
-        :type name: str
         :param array: Array containing data and potentially a mask for the data.
         :type array: np.array or np.ma.masked_array
         '''
@@ -194,6 +202,12 @@ class hdf_file(object):    # rare case of lower case?!
         # Set parameter attributes
         param_group.attrs['latency'] = param.offset
         param_group.attrs['frequency'] = param.frequency
+        if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
+            # A None value cannot be stored within the HDF file as an attribute.
+            param_group.attrs['arinc_429'] = param.arinc_429
+        if hasattr(param, 'units') and param.units is not None:
+            # A None value cannot be stored within the HDF file as an attribute.
+            param_group.attrs['units'] = param.units
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
     
@@ -202,7 +216,7 @@ class hdf_file(object):    # rare case of lower case?!
         Stores limits for a parameter in JSON format.
         
         :param name: Parameter name
-        :type name: string
+        :type name: str
         :param limits: Operating limits storage
         :type limits: dict
         '''
@@ -211,15 +225,35 @@ class hdf_file(object):    # rare case of lower case?!
         
     def get_param_limits(self, name):
         '''
+        Returns a parameter's operating limits stored within the groups
+        'limits' attribute. Decodes limits from JSON into dict.
+        
+        :param name: Parameter name
+        :type name: str
+        :returns: Parameter operating limits or None if 'limits' attribute does not exist.
+        :rtype: dict or None
+        :raises KeyError: If parameter name does not exist within the HDF file.
         '''
         if name not in self:
-            # catch exception otherwise HDF will crash and close
+            # Do not try to retrieve a non-existing group within the HDF 
+            # otherwise h5py.File object will crash and close.
             raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
-        if limits:
-            return json.loads(limits)
-        else:
-            return None
+        return json.loads(limits) if limits else None
+    
+    def get_matching(self, regex_str):
+        '''
+        Get parameters with names matching regex_str.
+        
+        :param regex_str: Regex to match against parameters.
+        :type regex_str: str
+        :returns: Parameters which match regex_str.
+        :rtype: list of Parameter
+        '''
+        compiled_regex = re.compile(regex_str)
+        param_names = filter(compiled_regex.match, self.keys())
+        return [self[param_name] for param_name in param_names]
+
 
 def print_hdf_info(hdf_file):
     hdf_file = hdf_file.hdf
