@@ -20,6 +20,7 @@ class CreateHDFForTest(object):
     def _create_hdf_test_file(self, hdf_path):
         self.data_secs = 128
         with h5py.File(hdf_path, 'w') as hdf_file:
+            hdf_file.attrs['duration'] = self.data_secs
             series = hdf_file.create_group('series')
             # 'IVV' - 1Hz parameter.
             ivv_group = series.create_group('IVV')
@@ -70,6 +71,7 @@ class TestConcatHDF(unittest.TestCase):
         # Create test hdf files.
         with h5py.File(self.hdf_path_1, 'w') as hdf_file_1:
             hdf_file_1.attrs['tailmark'] = 'G-DEM'
+            hdf_file_1.attrs['duration'] = 20
             series = hdf_file_1.create_group('series')
             series.attrs['frame_type'] = '737-3C'
             group = series.create_group('PARAM')
@@ -77,9 +79,11 @@ class TestConcatHDF(unittest.TestCase):
             group.attrs['frequency'] = 8
             group.create_dataset('other', data=self.hdf_data_1)
         with h5py.File(self.hdf_path_2, 'w') as hdf_file_2:
+            hdf_file_2.attrs['duration'] = 30
             series = hdf_file_2.create_group('series')
             group = series.create_group('PARAM')
             group.create_dataset('data', data=self.hdf_data_2)
+            group.attrs['frequency'] = 8
             group.create_dataset('other', data=self.hdf_data_2)
             
         self.hdf_out_path = os.path.join(TEMP_DIR_PATH,
@@ -115,6 +119,7 @@ class TestConcatHDF(unittest.TestCase):
             other_result = param['other'][:]
             other_expected_result = self.hdf_data_1
             self.assertTrue(all(other_result == other_expected_result))
+            self.assertEqual(hdf_out_file.attrs['duration'], 50)
     
     def tearDown(self):
         for file_path in (self.hdf_path_1, self.hdf_path_2, self.hdf_out_path):
