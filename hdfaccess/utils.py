@@ -90,8 +90,9 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
     # Q: Is there a better way to clone the contents of an hdf file?
     shutil.copy(hdf_path, dest)
     param_name_to_array = {}
-    duration = None
     
+    supf_start_secs = segment.start
+    supf_stop_secs = segment.stop
     if supf_boundary:
         if segment.start:
             supf_start_secs = (int(segment.start) / 64) * 64
@@ -102,10 +103,12 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
                 # Segment does not end on a superframe boundary, include the 
                 # following superframe.
                 supf_stop_secs += 64
-            param_stop_secs = (supf_stop_secs - segment.stop)
+                
+    duration = supf_stop_secs - supf_start_secs
         
     with h5py.File(hdf_path, 'r') as hdf_file:
         for param_name, param_group in hdf_file['series'].iteritems():
+            print param_name
             data = param_group['data']
             mask = param_group['mask']
             frequency = param_group.attrs['frequency']
@@ -140,9 +143,9 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
                 segment_mask = mask[start:stop]                
             
             param_name_to_array[param_name] = (segment_data, segment_mask)
-            if not duration and frequency == 1:
-                # Source duration from a 1Hz parameter.
-                duration = len(segment_data)
+            #if not duration and frequency == 1:
+                ## Source duration from a 1Hz parameter.
+                #duration = len(segment_data)
     
     with h5py.File(dest, 'r+') as hdf_file:
         for param_name, arrays in param_name_to_array.iteritems():
