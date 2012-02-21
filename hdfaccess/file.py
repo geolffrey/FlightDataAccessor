@@ -66,6 +66,12 @@ class hdf_file(object):    # rare case of lower case?!
         assert key == param.name
         return self.set_param(param)
     
+    def iteritems(self):
+        """
+        """
+        for param_name in self.keys():
+            yield param_name, self[param_name]
+        
     def __contains__(self, key):
         """check if the key exists"""
         return key in self.keys()
