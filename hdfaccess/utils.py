@@ -1,7 +1,12 @@
+import logging
 import math
 import shutil
 import numpy as np
 import h5py
+
+from hdfaccess.file import hdf_file
+
+from utilities.filesystem_tools import copy_file
 
 def concat_hdf(hdf_paths, dest=None):
     '''
@@ -19,28 +24,40 @@ def concat_hdf(hdf_paths, dest=None):
     :return: path to concatenated hdf file.
     :rtype: str
     '''
-    param_name_to_arrays = {}
-    for hdf_path in hdf_paths:
-        with h5py.File(hdf_path, 'r') as hdf_file:
-            for param_name, param_group in hdf_file['series'].iteritems():
-                try:
-                    param_name_to_arrays[param_name].append(param_group['data'][:])
-                except KeyError:
-                    param_name_to_arrays[param_name] = [param_group['data'][:]]
+    # copy hdf to temp area to build upon
+    hdf_master_path = copy_file(hdf_paths[0])
+    
+    with hdf_file(hdf_master_path) as hdf_master:
+        master_keys = hdf_master.keys()
+        for hdf_path in hdf_paths[1:]:
+            with hdf_file(hdf_path) as hdf:
+                # check that all parameters match (avoids mismatching array lengths)
+                param_keys = hdf.keys()
+                assert set(param_keys) == set(master_keys)
+                logging.debug("Copying parameters from file %s", hdf_path)
+                for param_name in param_keys:
+                    param = hdf[param_name]
+                    master_param = hdf_master[param_name]
+                    assert param.frequency == master_param.frequency
+                    assert param.offset == master_param.offset
+                    assert param.units == master_param.units
+                    # join arrays together
+                    master_param.array = np.ma.concatenate(
+                        (master_param.array, param.array))
+                    # re-save parameter
+                    hdf_master[param_name] = master_param
+                # extend the master's duration
+                hdf_master.duration += hdf.duration
+            #endwith
+            logging.debug("Completed extending parameters from %s", hdf_path)    
+        #endfor
+    #endwith
+    
     if dest:
-        # Copy first file in hdf_paths so that the concatenated file includes
-        # non-series data. XXX: Is there a simple way to do this with h5py?
-        shutil.copy(hdf_paths[0], dest)
-        
+        shutil.move(hdf_master_path, dest)
+        return dest
     else:
-        dest = hdf_paths[0]
-    with h5py.File(dest, 'r+') as dest_hdf_file:
-        for param_name, array_list in param_name_to_arrays.iteritems():
-            concat_array = np.concatenate(array_list)
-            param_group = dest_hdf_file['series'][param_name]
-            del param_group['data']
-            param_group.create_dataset("data", data=concat_array, maxshape=(len(concat_array),))
-    return dest
+        return hdf_master_path
 
 
 def strip_hdf(hdf_path, params_to_keep, dest):
@@ -59,10 +76,10 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     '''
     # Q: Is there a better way to clone the contents of an hdf file?
     shutil.copy(hdf_path, dest)
-    with h5py.File(hdf_path, 'r+') as hdf_file:
-        for param_name in hdf_file['series'].keys():
+    with h5py.File(hdf_path, 'r+') as hdf:
+        for param_name in hdf['series'].keys():
             if param_name not in params_to_keep:
-                del hdf_file['series'][param_name]
+                del hdf['series'][param_name]
     return dest
 
 
@@ -90,7 +107,9 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
     # Q: Is there a better way to clone the contents of an hdf file?
     shutil.copy(hdf_path, dest)
     param_name_to_array = {}
-    duration = None
+    
+    supf_start_secs = segment.start
+    supf_stop_secs = segment.stop
     
     if supf_boundary:
         if segment.start:
@@ -102,58 +121,54 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
                 # Segment does not end on a superframe boundary, include the 
                 # following superframe.
                 supf_stop_secs += 64
-            param_stop_secs = (supf_stop_secs - segment.stop)
+                
+    if supf_start_secs is None and supf_stop_secs is None:
+        logging.debug("Segment is not being sliced, nothing to do")
+        return dest
+                
+    with hdf_file(dest) as hdf:
+        if supf_start_secs is None:
+            segment_duration = supf_stop_secs
+        elif supf_stop_secs is None:
+            segment_duration = hdf.duration - supf_start_secs
+        else:
+            segment_duration = supf_stop_secs - supf_start_secs
         
-    with h5py.File(hdf_path, 'r') as hdf_file:
-        for param_name, param_group in hdf_file['series'].iteritems():
-            data = param_group['data']
-            mask = param_group['mask']
-            frequency = param_group.attrs['frequency']
+        if hdf.duration == segment_duration:
+            logging.debug("Segment duration is equal to whole duration, nothing to do")
+            return dest
+        else:
+            hdf.duration = segment_duration
             
+        for param_name in hdf.keys():
+            param = hdf[param_name]
             if supf_boundary:
-                if ((frequency * 64) % 1) != 0:
+                if ((param.hz * 64) % 1) != 0:
                     raise ValueError("Parameter '%s' does not record a consistent "
                                      "number of values every superframe. Check the "
                                      "LFL definition." % param_name)
                 if segment.start:
-                    supf_start_index = int(supf_start_secs * frequency)
-                    param_start_index = int((segment.start - supf_start_secs) * frequency)
+                    supf_start_index = int(supf_start_secs * param.hz)
+                    param_start_index = int((segment.start - supf_start_secs) * param.hz)
                 else:
                     supf_start_index = 0
                     param_start_index = supf_start_index
                 if segment.stop:
-                    supf_stop_index = int(supf_stop_secs * frequency)
-                    param_stop_index = int(segment.stop * frequency)
+                    supf_stop_index = int(supf_stop_secs * param.hz)
+                    param_stop_index = int(segment.stop * param.hz)
                 else:
-                    supf_stop_index = len(data)
+                    supf_stop_index = len(param.array)
                     param_stop_index = supf_stop_index
             
-                segment_data = data[supf_start_index:supf_stop_index]
-                segment_mask = mask[supf_start_index:supf_stop_index]
+                param.array = param.array[supf_start_index:supf_stop_index]
                 # Mask data outside of split.
-                segment_mask[:param_start_index] = True
-                segment_mask[param_stop_index:] = True
+                param.array[:param_start_index] = np.ma.masked
+                param.array[param_stop_index:] = np.ma.masked
             else:
-                start = int(segment.start * frequency) if segment.start else 0
-                stop = int(math.ceil(segment.stop * frequency)) if segment.stop else len(data)
-                segment_data = data[start:stop]
-                segment_mask = mask[start:stop]                
-            
-            param_name_to_array[param_name] = (segment_data, segment_mask)
-            if not duration and frequency == 1:
-                # Source duration from a 1Hz parameter.
-                duration = len(segment_data)
-    
-    with h5py.File(dest, 'r+') as hdf_file:
-        for param_name, arrays in param_name_to_array.iteritems():
-            data, mask = arrays
-            param_group = hdf_file['series'][param_name]
-            del param_group['data']
-            param_group.create_dataset("data", data=data,
-                                       maxshape=(len(data),))
-            del param_group['mask']
-            param_group.create_dataset("mask", data=mask,
-                                       maxshape=(len(mask),))
-        hdf_file.attrs['duration'] = duration
+                start = int(segment.start * param.hz) if segment.start else 0
+                stop = int(math.ceil(segment.stop * param.hz)) if segment.stop else len(param.array)
+                param.array = param.array[start:stop]
+            # save modified parameter back to file
+            hdf[param_name] = param
     
     return dest
