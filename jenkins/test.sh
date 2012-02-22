@@ -23,19 +23,24 @@ virtualenv --python=python${VIRTVER} --no-site-packages --distribute ${VIRTENV}
 . ${VIRTENV}/bin/activate
 cd ${WORKSPACE}
 
+# Update pip to the latest version and use the interna PyPI server
+export PIP_INDEX_URL=http://pypi.flightdataservices.com/simple/
+pip install --upgrade pip
+
 # Install testing and code metric tools
-pip install clonedigger
-pip install nosexcover
-pip install pep8
-pip install pyflakes
-pip install sphinx
+pip install --upgrade clonedigger nosexcover pep8 pyflakes sphinx
 if [ ${PYLINT} -eq 1 ]; then
-  pip install pylint
+  pip install --upgrade pylint
 fi
 
 # Install requirements
 if [ -f requirements.txt ]; then
     pip install --upgrade -r requirements.txt
+fi
+
+# Run any additional setup steps
+if [ -x jenkins/setup-extra.sh ]; then
+    jenkins/setup-extra.sh
 fi
 
 # Install runtime requirements.
