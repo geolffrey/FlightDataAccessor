@@ -41,6 +41,8 @@ class hdf_file(object):    # rare case of lower case?!
         self.hdf = h5py.File(self.file_path, 'r+')
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
+        # cache keys as accessing __iter__ on hdf groups is v.slow
+        self._keys_cache = None
                 
     def __enter__(self):
         '''
@@ -89,7 +91,9 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: List of parameter names.
         :rtype: list of str
         '''
-        return sorted(self.hdf['series'].keys())
+        if not self._keys_cache:
+            self._keys_cache = sorted(self.hdf['series'].keys())
+        return self._keys_cache
     get_param_list = keys
     
     def close(self):
@@ -172,9 +176,11 @@ class hdf_file(object):    # rare case of lower case?!
     
     def get_or_create(self, param_name):
         # Either get or create parameter.
-        if param_name in self.hdf['series']:
+        if param_name in self:
             param_group = self.hdf['series'][param_name]
         else:
+            # invalidate cache of keys
+            self._keys_cache = None
             param_group = self.hdf['series'].create_group(param_name)
             param_group.attrs['name'] = param_name
             param_group.attrs['external_datatype'] = 'float'
