@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 import numpy as np
 import h5py
 try:
@@ -36,13 +37,21 @@ class hdf_file(object):    # rare case of lower case?!
     def __str__(self):
         return self.__repr__()
     
-    def __init__(self, file_path):
+    def __init__(self, file_path, cache_param_list=[]):
+        """
+        :param file_path: Path to HDF file
+        :param cache_param_list: Names of parameters to cache where accessed
+        """
         self.file_path = file_path
         self.hdf = h5py.File(self.file_path, 'r+')
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
         # cache keys as accessing __iter__ on hdf groups is v.slow
         self._keys_cache = None
+        # cache parameters that are used often
+        self._params_cache = {}
+        # this is the list of parameters to cache
+        self.cache_param_list = cache_param_list
                 
     def __enter__(self):
         '''
@@ -146,6 +155,9 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Parameter object containing HDF data and attrs.
         :rtype: Parameter
         '''
+        if name in self._params_cache:
+            logging.debug("Retrieving param '%s' from HDF cache", name)
+            return self._params_cache[name]
         if name not in self:
             # catch exception otherwise HDF will crash and close
             raise KeyError("%s" % name)
@@ -163,7 +175,11 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
-        return Parameter(name, array, **kwargs)
+        p = Parameter(name, array, **kwargs)
+        # add to cache if required
+        if name in self.cache_param_list:
+            self._params_cache[name] = p
+        return p
     
     def get(self, name, default=None):
         """
@@ -199,6 +215,9 @@ class hdf_file(object):    # rare case of lower case?!
         :param array: Array containing data and potentially a mask for the data.
         :type array: np.array or np.ma.masked_array
         '''
+        if param.name in self.cache_param_list:
+            logging.debug("Storing parameter '%s' in HDF cache", param.name)
+            self._params_cache[param.name] = param
         # Allow both arrays and masked_arrays.
         if hasattr(param.array, 'mask'):
             array = param.array
