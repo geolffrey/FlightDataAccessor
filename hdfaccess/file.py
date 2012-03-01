@@ -36,9 +36,21 @@ class hdf_file(object):    # rare case of lower case?!
     def __str__(self):
         return self.__repr__()
     
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.hdf = h5py.File(self.file_path, 'r+')
+    def __init__(self, file_path_or_obj):
+        '''
+        :param file_path_or_obj: Can be either the path to an HDF file or an already opened HDF file object.
+        :type file_path_or_obj: str or h5py.File
+        '''
+        if isinstance(file_path_or_obj, h5py.File):
+            self.hdf = file_path_or_obj
+            if self.hdf.mode != 'r+':
+                raise ValueError("hdf_file requires mode 'r+'.")
+            self.file_path = self.hdf.filename
+        else:
+            self.file_path = file_path_or_obj
+            self.hdf = h5py.File(self.file_path, 'r+')
+        
+        self.attrs = self.hdf.attrs
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
                 
@@ -103,7 +115,11 @@ class hdf_file(object):    # rare case of lower case?!
             
     @duration.setter
     def duration(self, duration):
-        self.hdf.attrs['duration'] = duration
+        if duration is None: # Cannot store None as an HDF attribute.
+            if 'duration' in self.hdf.attrs:
+                del self.hdf.attrs['duration']
+        else:
+            self.hdf.attrs['duration'] = duration
         
     def search(self, term):
         '''
@@ -159,6 +175,8 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
+        if 'description' in param_group.attrs:
+            kwargs['description'] = param_group.attrs['description']
         return Parameter(name, array, **kwargs)
     
     def get(self, name, default=None):
@@ -177,8 +195,6 @@ class hdf_file(object):    # rare case of lower case?!
         else:
             param_group = self.hdf['series'].create_group(param_name)
             param_group.attrs['name'] = param_name
-            param_group.attrs['external_datatype'] = 'float'
-            param_group.attrs['external_dataformat'] = '%.2f'
         return param_group
 
     def set_param(self, param):
@@ -212,14 +228,16 @@ class hdf_file(object):    # rare case of lower case?!
         mask_dataset = param_group.create_dataset('mask', data=mask,
                                                   **self.DATASET_KWARGS)
         # Set parameter attributes
-        param_group.attrs['latency'] = param.offset
+        param_group.attrs['supf_offset'] = param.offset
         param_group.attrs['frequency'] = param.frequency
+        # None values for arinc_429 and units cannot be stored within the
+        # HDF file as an attribute.
         if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
-            # A None value cannot be stored within the HDF file as an attribute.
             param_group.attrs['arinc_429'] = param.arinc_429
         if hasattr(param, 'units') and param.units is not None:
-            # A None value cannot be stored within the HDF file as an attribute.
             param_group.attrs['units'] = param.units
+        description = param.description if hasattr(param, 'description') else ''
+        param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
     
@@ -283,8 +301,6 @@ def print_hdf_info(hdf_file):
         print group.attrs.items()
         # IOLA's latency is our frame offset.
         print 'Offset:', group.attrs['latency']
-        print 'External Data Type:', group.attrs['external_datatype']
-        print 'External Data Format:', group.attrs['external_dataformat']
         print 'Number of recorded values:', len(group['data'])
     #param_series = hdf_file['series'][parameter]
     #data = param_series['data']
