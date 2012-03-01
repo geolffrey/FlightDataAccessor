@@ -123,7 +123,7 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
                 supf_stop_secs += 64
                 
     if supf_start_secs is None and supf_stop_secs is None:
-        logging.debug("Segment is not being sliced, nothing to do")
+        logging.info("Write Segment: Segment is not being sliced, nothing to do")
         return dest
                 
     with hdf_file(dest) as hdf:
@@ -135,9 +135,11 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
             segment_duration = supf_stop_secs - supf_start_secs
         
         if hdf.duration == segment_duration:
-            logging.debug("Segment duration is equal to whole duration, nothing to do")
+            logging.info("Write Segment: Segment duration is equal to whole duration, nothing to do")
             return dest
         else:
+            logging.info("Write Segment: Duration %.2fs to be written to %s",
+                         segment_duration, dest)
             hdf.duration = segment_duration
             
         for param_name in hdf.keys():
@@ -170,5 +172,6 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
                 param.array = param.array[start:stop]
             # save modified parameter back to file
             hdf[param_name] = param
+            logging.debug("Finished writing segment: %s", hdf)
     
     return dest
