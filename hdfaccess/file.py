@@ -51,11 +51,17 @@ class hdf_file(object):    # rare case of lower case?!
             self.file_path = self.hdf.filename
         else:
             self.file_path = file_path_or_obj
-            self.hdf = h5py.File(self.file_path, 'r+')
+            # Not specifying a mode, will create the file if the path does not
+            # exist and open with mode 'r+'.
+            self.hdf = h5py.File(self.file_path)
         
         self.attrs = self.hdf.attrs
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
+        
+        if 'series' not in self.hdf.keys():
+            # The 'series' group is required for storing parameters.
+            self.hdf.create_group('series')
         # cache keys as accessing __iter__ on hdf groups is v.slow
         self._keys_cache = None
         # cache parameters that are used often
@@ -213,10 +219,9 @@ class hdf_file(object):    # rare case of lower case?!
         if param_name in self:
             param_group = self.hdf['series'][param_name]
         else:
-            # invalidate cache of keys
-            self._keys_cache = None
+            self._keys_cache.append(param_name) # Update cache.
             param_group = self.hdf['series'].create_group(param_name)
-            param_group.attrs['name'] = param_name
+            param_group.attrs['name'] = str(param_name) # Fails to set unicode attribute.
         return param_group
 
     def set_param(self, param):
