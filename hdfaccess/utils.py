@@ -154,16 +154,17 @@ def write_segment(source, segment, dest, supf_boundary=True):
         with hdf_file(dest) as dest_hdf:
             logging.info("Write Segment: Duration %.2fs to be written to %s",
                          segment_duration, dest)
-            dest_hdf.duration = segment_duration
-        
+            
             for group_name in source_hdf.hdf.keys(): # Copy top-level groups.
                 if group_name == 'series':
-                    continue # Will copy 
+                    continue # Avoid copying parameter datasets. 
                 source_hdf.hdf.copy(group_name, dest_hdf.hdf)
                 logging.info("Copied group '%s' between '%s' and '%s'.",
                              group_name, source, dest)
             
             _copy_attrs(source_hdf.hdf, dest_hdf.hdf) # Copy top-level attrs.
+            
+            dest_hdf.duration = segment_duration # Overwrite duration.
 
             for param_name in source_hdf.keys():
                 param = source_hdf[param_name]
