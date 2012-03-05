@@ -197,6 +197,8 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
+        if 'data_type' in param_group.attrs:
+            kwargs['data_type'] = param_group.attrs['data_type']            
         if 'description' in param_group.attrs:
             kwargs['description'] = param_group.attrs['description']
         p = Parameter(name, array, **kwargs)
@@ -266,6 +268,8 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['arinc_429'] = param.arinc_429
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
+        if hasattr(param, 'data_type') and param.data_type is not None:
+            param_group.attrs['data_type'] = param.data_type
         description = param.description if hasattr(param, 'description') else ''
         param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
