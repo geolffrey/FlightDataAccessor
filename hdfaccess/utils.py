@@ -2,6 +2,7 @@ import logging
 import math
 import shutil
 import numpy as np
+import os
 import h5py
 
 from hdfaccess.file import hdf_file
@@ -118,6 +119,11 @@ def write_segment(source, segment, dest, supf_boundary=True):
         '''
         for key, value in source_group.attrs.iteritems():
             target_group.attrs[key] = value
+    
+    if os.path.isfile(dest):
+        logging.warning("File '%s' already exists, write_segments will delete file.",
+                        dest)
+        os.remove(dest)
     
     supf_start_secs = segment.start
     supf_stop_secs = segment.stop

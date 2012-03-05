@@ -191,8 +191,6 @@ class hdf_file(object):    # rare case of lower case?!
         # Backwards compatibility. Q: When can this be removed?
         if 'supf_offset' in param_group.attrs:
             kwargs['offset'] = param_group.attrs['supf_offset']
-        elif 'latency' in param_group.attrs:
-            kwargs['offset'] = param_group.attrs['latency']
         if 'arinc_429' in param_group.attrs:
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'units' in param_group.attrs:
