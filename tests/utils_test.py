@@ -26,8 +26,8 @@ class CreateHDFForTest(object):
             ivv_group = series.create_group('IVV')
             self.ivv_frequency = 1
             ivv_group.attrs['frequency'] = self.ivv_frequency
-            self.ivv_latency = 2.1
-            ivv_group.attrs['latency'] = self.ivv_latency
+            self.ivv_supf_offset = 2.1
+            ivv_group.attrs['supf_offset'] = self.ivv_supf_offset
             self.ivv_data = np.arange(self.data_secs * self.ivv_frequency,
                                       dtype=np.dtype(np.float))
             self.ivv_mask = np.array([False] * len(self.ivv_data))
@@ -157,8 +157,8 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
             self.assertTrue(all(hdf_file['series']['IVV']['mask'][:] == \
                                 self.ivv_mask))
             # Ensure attributes are unchanged.
-            self.assertEqual(hdf_file['series']['IVV'].attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(hdf_file['series']['IVV'].attrs['supf_offset'],
+                             self.ivv_supf_offset)
             self.assertEqual(hdf_file['series']['IVV'].attrs['frequency'],
                              self.ivv_frequency)
     
@@ -198,8 +198,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(segment.start * self.ivv_frequency,
                                             segment.stop * self.ivv_frequency,
@@ -233,8 +233,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(64 * self.ivv_frequency,
                                             dtype=np.dtype(np.float))
@@ -275,8 +275,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(segment.start * self.ivv_frequency,
                                             self.data_secs * self.ivv_frequency,
@@ -316,8 +316,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(0,
                                             segment.stop * self.ivv_frequency,
@@ -354,8 +354,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 ivv_group = hdf_file['series']['IVV']
                 self.assertEqual(ivv_group.attrs['frequency'],
                                  self.ivv_frequency)
-                self.assertEqual(ivv_group.attrs['latency'],
-                                 self.ivv_latency)
+                self.assertEqual(ivv_group.attrs['supf_offset'],
+                                 self.ivv_supf_offset)
                 ivv_result = ivv_group['data'][:]
                 self.assertTrue(all(ivv_result == self.ivv_data))
                 # 'WOW' - 4Hz parameter.

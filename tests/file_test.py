@@ -20,19 +20,19 @@ class TestHdfFile(unittest.TestCase):
         self.param_name = 'TEST_PARAM10'
         param_group = series.create_group(self.param_name)
         self.param_frequency = 2
-        self.param_latency = 1.5
+        self.param_supf_offset = 1.5
         self.param_arinc_429 = True
         param_group.attrs['frequency'] = self.param_frequency
-        param_group.attrs['latency'] = self.param_latency
+        param_group.attrs['supf_offset'] = self.param_supf_offset
         param_group.attrs['arinc_429'] = self.param_arinc_429
         self.param_data = np.arange(100)
         dataset = param_group.create_dataset('data', data=self.param_data)
         self.masked_param_name = 'TEST_PARAM11'
         masked_param_group = series.create_group(self.masked_param_name)
         self.masked_param_frequency = 4
-        self.masked_param_latency = 2.5
+        self.masked_param_supf_offset = 2.5
         masked_param_group.attrs['frequency'] = self.masked_param_frequency
-        masked_param_group.attrs['latency'] = self.masked_param_latency
+        masked_param_group.attrs['supf_offset'] = self.masked_param_supf_offset
         self.param_mask = [bool(random.randint(0, 1)) for x in range(len(self.param_data))]
         dataset = masked_param_group.create_dataset('data', data=self.param_data)
         mask_dataset = masked_param_group.create_dataset('mask', data=self.param_mask)
@@ -71,7 +71,7 @@ class TestHdfFile(unittest.TestCase):
             self.assertEqual(list(hdf['masked sample'].array.mask), [False]*10)
         # check it's closed
         self.assertEqual(hdf.hdf.__repr__(), '<Closed HDF5 file>')
-        self.assertEqual(hdf.duration, None)
+        #self.assertEqual(hdf.duration, None) # Cannot access closed file attribute.
         
     def test_limit_storage(self):
         # test set and get param limits
@@ -101,7 +101,7 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(param.frequency, self.param_frequency)
         self.assertEqual(param.arinc_429, self.param_arinc_429)
         param = params['TEST_PARAM11']
-        self.assertEqual(param.offset, self.masked_param_latency)
+        self.assertEqual(param.offset, self.masked_param_supf_offset)
         self.assertEqual(param.arinc_429, None)
         # Test retrieving single specified parameter.
         params = hdf_file.get_params(param_names=['TEST_PARAM10'])
@@ -137,7 +137,7 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(np.all(series[name2]['data'].value == array))
         self.assertTrue(np.all(series[name2]['mask'].value == mask))
         self.assertEqual(series[name2].attrs['frequency'], param2_frequency)
-        self.assertEqual(series[name2].attrs['latency'], param2_offset)
+        self.assertEqual(series[name2].attrs['supf_offset'], param2_offset)
         self.assertEqual(series[name2].attrs['arinc_429'], param2_arinc_429)
         # Set existing parameter's data with np.array.
         array = np.arange(200)
@@ -165,13 +165,13 @@ class TestHdfFile(unittest.TestCase):
         param = get_param(self.param_name)
         self.assertTrue(np.all(self.param_data == param.array.data))
         self.assertEqual(self.param_frequency, param.frequency)
-        self.assertEqual(self.param_latency, param.offset)
+        self.assertEqual(self.param_supf_offset, param.offset)
         # Create new parameter with np.array.
         param = get_param(self.masked_param_name)
         self.assertTrue(np.all(self.param_data == param.array.data))
         self.assertTrue(np.all(self.param_mask == param.array.mask))
         self.assertEqual(self.masked_param_frequency, param.frequency)
-        self.assertEqual(self.masked_param_latency, param.offset)
+        self.assertEqual(self.masked_param_supf_offset, param.offset)
     
     def test_len(self):
         '''

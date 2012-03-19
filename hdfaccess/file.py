@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 import numpy as np
 import h5py
 try:
@@ -36,11 +37,37 @@ class hdf_file(object):    # rare case of lower case?!
     def __str__(self):
         return self.__repr__()
     
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.hdf = h5py.File(self.file_path, 'r+')
+    def __init__(self, file_path_or_obj, cache_param_list=[]):
+        '''
+        :param cache_param_list: Names of parameters to cache where accessed
+        :type cache_param_list: list of str
+        :param file_path_or_obj: Can be either the path to an HDF file or an already opened HDF file object.
+        :type file_path_or_obj: str or h5py.File
+        '''
+        if isinstance(file_path_or_obj, h5py.File):
+            self.hdf = file_path_or_obj
+            if self.hdf.mode != 'r+':
+                raise ValueError("hdf_file requires mode 'r+'.")
+            self.file_path = self.hdf.filename
+        else:
+            self.file_path = file_path_or_obj
+            # Not specifying a mode, will create the file if the path does not
+            # exist and open with mode 'r+'.
+            self.hdf = h5py.File(self.file_path)
+        
+        self.attrs = self.hdf.attrs
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
+        
+        if 'series' not in self.hdf.keys():
+            # The 'series' group is required for storing parameters.
+            self.hdf.create_group('series')
+        # cache keys as accessing __iter__ on hdf groups is v.slow
+        self._keys_cache = None
+        # cache parameters that are used often
+        self._params_cache = {}
+        # this is the list of parameters to cache
+        self.cache_param_list = cache_param_list        
                 
     def __enter__(self):
         '''
@@ -89,7 +116,9 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: List of parameter names.
         :rtype: list of str
         '''
-        return sorted(self.hdf['series'].keys())
+        if not self._keys_cache:
+            self._keys_cache = sorted(self.hdf['series'].keys())
+        return self._keys_cache
     get_param_list = keys
     
     def close(self):
@@ -103,7 +132,11 @@ class hdf_file(object):    # rare case of lower case?!
             
     @duration.setter
     def duration(self, duration):
-        self.hdf.attrs['duration'] = duration
+        if duration is None: # Cannot store None as an HDF attribute.
+            if 'duration' in self.hdf.attrs:
+                del self.hdf.attrs['duration']
+        else:
+            self.hdf.attrs['duration'] = duration
         
     def search(self, term):
         '''
@@ -142,6 +175,9 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Parameter object containing HDF data and attrs.
         :rtype: Parameter
         '''
+        if name in self._params_cache:
+            logging.debug("Retrieving param '%s' from HDF cache", name)
+            return self._params_cache[name]
         if name not in self:
             # catch exception otherwise HDF will crash and close
             raise KeyError("%s" % name)
@@ -152,14 +188,22 @@ class hdf_file(object):    # rare case of lower case?!
         kwargs = {}
         if 'frequency' in param_group.attrs:
             kwargs['frequency'] = param_group.attrs['frequency']
-        if 'latency' in param_group.attrs:
-            # Differing terms: latency is known internally as frame offset.
-            kwargs['offset'] = param_group.attrs['latency']
+        # Backwards compatibility. Q: When can this be removed?
+        if 'supf_offset' in param_group.attrs:
+            kwargs['offset'] = param_group.attrs['supf_offset']
         if 'arinc_429' in param_group.attrs:
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
-        return Parameter(name, array, **kwargs)
+        if 'data_type' in param_group.attrs:
+            kwargs['data_type'] = param_group.attrs['data_type']            
+        if 'description' in param_group.attrs:
+            kwargs['description'] = param_group.attrs['description']
+        p = Parameter(name, array, **kwargs)
+        # add to cache if required
+        if name in self.cache_param_list:
+            self._params_cache[name] = p
+        return p
     
     def get(self, name, default=None):
         """
@@ -172,13 +216,12 @@ class hdf_file(object):    # rare case of lower case?!
     
     def get_or_create(self, param_name):
         # Either get or create parameter.
-        if param_name in self.hdf['series']:
+        if param_name in self:
             param_group = self.hdf['series'][param_name]
         else:
+            self._keys_cache.append(param_name) # Update cache.
             param_group = self.hdf['series'].create_group(param_name)
-            param_group.attrs['name'] = param_name
-            param_group.attrs['external_datatype'] = 'float'
-            param_group.attrs['external_dataformat'] = '%.2f'
+            param_group.attrs['name'] = str(param_name) # Fails to set unicode attribute.
         return param_group
 
     def set_param(self, param):
@@ -193,6 +236,9 @@ class hdf_file(object):    # rare case of lower case?!
         :param array: Array containing data and potentially a mask for the data.
         :type array: np.array or np.ma.masked_array
         '''
+        if param.name in self.cache_param_list:
+            logging.debug("Storing parameter '%s' in HDF cache", param.name)
+            self._params_cache[param.name] = param
         # Allow both arrays and masked_arrays.
         if hasattr(param.array, 'mask'):
             array = param.array
@@ -212,14 +258,18 @@ class hdf_file(object):    # rare case of lower case?!
         mask_dataset = param_group.create_dataset('mask', data=mask,
                                                   **self.DATASET_KWARGS)
         # Set parameter attributes
-        param_group.attrs['latency'] = param.offset
+        param_group.attrs['supf_offset'] = param.offset
         param_group.attrs['frequency'] = param.frequency
+        # None values for arinc_429 and units cannot be stored within the
+        # HDF file as an attribute.
         if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
-            # A None value cannot be stored within the HDF file as an attribute.
             param_group.attrs['arinc_429'] = param.arinc_429
         if hasattr(param, 'units') and param.units is not None:
-            # A None value cannot be stored within the HDF file as an attribute.
             param_group.attrs['units'] = param.units
+        if hasattr(param, 'data_type') and param.data_type is not None:
+            param_group.attrs['data_type'] = param.data_type
+        description = param.description if hasattr(param, 'description') else ''
+        param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
     
@@ -281,10 +331,7 @@ def print_hdf_info(hdf_file):
         print '[%s]' % group_name
         print 'Frequency:', group.attrs['frequency']
         print group.attrs.items()
-        # IOLA's latency is our frame offset.
-        print 'Offset:', group.attrs['latency']
-        print 'External Data Type:', group.attrs['external_datatype']
-        print 'External Data Format:', group.attrs['external_dataformat']
+        print 'Offset:', group.attrs['supf_offset']
         print 'Number of recorded values:', len(group['data'])
     #param_series = hdf_file['series'][parameter]
     #data = param_series['data']
