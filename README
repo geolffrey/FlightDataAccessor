@@ -1,1 +1,16 @@
-Provides a high-level interface for HDF files containing flight data.
+.. contents:: **Table of Contents**
+
+Introduction
+============
+
+HDFAccess provides a high-level interface for HDF5 files containing flight data. 
+It provides the following utilities:
+
+* Write segment.
+* Join segment.
+
+Package requires **pip** for installation.
+
+| pip install hdfaccess
+
+Project sponsored by Flight Data Services Ltd: http://www.flightdataservices.com/
