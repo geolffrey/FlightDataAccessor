@@ -1,17 +1,15 @@
-.. HDFAccess documentation master file, created by
-   sphinx-quickstart on Wed Feb 22 13:45:59 2012.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to HDFAccess's documentation!
-=====================================
+Flight Data Storage |release|
+=============================
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-
+   Introduction
+   Changes
+   TODO
+   Authors
 
 Indices and tables
 ==================
@@ -19,4 +17,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

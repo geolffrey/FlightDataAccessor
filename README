@@ -1,5 +1,3 @@
-.. contents:: **Table of Contents**
-
 Introduction
 ============
 
@@ -9,8 +7,15 @@ It provides the following utilities:
 * Write segment.
 * Join segment.
 
-Package requires **pip** for installation.
+Project sponsored by `Flight Data Services`_.
 
-| pip install hdfaccess
+Installation
+------------
 
-Project sponsored by Flight Data Services Ltd: http://www.flightdataservices.com/
+Package requires ``pip`` for installation.
+::
+
+    pip install hdfaccess
+
+.. _Flight Data Services: http://www.flightdataservices.com/
+
