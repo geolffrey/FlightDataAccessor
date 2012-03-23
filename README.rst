@@ -7,7 +7,8 @@ It provides the following utilities:
 * Write segment.
 * Join segment.
 
-Project sponsored by `Flight Data Services`_.
+Project sponsored by `Flight Data Services`_ and released under the Open 
+Software License (OSL-3.0).
 
 Installation
 ------------
