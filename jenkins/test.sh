@@ -82,7 +82,12 @@ pip install --upgrade pip distribute
 # Install requirements
 #  - Shame this doesn't appear to be reliable
 #  - eval pip install --upgrade file:///.#egg=${PACKAGE}[jenkins,sphinx]
-for REQUIREMENTS in requirements*.txt
+
+if [ -f requirements-setup.txt ]; then
+    pip install --upgrade -r requirements-setup.txt
+fi    
+
+for REQUIREMENTS in `ls -1 requirements*.txt | grep -v setup`
 do
     if [ -f ${REQUIREMENTS} ]; then
         pip install --upgrade -r ${REQUIREMENTS}

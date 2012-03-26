@@ -1,1 +1,3 @@
+# numpy is a requirement of setup to ensure 'h5py' requirements are fully met
+numpy
 nose>=1.0
