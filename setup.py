@@ -4,6 +4,8 @@
 # http://www.flightdataservices.com
 # See the file "LICENSE" for the full license governing this code.
 
+import os
+
 try:
     from setuptools import setup, find_packages
 except ImportError:
@@ -14,6 +16,7 @@ except ImportError:
 import hdfaccess as pkg
 from requirements import RequirementsParser
 requirements = RequirementsParser()
+requirements.early_install()
 
 setup(
     name=pkg.__packagename__,
