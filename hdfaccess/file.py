@@ -7,6 +7,7 @@ try:
     import json
 except ImportError:
     import simplejson as json
+from copy import deepcopy
 
 from utilities.filesystem_tools import pretty_size
 
@@ -177,7 +178,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         if name in self._params_cache:
             logging.debug("Retrieving param '%s' from HDF cache", name)
-            return self._params_cache[name]
+            return deepcopy(self._params_cache[name])
         if name not in self:
             # catch exception otherwise HDF will crash and close
             raise KeyError("%s" % name)
