@@ -1,12 +1,11 @@
+import calendar
+from datetime import datetime
+import logging
+import h5py
+import numpy as np
 import os
 import re
-import logging
-import numpy as np
-import h5py
-try:
-    import json
-except ImportError:
-    import simplejson as json
+import simplejson as json
 
 from utilities.filesystem_tools import pretty_size
 
@@ -124,7 +123,21 @@ class hdf_file(object):    # rare case of lower case?!
     def close(self):
         self.hdf.flush() # Q: required?
         self.hdf.close()
-
+    
+    @property
+    def start_datetime(self):
+        timestamp = self.attrs.get('start_timestamp')
+        return datetime.utcfromtimestamp(timestamp) if timestamp else None
+    
+    @start_datetime.setter
+    def start_datetime(self, start_datetime):
+        if start_datetime is None:
+            if 'start_timestamp' in self.hdf.attrs:
+                del self.hdf.attrs['start_timestamp']
+        else:
+            timestamp = calendar.timegm(start_datetime.utctimetuple())
+            self.hdf.attrs['start_timestamp'] = timestamp
+    
     @property
     def duration(self):
         duration = self.hdf.attrs.get('duration')
@@ -143,7 +156,6 @@ class hdf_file(object):    # rare case of lower case?!
         Searches for partial matches of term within keys.
         '''
         return sorted(filter(lambda x: term.upper() in x.upper(), self.keys()))
-        
     
     def get_params(self, param_names=None):
         '''
@@ -249,14 +261,14 @@ class hdf_file(object):    # rare case of lower case?!
         if 'data' in param_group:
              # Dataset must be deleted before recreation.
             del param_group['data']
-        dataset = param_group.create_dataset('data', data=array.data, 
-                                             **self.DATASET_KWARGS)
+        param_group.create_dataset('data', data=array.data, 
+                                   **self.DATASET_KWARGS)
         if 'mask' in param_group:
             # Existing mask will no longer reflect the new data.
             del param_group['mask']
         mask = np.ma.getmaskarray(array)
-        mask_dataset = param_group.create_dataset('mask', data=mask,
-                                                  **self.DATASET_KWARGS)
+        param_group.create_dataset('mask', data=mask,
+                                   **self.DATASET_KWARGS)
         # Set parameter attributes
         param_group.attrs['supf_offset'] = param.offset
         param_group.attrs['frequency'] = param.frequency
@@ -348,4 +360,3 @@ if __name__ == '__main__':
     hdf = h5py.File(
         'AnalysisEngine/resources/data/hdf5/flight_1626326.hdf5', 'w')
     hdf['series']['Altitude AAL'].attrs['limits'] = {'min':0,  'max':50000}
-    
