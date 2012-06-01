@@ -5,7 +5,9 @@ import h5py
 import numpy as np
 import os
 import re
-import simplejson as json
+import simplejson
+
+from copy import deepcopy
 
 from utilities.filesystem_tools import pretty_size
 
@@ -189,7 +191,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         if name in self._params_cache:
             logging.debug("Retrieving param '%s' from HDF cache", name)
-            return self._params_cache[name]
+            return deepcopy(self._params_cache[name])
         if name not in self:
             # catch exception otherwise HDF will crash and close
             raise KeyError("%s" % name)
@@ -295,7 +297,7 @@ class hdf_file(object):    # rare case of lower case?!
         :type limits: dict
         '''
         param_group = self.get_or_create(name)
-        param_group.attrs['limits'] = json.dumps(limits)
+        param_group.attrs['limits'] = simplejson.dumps(limits)
         
     def get_param_limits(self, name):
         '''
@@ -313,7 +315,7 @@ class hdf_file(object):    # rare case of lower case?!
             # otherwise h5py.File object will crash and close.
             raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
-        return json.loads(limits) if limits else None
+        return simplejson.loads(limits) if limits else None
     
     def get_matching(self, regex_str):
         '''

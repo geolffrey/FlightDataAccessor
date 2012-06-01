@@ -1,4 +1,4 @@
-Utilities
-simplejson
 numpy
-h5py
+h5py==2.0.0
+simplejson
+Utilities

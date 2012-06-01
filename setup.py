@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) Flight Data Services Ltd
+# http://www.flightdataservices.com
+# See the file "LICENSE" for the full license governing this code.
 
-import re
+import os
 
 try:
     from setuptools import setup, find_packages
@@ -9,69 +13,37 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
-def parse_requirements(file_name):
-    """
-    Extract all dependency names from requirements.txt.
-    """
-    requirements = []
-    for line in open(file_name, 'r').read().split('\n'):
-        if re.match(r'(\s*#)|(\s*$)', line):
-            continue
-        if re.match(r'\s*-e\s+', line):
-            # TODO support version numbers
-            requirements.append(re.sub(r'\s*-e\s+.*#egg=(.*)$', r'\1', line))
-        elif re.match(r'\s*-f\s+', line):
-            pass
-        else:
-            requirements.append(line)
-
-    requirements.reverse()
-    return requirements
-
-def parse_dependency_links(file_name):
-    """
-    Extract all URLs for packages not found on PyPI.
-    """
-    dependency_links = []
-    for line in open(file_name, 'r').read().split('\n'):
-        if re.match(r'\s*-[ef]\s+', line):
-            dependency_links.append(re.sub(r'\s*-[ef]\s+', '', line))
-
-    dependency_links.reverse()
-    return dependency_links
-
-from hdfaccess import __version__ as VERSION
+import hdfaccess as pkg
+from requirements import RequirementsParser
+requirements = RequirementsParser()
+#requirements.early_install()
 
 setup(
-    name='HDFAccess',
-    version = VERSION,
-    url='http://www.flightdataservices.com/',
-    author='Flight Data Services Ltd',
-    author_email='developers@flightdataservices.com',
-    description='An interface for HDF files containing flight data.',
-    long_description = open('README').read() + open('CHANGES').read(),
-    download_url='',
-    platforms='',
-    license='License :: OSI Approved :: Open Software License (OSL)',
+    name=pkg.__packagename__,
+    version=pkg.__version__,
+    author=pkg.__author__,
+    author_email=pkg.__author_email__,
+    maintainer=pkg.__maintainer__,
+    maintainer_email=pkg.__maintainer_email__,
+    url=pkg.__url__,
+    description=pkg.__description__,
+    long_description=open('README.rst').read() + open('CHANGES').read() +
+    open('TODO').read() + open('AUTHORS').read(),
+    download_url=pkg.__download_url__,
+    classifiers=pkg.__classifiers__,
+    platforms=pkg.__platforms__,
+    license=pkg.__license__,
+    keywords=pkg.__keywords__,
+    packages=find_packages(exclude=('tests',)),
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=requirements.install_requires,
+    setup_requires=requirements.setup_requires,
+    tests_require=requirements.tests_require,
+    extras_require=requirements.extras_require,
+    dependency_links=requirements.dependency_links,
+    test_suite='nose.collector',                       
+)
 
-    packages = find_packages(),
-    include_package_data = True,
-
-    # Parse the 'requirements.txt' file to determine the dependencies.
-    install_requires = parse_requirements('requirements.txt'),
-    dependency_links = parse_dependency_links('requirements.txt'),
-    setup_requires = ['nose>=1.0'],
-    test_suite = 'nose.collector',
-    zip_safe = False,
-    classifiers = [
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Console",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: Open Software License (OSL)",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
-        "Operating System :: OS Independent",
-        "Topic :: Utilities",
-        ],
-
-    )
+################################################################################
+# vim:et:ft=python:nowrap:sts=4:sw=4:ts=4
