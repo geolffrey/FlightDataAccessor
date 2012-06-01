@@ -158,7 +158,7 @@ def write_segment(source, segment, start_datetime, dest, supf_boundary=True):
                          "duration, file will be copied.")
             shutil.copy(source, dest)
             with hdf_file(dest) as dest_hdf:
-                dest_hdf.start_datetime = start_datetime              
+                dest_hdf.start_datetime = start_datetime
             return dest        
     
         with hdf_file(dest) as dest_hdf:
