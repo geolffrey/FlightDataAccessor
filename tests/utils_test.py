@@ -191,9 +191,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         Slice has a start and stop.
         '''
         segment = slice(10,20)
-        start_datetime = datetime.now()
-        dest = write_segment(self.hdf_path, segment, start_datetime,
-                             self.out_path, supf_boundary=False)
+        dest = write_segment(self.hdf_path, segment, self.out_path,
+                             supf_boundary=False)
         self.assertEqual(dest, self.out_path)
         
         with h5py.File(dest, 'r') as hdf_file:
@@ -225,13 +224,10 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_expected_result = np.arange(2, 5, dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 10)
-            self.assertEqual(hdf_file.attrs['start_timestamp'],
-                             calendar.timegm(start_datetime.utctimetuple()))
         
         # Write segment on superframe boundary.
-        start_datetime = datetime.now()
-        dest = write_segment(self.hdf_path, segment, start_datetime, 
-                             self.out_path, supf_boundary=True)
+        dest = write_segment(self.hdf_path, segment, self.out_path,
+                             supf_boundary=True)
         self.assertEqual(dest, self.out_path)
         
         with h5py.File(dest, 'r') as hdf_file:
@@ -262,10 +258,6 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                                             dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 64)
-            self.assertEqual(hdf_file.attrs['start_timestamp'],
-                             calendar.timegm(start_datetime.utctimetuple()))
-        
-        
     
     def test_write_segment__start_only(self):
         '''
@@ -276,8 +268,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         '''
         segment = slice(50,None)
         start_datetime = datetime.now()
-        dest = write_segment(self.hdf_path, segment, start_datetime,
-                             self.out_path, supf_boundary=False)
+        dest = write_segment(self.hdf_path, segment, self.out_path,
+                             supf_boundary=False)
         self.assertEqual(dest, self.out_path)
         with h5py.File(dest, 'r') as hdf_file:
             # 'IVV' - 1Hz parameter.
@@ -308,8 +300,6 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_expected_result = np.arange(12, 32, dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 78)
-            self.assertEqual(hdf_file.attrs['start_timestamp'],
-                             calendar.timegm(start_datetime.utctimetuple()))            
         
     def test_write_segment__stop_only(self):
         '''
@@ -320,8 +310,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         '''
         segment = slice(None, 70)
         start_datetime = datetime.now()
-        dest = write_segment(self.hdf_path, segment, start_datetime,
-                             self.out_path, supf_boundary=False)
+        dest = write_segment(self.hdf_path, segment, self.out_path,
+                             supf_boundary=False)
         self.assertEqual(dest, self.out_path)
         with h5py.File(dest, 'r') as hdf_file:
             # 'IVV' - 1Hz parameter.
@@ -352,8 +342,6 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_expected_result = np.arange(0, 18, dtype=np.dtype(np.float))
             self.assertEqual(list(dme_result), list(dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 70)
-            self.assertEqual(hdf_file.attrs['start_timestamp'],
-                             calendar.timegm(start_datetime.utctimetuple()))            
     
     def test_write_segment__all_data(self):
         '''
@@ -362,8 +350,6 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         destination file while other datasets and attributes are unaffected.
         Slice has a start and stop.
         '''
-        start_datetime = datetime.now()
-        
         def test_hdf(dest):
             with h5py.File(dest, 'r') as hdf_file:
                 # 'IVV' - 1Hz parameter.
@@ -390,16 +376,14 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 dme_mask_result = dme_group['mask'][:]
                 self.assertTrue(all(dme_mask_result == self.dme_mask))
                 self.assertEqual(hdf_file.attrs['duration'], self.data_secs)
-                self.assertEqual(hdf_file.attrs['start_timestamp'],
-                                 calendar.timegm(start_datetime.utctimetuple()))                 
         
         segment = slice(None)
-        dest = write_segment(self.hdf_path, segment, start_datetime,
-                             self.out_path, supf_boundary=False)
+        dest = write_segment(self.hdf_path, segment, self.out_path,
+                             supf_boundary=False)
         self.assertEqual(dest, self.out_path)
         test_hdf(dest)
-        dest = write_segment(self.hdf_path, segment, start_datetime,
-                             self.out_path, supf_boundary=True)
+        dest = write_segment(self.hdf_path, segment, self.out_path,
+                             supf_boundary=True)
         self.assertEqual(dest, self.out_path)
         test_hdf(dest)        
                 

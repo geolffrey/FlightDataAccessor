@@ -84,7 +84,7 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     return dest
 
 
-def write_segment(source, segment, start_datetime, dest, supf_boundary=True):
+def write_segment(source, segment, dest, supf_boundary=True):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by 
     segments, a slice in seconds. Expects the HDF file to contain whole
@@ -141,8 +141,6 @@ def write_segment(source, segment, start_datetime, dest, supf_boundary=True):
     if supf_start_secs is None and supf_stop_secs is None:
         logging.info("Write Segment: Segment is not being sliced, file will be copied.")   
         shutil.copy(source, dest)
-        with hdf_file(dest) as dest_hdf:
-            dest_hdf.start_datetime = start_datetime             
         return dest
     
     with hdf_file(source) as source_hdf:
@@ -157,8 +155,6 @@ def write_segment(source, segment, start_datetime, dest, supf_boundary=True):
             logging.info("Write Segment: Segment duration is equal to whole "
                          "duration, file will be copied.")
             shutil.copy(source, dest)
-            with hdf_file(dest) as dest_hdf:
-                dest_hdf.start_datetime = start_datetime
             return dest        
     
         with hdf_file(dest) as dest_hdf:
@@ -175,7 +171,6 @@ def write_segment(source, segment, start_datetime, dest, supf_boundary=True):
             _copy_attrs(source_hdf.hdf, dest_hdf.hdf) # Copy top-level attrs.
             
             dest_hdf.duration = segment_duration # Overwrite duration.
-            dest_hdf.start_datetime = start_datetime
 
             for param_name in source_hdf.keys():
                 param = source_hdf[param_name]
