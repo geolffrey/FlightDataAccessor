@@ -1,3 +1,4 @@
+import bz2
 import calendar
 from datetime import datetime
 import logging
@@ -126,32 +127,122 @@ class hdf_file(object):    # rare case of lower case?!
         self.hdf.flush() # Q: required?
         self.hdf.close()
     
-    @property
-    def start_datetime(self):
-        timestamp = self.attrs.get('start_timestamp')
-        return datetime.utcfromtimestamp(timestamp) if timestamp else None
     
-    @start_datetime.setter
-    def start_datetime(self, start_datetime):
-        if start_datetime is None:
-            if 'start_timestamp' in self.hdf.attrs:
-                del self.hdf.attrs['start_timestamp']
+    # HDF Attribute properties
+    ############################################################################
+    
+    @property
+    def dependency_tree(self):
+        '''
+        Accessor for the root-level 'dependency_tree' attribute.
+        
+        :rtype: list or None
+        '''        
+        dependency_tree = self.hdf.attrs.get('dependency_tree')
+        return simplejson.loads(bz2.decompress(dependency_tree)) \
+               if dependency_tree else None
+    
+    @dependency_tree.setter
+    def dependency_tree(self, dependency_tree):
+        '''
+        Mutator for the root-level 'dependency_tree' attribute. If
+        dependency_tree is None the 'dependency_tree' attribute will be deleted.
+        The attribute is bz2 compressed due to the 64KB attribute size
+        limit of the HDF file.
+        
+        :param dependency_tree: Dependency tree created by the FlightDataAnalyser during processing.
+        :rtype: None
+        '''
+        if dependency_tree is None:
+            if 'dependency_tree' in self.hdf.attrs:
+                del self.hdf.attrs['dependency_tree']
         else:
-            timestamp = calendar.timegm(start_datetime.utctimetuple())
-            self.hdf.attrs['start_timestamp'] = timestamp
+            self.hdf.attrs['dependency_tree'] = \
+                bz2.compress(simplejson.dumps(dependency_tree))
     
     @property
     def duration(self):
+        '''
+        Accessor for the root-level 'duration' attribute.
+        
+        :rtype: float or None
+        '''
         duration = self.hdf.attrs.get('duration')
         return float(duration) if duration else None
             
     @duration.setter
     def duration(self, duration):
+        '''
+        Mutator for the root-level 'duration' attribute. If duration is None the
+        'duration' attribute will be deleted.
+        
+        :param duration: Duration of this file's data in ???.
+        :type duration: float
+        :rtype: None
+        '''
         if duration is None: # Cannot store None as an HDF attribute.
             if 'duration' in self.hdf.attrs:
                 del self.hdf.attrs['duration']
         else:
             self.hdf.attrs['duration'] = duration
+    
+    @property
+    def start_datetime(self):
+        '''
+        Converts the root-level 'start_timestamp' attribute from a timestamp to
+        a datetime.
+        :returns: Start datetime if 'start_timestamp' is set, otherwise None.
+        :rtype: datetime or None
+        '''
+        timestamp = self.attrs.get('start_timestamp')
+        return datetime.utcfromtimestamp(timestamp) if timestamp else None
+    
+    @start_datetime.setter
+    def start_datetime(self, start_datetime):
+        '''
+        Converts start_datetime to a timestamp and saves as 'start_timestamp'
+        root-level attribute. If start_datetime is None the 'start_timestamp'
+        attribute will be deleted.
+        
+        :param start_datetime: The datetime at the beginning of this file's data.
+        :type start_datetime: datetime or timestamp
+        :rtype: None
+        '''
+        if start_datetime is None:
+            if 'start_timestamp' in self.hdf.attrs:
+                del self.hdf.attrs['start_timestamp']
+        else:
+            if isinstance(start_datetime, datetime):
+                timestamp = calendar.timegm(start_datetime.utctimetuple())
+            else:
+                timestamp = start_datetime
+            self.hdf.attrs['start_timestamp'] = timestamp
+
+    @property
+    def version(self):
+        '''
+        Accessor for the root-level 'version' attribute.
+        
+        :returns: Version of the FlightDataAnalyser which processed this HDF file.
+        :rtype: str or None
+        '''
+        return self.hdf.attrs.get('version')
+            
+    @version.setter
+    def version(self, version):
+        '''
+        Mutator for the root-level 'version' attribute. If version is None the
+        'version' attribute will be deleted.
+        
+        :param version: FlightDataAnalyser version.
+        :type version: str
+        :rtype: None
+        '''
+        if version is None: # Cannot store None as an HDF attribute.
+            if 'version' in self.hdf.attrs:
+                del self.hdf.attrs['version']
+        else:
+            self.hdf.attrs['version'] = version
         
     def search(self, term):
         '''
@@ -207,8 +298,17 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['offset'] = param_group.attrs['supf_offset']
         if 'arinc_429' in param_group.attrs:
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
+        # Units
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
+        elif 'description' in param_group.attrs:
+            # Backwards compatibility for HDF files converted from AGS where the
+            # units are stored in the description. Units will be invalid if
+            # parameters from a FlightDataAnalyser HDF do not have 'units'
+            # attributes.            
+            description = param_group.attrs['description']
+            if description:
+                kwargs['units'] = description
         if 'data_type' in param_group.attrs:
             kwargs['data_type'] = param_group.attrs['data_type']            
         if 'description' in param_group.attrs:
