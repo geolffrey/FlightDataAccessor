@@ -8,6 +8,7 @@ import re
 import simplejson
 
 from copy import deepcopy
+from fnmatch import translate
 
 from utilities.filesystem_tools import pretty_size
 
@@ -153,11 +154,37 @@ class hdf_file(object):    # rare case of lower case?!
         else:
             self.hdf.attrs['duration'] = duration
         
-    def search(self, term):
+    def search(self, pattern):
         '''
-        Searches for partial matches of term within keys.
+         Searches for param names that matches with (*) or (?) expression. If found, 
+         the pattern is converted to a regex and matched against the param names
+         in the hdf file. If a match is found, the param is added as a key in a list
+         and returned.
+         
+         If a match with the regular expression is not found, then a list of params 
+         are returned that contains the substring 'pattern'.
+         
+        :param pattern: A string, either a regular expression or a string.
+        :param type: string
+        :returns: list of sorted keys(params)
+        :rtype: list
         '''
-        return sorted(filter(lambda x: term.upper() in x.upper(), self.keys()))
+        result = []
+        
+        if '(*)' in pattern or '(?)' in pattern:     
+            regex = translate(pattern)
+            re_obj = re.compile(regex)
+            
+            for key in self.keys(): 
+                matched = re_obj.match(key)
+                if matched:
+                    result.append(key)
+            return sorted(result)
+        
+        else:
+            PATTERN = pattern.upper()
+            return sorted(
+                filter(lambda k: PATTERN in k.upper(), self.keys()))
     
     def get_params(self, param_names=None):
         '''
