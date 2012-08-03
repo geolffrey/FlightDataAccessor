@@ -3,7 +3,10 @@ import mock
 import numpy as np
 import os
 import random
+import calendar
 import unittest
+
+from datetime import datetime
 
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import Parameter
@@ -44,7 +47,44 @@ class TestHdfFile(unittest.TestCase):
         if self.hdf_file.hdf.id:
             self.hdf_file.close()
         os.remove(self.hdf_path)
-        
+    
+    def test_dependency_tree(self):
+        self.assertEqual(self.hdf_file.dependency_tree, None)
+        dependency_tree = {'Airspeed': ['Altitude AAL'], 'Altitude AAL': []}
+        self.hdf_file.dependency_tree = dependency_tree
+        self.assertEqual(self.hdf_file.dependency_tree, dependency_tree)
+        self.hdf_file.dependency_tree = None
+        self.assertEqual(self.hdf_file.dependency_tree, None)
+    
+    def test_duration(self):
+        self.assertEqual(self.hdf_file.duration, None)
+        self.hdf_file.duration = 1.5
+        self.assertEqual(self.hdf_file.duration, 1.5)
+        self.hdf_file.duration = None
+        self.assertEqual(self.hdf_file.duration, None)
+    
+    def test_start_datetime(self):
+        self.assertEqual(self.hdf_file.start_datetime, None)
+        datetime_1 = datetime.now()
+        timestamp = calendar.timegm(datetime_1.utctimetuple())
+        self.hdf_file.start_datetime = timestamp
+        # Microsecond accuracy is lost.
+        self.assertEqual(self.hdf_file.start_datetime,
+                         datetime_1.replace(microsecond=0))
+        datetime_2 = datetime.now()
+        self.hdf_file.start_datetime = datetime_2
+        self.assertEqual(self.hdf_file.start_datetime,
+                         datetime_2.replace(microsecond=0))
+        self.hdf_file.start_datetime = None
+        self.assertEqual(self.hdf_file.start_datetime, None)        
+    
+    def test_version(self):
+        self.assertEqual(self.hdf_file.version, None)
+        self.hdf_file.version = '0.1.2'
+        self.assertEqual(self.hdf_file.version, '0.1.2')
+        self.hdf_file.version = None
+        self.assertEqual(self.hdf_file.version, None)
+    
     def test_get_matching(self):
         regex_str = '^TEST_PARAM10$'
         params = self.hdf_file.get_matching(regex_str)
