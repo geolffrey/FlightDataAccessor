@@ -185,3 +185,8 @@ class TestHdfFile(unittest.TestCase):
         '''
         self.assertEqual(sorted(self.hdf_file.keys()),
                          sorted([self.param_name, self.masked_param_name]))
+        
+    def test_startswith(self):
+        self.hdf_file.keys.return_value = ('Airspeed Two', 'Airspeed One', 'blah')
+        self.assertEqual(self.hdf_file.startswith('Airspeed'),
+                         ('Airspeed One', 'Airspeed Two'))
