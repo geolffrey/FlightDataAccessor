@@ -1,3 +1,5 @@
+import calendar
+from datetime import datetime
 import errno
 import h5py
 import numpy as np
@@ -26,8 +28,8 @@ class CreateHDFForTest(object):
             ivv_group = series.create_group('IVV')
             self.ivv_frequency = 1
             ivv_group.attrs['frequency'] = self.ivv_frequency
-            self.ivv_latency = 2.1
-            ivv_group.attrs['latency'] = self.ivv_latency
+            self.ivv_supf_offset = 2.1
+            ivv_group.attrs['supf_offset'] = self.ivv_supf_offset
             self.ivv_data = np.arange(self.data_secs * self.ivv_frequency,
                                       dtype=np.dtype(np.float))
             self.ivv_mask = np.array([False] * len(self.ivv_data))
@@ -157,8 +159,8 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
             self.assertTrue(all(hdf_file['series']['IVV']['mask'][:] == \
                                 self.ivv_mask))
             # Ensure attributes are unchanged.
-            self.assertEqual(hdf_file['series']['IVV'].attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(hdf_file['series']['IVV'].attrs['supf_offset'],
+                             self.ivv_supf_offset)
             self.assertEqual(hdf_file['series']['IVV'].attrs['frequency'],
                              self.ivv_frequency)
     
@@ -198,8 +200,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(segment.start * self.ivv_frequency,
                                             segment.stop * self.ivv_frequency,
@@ -221,7 +223,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_result = dme_group['data'][:]
             dme_expected_result = np.arange(2, 5, dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
-            self.assertEqual(hdf_file.attrs['duration'], 10)         
+            self.assertEqual(hdf_file.attrs['duration'], 10)
         
         # Write segment on superframe boundary.
         dest = write_segment(self.hdf_path, segment, self.out_path,
@@ -233,8 +235,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(64 * self.ivv_frequency,
                                             dtype=np.dtype(np.float))
@@ -255,9 +257,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_expected_result = np.arange(64 * self.dme_frequency,
                                             dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
-            self.assertEqual(hdf_file.attrs['duration'], 64)        
-        
-        
+            self.assertEqual(hdf_file.attrs['duration'], 64)
     
     def test_write_segment__start_only(self):
         '''
@@ -267,6 +267,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         Slice has a start and stop.
         '''
         segment = slice(50,None)
+        start_datetime = datetime.now()
         dest = write_segment(self.hdf_path, segment, self.out_path,
                              supf_boundary=False)
         self.assertEqual(dest, self.out_path)
@@ -275,8 +276,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(segment.start * self.ivv_frequency,
                                             self.data_secs * self.ivv_frequency,
@@ -299,7 +300,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_expected_result = np.arange(12, 32, dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 78)
-    
+        
     def test_write_segment__stop_only(self):
         '''
         Tests that the correct segment of the dataset within the path matching
@@ -308,6 +309,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         Slice has a start and stop.
         '''
         segment = slice(None, 70)
+        start_datetime = datetime.now()
         dest = write_segment(self.hdf_path, segment, self.out_path,
                              supf_boundary=False)
         self.assertEqual(dest, self.out_path)
@@ -316,8 +318,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_group = hdf_file['series']['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
-            self.assertEqual(ivv_group.attrs['latency'],
-                             self.ivv_latency)
+            self.assertEqual(ivv_group.attrs['supf_offset'],
+                             self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(0,
                                             segment.stop * self.ivv_frequency,
@@ -354,8 +356,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 ivv_group = hdf_file['series']['IVV']
                 self.assertEqual(ivv_group.attrs['frequency'],
                                  self.ivv_frequency)
-                self.assertEqual(ivv_group.attrs['latency'],
-                                 self.ivv_latency)
+                self.assertEqual(ivv_group.attrs['supf_offset'],
+                                 self.ivv_supf_offset)
                 ivv_result = ivv_group['data'][:]
                 self.assertTrue(all(ivv_result == self.ivv_data))
                 # 'WOW' - 4Hz parameter.
@@ -373,7 +375,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 # Test mask is written.
                 dme_mask_result = dme_group['mask'][:]
                 self.assertTrue(all(dme_mask_result == self.dme_mask))
-                self.assertEqual(hdf_file.attrs['duration'], self.data_secs)        
+                self.assertEqual(hdf_file.attrs['duration'], self.data_secs)
         
         segment = slice(None)
         dest = write_segment(self.hdf_path, segment, self.out_path,

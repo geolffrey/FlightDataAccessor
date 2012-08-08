@@ -2,6 +2,7 @@ import logging
 import math
 import shutil
 import numpy as np
+import os
 import h5py
 
 from hdfaccess.file import hdf_file
@@ -83,13 +84,18 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     return dest
 
 
-def write_segment(hdf_path, segment, dest, supf_boundary=True):
+def write_segment(source, segment, dest, supf_boundary=True):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by 
     segments, a slice in seconds. Expects the HDF file to contain whole
     superframes.
     
     Assumes "data" and "mask" are present.
+    
+    The source file used to be copied to the destination and then modified the
+    file inplace. Since it is impossible to fully reclaim the space of deleted
+    datasets, we now create a new hdf file and copy groups, attributes and 
+    parameters into it resulting in smaller segment sizes.
     
     :param hdf_path: file path of hdf file.
     :type hdf_path: str
@@ -102,11 +108,22 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
     :return: path to output hdf file containing specified segment.
     :rtype: str
     
-    TODO: Support segmenting parameter masks
+    TODO: Support segmenting parameter masks. Q: Does this mean copying the mask along
+    with data? If so, this is already done.
     '''
-    # Q: Is there a better way to clone the contents of an hdf file?
-    shutil.copy(hdf_path, dest)
-    param_name_to_array = {}
+    
+    def _copy_attrs(source_group, target_group):
+        '''
+        While the library can recursively copy groups and datasets, there does
+        not seem to be a simple way to copy all of a group's attributes at once.
+        '''
+        for key, value in source_group.attrs.iteritems():
+            target_group.attrs[key] = value
+    
+    if os.path.isfile(dest):
+        logging.warning("File '%s' already exists, write_segments will delete file.",
+                        dest)
+        os.remove(dest)
     
     supf_start_secs = segment.start
     supf_stop_secs = segment.stop
@@ -114,7 +131,6 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
     if supf_boundary:
         if segment.start:
             supf_start_secs = (int(segment.start) / 64) * 64
-            param_start_secs = (segment.start - supf_start_secs)
         if segment.stop:
             supf_stop_secs = ((int(segment.stop) / 64) * 64)
             if segment.stop % 64 != 0:
@@ -123,55 +139,69 @@ def write_segment(hdf_path, segment, dest, supf_boundary=True):
                 supf_stop_secs += 64
                 
     if supf_start_secs is None and supf_stop_secs is None:
-        logging.info("Write Segment: Segment is not being sliced, nothing to do")
+        logging.info("Write Segment: Segment is not being sliced, file will be copied.")   
+        shutil.copy(source, dest)
         return dest
-                
-    with hdf_file(dest) as hdf:
+    
+    with hdf_file(source) as source_hdf:
         if supf_start_secs is None:
             segment_duration = supf_stop_secs
         elif supf_stop_secs is None:
-            segment_duration = hdf.duration - supf_start_secs
+            segment_duration = source_hdf.duration - supf_start_secs
         else:
             segment_duration = supf_stop_secs - supf_start_secs
         
-        if hdf.duration == segment_duration:
-            logging.info("Write Segment: Segment duration is equal to whole duration, nothing to do")
-            return dest
-        else:
+        if source_hdf.duration == segment_duration:
+            logging.info("Write Segment: Segment duration is equal to whole "
+                         "duration, file will be copied.")
+            shutil.copy(source, dest)
+            return dest        
+    
+        with hdf_file(dest) as dest_hdf:
             logging.info("Write Segment: Duration %.2fs to be written to %s",
                          segment_duration, dest)
-            hdf.duration = segment_duration
             
-        for param_name in hdf.keys():
-            param = hdf[param_name]
-            if supf_boundary:
-                if ((param.hz * 64) % 1) != 0:
-                    raise ValueError("Parameter '%s' does not record a consistent "
-                                     "number of values every superframe. Check the "
-                                     "LFL definition." % param_name)
-                if segment.start:
-                    supf_start_index = int(supf_start_secs * param.hz)
-                    param_start_index = int((segment.start - supf_start_secs) * param.hz)
-                else:
-                    supf_start_index = 0
-                    param_start_index = supf_start_index
-                if segment.stop:
-                    supf_stop_index = int(supf_stop_secs * param.hz)
-                    param_stop_index = int(segment.stop * param.hz)
-                else:
-                    supf_stop_index = len(param.array)
-                    param_stop_index = supf_stop_index
+            for group_name in source_hdf.hdf.keys(): # Copy top-level groups.
+                if group_name == 'series':
+                    continue # Avoid copying parameter datasets. 
+                source_hdf.hdf.copy(group_name, dest_hdf.hdf)
+                logging.info("Copied group '%s' between '%s' and '%s'.",
+                             group_name, source, dest)
             
-                param.array = param.array[supf_start_index:supf_stop_index]
-                # Mask data outside of split.
-                param.array[:param_start_index] = np.ma.masked
-                param.array[param_stop_index:] = np.ma.masked
-            else:
-                start = int(segment.start * param.hz) if segment.start else 0
-                stop = int(math.ceil(segment.stop * param.hz)) if segment.stop else len(param.array)
-                param.array = param.array[start:stop]
-            # save modified parameter back to file
-            hdf[param_name] = param
-            logging.debug("Finished writing segment: %s", hdf)
+            _copy_attrs(source_hdf.hdf, dest_hdf.hdf) # Copy top-level attrs.
+            
+            dest_hdf.duration = segment_duration # Overwrite duration.
+
+            for param_name in source_hdf.keys():
+                param = source_hdf[param_name]
+                if supf_boundary:
+                    if ((param.hz * 64) % 1) != 0:
+                        raise ValueError("Parameter '%s' does not record a consistent "
+                                         "number of values every superframe. Check the "
+                                         "LFL definition." % param_name)
+                    if segment.start:
+                        supf_start_index = int(supf_start_secs * param.hz)
+                        param_start_index = int((segment.start - supf_start_secs) * param.hz)
+                    else:
+                        supf_start_index = 0
+                        param_start_index = supf_start_index
+                    if segment.stop:
+                        supf_stop_index = int(supf_stop_secs * param.hz)
+                        param_stop_index = int(segment.stop * param.hz)
+                    else:
+                        supf_stop_index = len(param.array)
+                        param_stop_index = supf_stop_index
+                
+                    param.array = param.array[supf_start_index:supf_stop_index]
+                    # Mask data outside of split.
+                    param.array[:param_start_index] = np.ma.masked
+                    param.array[param_stop_index:] = np.ma.masked
+                else:
+                    start = int(segment.start * param.hz) if segment.start else 0
+                    stop = int(math.ceil(segment.stop * param.hz)) if segment.stop else len(param.array)
+                    param.array = param.array[start:stop]
+                # save modified parameter back to file
+                dest_hdf[param_name] = param
+                logging.debug("Finished writing segment: %s", dest_hdf)
     
     return dest
