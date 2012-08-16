@@ -42,6 +42,9 @@ class hdf_file(object):    # rare case of lower case?!
     
     def __init__(self, file_path_or_obj, cache_param_list=[]):
         '''
+        Opens an HDF file (or accepts and already open file object) - will
+        create if does not exist!
+        
         :param cache_param_list: Names of parameters to cache where accessed
         :type cache_param_list: list of str
         :param file_path_or_obj: Can be either the path to an HDF file or an already opened HDF file object.
@@ -286,7 +289,7 @@ class hdf_file(object):    # rare case of lower case?!
         return sorted(filter(lambda x: x.startswith(term), self.keys()))
     
     
-    def get_params(self, param_names=None):
+    def get_params(self, param_names=None, raise_keyerror=False):
         '''
         Returns params that are available, `ignores` those that aren't.
     
@@ -302,7 +305,10 @@ class hdf_file(object):    # rare case of lower case?!
             try:
                 param_name_to_obj[name] = self[name]
             except KeyError:
-                pass # ignore parameters that aren't available
+                if raise_keyerror:
+                    raise
+                else:
+                    pass # ignore parameters that aren't available
         return param_name_to_obj
 
     def get_param(self, name):
