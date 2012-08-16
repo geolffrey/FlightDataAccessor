@@ -75,12 +75,10 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     :return: path to output hdf file containing specified segment.
     :rtype: str
     '''
-    # Q: Is there a better way to clone the contents of an hdf file?
-    shutil.copy(hdf_path, dest)
-    with h5py.File(hdf_path, 'r+') as hdf:
-        for param_name in hdf['series'].keys():
-            if param_name not in params_to_keep:
-                del hdf['series'][param_name]
+    with hdf_file(hdf_path, 'r') as hdf, hdf_file(dest) as hdf_dest:
+        params = hdf.get_params(params_to_keep)
+        for param_name, param in params.iteritems():
+            hdf_dest[param_name] = param
     return dest
 
 

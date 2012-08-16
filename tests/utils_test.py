@@ -139,19 +139,22 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         self._create_hdf_test_file(self.hdf_path)
         self.out_path = os.path.join(TEMP_DIR_PATH,
                                      'hdf_split.hdf5')
-    
+
+    def tearDown(self):
+        os.unlink(self.out_path)
+
     def test_strip_hdf_all(self):
         '''
         Do not keep any parameters.
         '''
         strip_hdf(self.hdf_path, [], self.out_path)
-        with h5py.File(self.hdf_path, 'r') as hdf_file:
+        with h5py.File(self.out_path, 'r') as hdf_file:
             self.assertEqual(hdf_file['series'].keys(), [])
     
     def test_strip_hdf_ivv(self):
         params_to_keep = ['IVV']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
-        with h5py.File(self.hdf_path, 'r') as hdf_file:
+        with h5py.File(self.out_path, 'r') as hdf_file:
             self.assertEqual(hdf_file['series'].keys(), params_to_keep)
             # Ensure datasets are unchanged.
             self.assertTrue(all(hdf_file['series']['IVV']['data'][:] == \
@@ -171,7 +174,7 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         '''
         params_to_keep = ['DME', 'WOW']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
-        with h5py.File(self.hdf_path, 'r') as hdf_file:
+        with h5py.File(self.out_path, 'r') as hdf_file:
             self.assertEqual(hdf_file['series'].keys(), params_to_keep)
 
 
