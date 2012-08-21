@@ -334,9 +334,9 @@ class hdf_file(object):    # rare case of lower case?!
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
         kwargs = {}
-        if 'values_mapping' in param_group.attrs:
-            mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
-            kwargs['values_mapping'] = mapping
+        # if 'values_mapping' in param_group.attrs:
+        #     mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
+        #     kwargs['values_mapping'] = mapping
         if 'frequency' in param_group.attrs:
             kwargs['frequency'] = param_group.attrs['frequency']
         # Backwards compatibility. Q: When can this be removed?
@@ -499,13 +499,7 @@ def print_hdf_info(hdf_file):
 
 if __name__ == '__main__':
     import sys
-    # print_hdf_info(hdf_file(sys.argv[1]))
-    with hdf_file(sys.argv[1]) as hdf:
-        for param_name, param in hdf.iteritems():
-            if param.data_type in ('Multi-state', 'Discreet'):
-                print param_name, param.values_mapping
-                print hdf[param_name].array[:10]
-                print hdf[param_name].raw_array[:10]
+    print_hdf_info(hdf_file(sys.argv[1]))
     sys.exit()
     file_path = 'AnalysisEngine/resources/data/hdf5/flight_1626325.hdf5'    
     with hdf_file(file_path) as hdf:
