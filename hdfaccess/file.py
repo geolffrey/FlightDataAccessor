@@ -330,9 +330,13 @@ class hdf_file(object):    # rare case of lower case?!
             raise KeyError("%s" % name)
         param_group = self.hdf['series'][name]
         data = param_group['data']
+        mapping = param_group.get('values_mapping')
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
         kwargs = {}
+        if 'values_mapping' in param_group.attrs:
+            mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
+            kwargs['values_mapping'] = mapping
         if 'frequency' in param_group.attrs:
             kwargs['frequency'] = param_group.attrs['frequency']
         # Backwards compatibility. Q: When can this be removed?
@@ -344,15 +348,15 @@ class hdf_file(object):    # rare case of lower case?!
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
         elif 'description' in param_group.attrs:
-            # Backwards compatibility for HDF files converted from AGS where the
-            # units are stored in the description. Units will be invalid if
+            # Backwards compatibility for HDF files converted from AGS where
+            # the units are stored in the description. Units will be invalid if
             # parameters from a FlightDataAnalyser HDF do not have 'units'
-            # attributes.            
+            # attributes.
             description = param_group.attrs['description']
             if description:
                 kwargs['units'] = description
         if 'data_type' in param_group.attrs:
-            kwargs['data_type'] = param_group.attrs['data_type']            
+            kwargs['data_type'] = param_group.attrs['data_type']
         if 'description' in param_group.attrs:
             kwargs['description'] = param_group.attrs['description']
         p = Parameter(name, array, **kwargs)
@@ -495,7 +499,13 @@ def print_hdf_info(hdf_file):
 
 if __name__ == '__main__':
     import sys
-    print_hdf_info(hdf_file(sys.argv[1]))
+    # print_hdf_info(hdf_file(sys.argv[1]))
+    with hdf_file(sys.argv[1]) as hdf:
+        for param_name, param in hdf.iteritems():
+            if param.data_type in ('Multi-state', 'Discreet'):
+                print param_name, param.values_mapping
+                print hdf[param_name].array[:10]
+                print hdf[param_name].raw_array[:10]
     sys.exit()
     file_path = 'AnalysisEngine/resources/data/hdf5/flight_1626325.hdf5'    
     with hdf_file(file_path) as hdf:

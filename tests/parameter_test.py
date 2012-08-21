@@ -24,3 +24,22 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.frequency, frequency)
         self.assertEqual(p.offset, offset)
         self.assertEqual(p.arinc_429, arinc_429)
+
+    def test_multivalue_parameter(self):
+        values = [1, 2, 3]
+        mask = [False, True, False]
+        array = np.ma.MaskedArray(values, mask)
+        mapping = {1: 'One', 2: 'Two'}
+        p = Parameter('param', array=array, values_mapping=mapping)
+        self.assertEqual(p.array[0], 'One')
+        self.assertEqual(p.raw_array[0], 1)
+        self.assertTrue(p.array[1] is np.ma.masked)
+        self.assertTrue(p.raw_array[1] is np.ma.masked)
+        # FIXME: should we return None or masked values if raw value not in
+        # mapping?
+        self.assertEqual(p.array[2], None)
+        self.assertEqual(p.raw_array[2], 3)
+
+
+if __name__ == '__main__':
+    unittest.main()

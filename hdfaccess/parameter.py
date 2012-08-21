@@ -4,10 +4,40 @@
 '''
 Parameter container class.
 '''
+from numpy.ma import MaskedArray, masked
+
+
+class MappedArray(MaskedArray):
+    '''
+    MaskedArray which optionally converts its values using provided mapping.
+    '''
+    def __init__(self, *args, **kwargs):
+        self.values_mapping = kwargs.pop('values_mapping', {})
+        self.rev_values_mapping = {
+            v: k for k, v in self.values_mapping.iteritems()}
+        super(MappedArray, self).__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        v = super(MappedArray, self).__getitem__(key)
+        if self.values_mapping:
+            if isinstance(key, slice):
+                data = [self.values_mapping.get(x, None) for x in v.data]
+                v = MaskedArray(data, v.mask)
+            else:
+                if v is not masked:
+                    v = self.values_mapping.get(v, None)
+        return v
+
+    # def __setitem__(self, key, val):
+    #     if isinstance(key, slice) and self.values_mapping:
+    #     v = self.rev_values_mapping.get(val, val)
+    #     return super(MappedArray, self).__setitem__(key, v)
+
 
 class Parameter(object):
-    def __init__(self, name, array=[], frequency=1, offset=0, arinc_429=None,
-                 units=None, data_type=None, description=''):
+    def __init__(self, name, array=[], values_mapping=None, frequency=1,
+                 offset=0, arinc_429=None, units=None, data_type=None,
+                 description=''):
         '''
         :param name: Parameter name
         :type name: String
@@ -23,7 +53,14 @@ class Parameter(object):
         :type description: str
         '''
         self.name = name
-        self.array = array
+        if values_mapping is not None:
+            self.values_mapping = {int(k): v for k, v
+                                   in values_mapping.items()}
+            self.array = MappedArray(array, values_mapping=self.values_mapping)
+        else:
+            self.values_mapping = None
+            self.array = array
+        self.raw_array = array
         # ensure frequency is stored as a float
         self.frequency = self.sample_rate = self.hz = float(frequency)
         self.offset = offset
@@ -31,8 +68,6 @@ class Parameter(object):
         self.units = units
         self.data_type = data_type
         self.description = description
-        
+
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
-    
-
