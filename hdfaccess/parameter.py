@@ -10,14 +10,59 @@ from numpy.ma import MaskedArray, masked
 class MappedArray(MaskedArray):
     '''
     MaskedArray which optionally converts its values using provided mapping.
+
+    For detils about numpy array subclassing see
+    http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
     '''
-    def __init__(self, *args, **kwargs):
-        self.values_mapping = kwargs.pop('values_mapping', {})
-        self.rev_values_mapping = {
-            v: k for k, v in self.values_mapping.iteritems()}
-        super(MappedArray, self).__init__(*args, **kwargs)
+    def __new__(subtype, *args, **kwargs):
+        '''
+        Create new object.
+        '''
+        values_mapping = kwargs.pop('values_mapping', {})
+        obj = MaskedArray.__new__(MaskedArray, *args, **kwargs)
+        obj.values_mapping = values_mapping
+        obj.rev_values_mapping = {
+            v: k for k, v in obj.values_mapping.iteritems()}
+        obj.__class__ = MappedArray
+        return obj
+
+    def __array_finalize__(self, obj):
+        '''
+        Finalise the newly created object.
+        '''
+        self.values_mapping = getattr(obj, 'values_mapping', None)
+        self.rev_values_mapping = getattr(obj, 'rev_values_mapping', None)
+
+    def __array_wrap__(self, out_arr, context=None):
+        '''
+        Convert the result into correct type.
+        '''
+        result = out_arr.view(MappedArray)
+        return self.__apply_attributes__(result)
+
+    def __apply__attributes__(self, result):
+        result.values_mapping = self.values_mapping
+        result.rev_values_mapping = self.rev_values_mapping
+        return result
+
+    def copy(self):
+        '''
+        Copy custom atributes on self.copy().
+        '''
+        result = super(MappedArray, self).copy()
+        return self.__apply_attributes__(result)
+
+    @property
+    def raw(self):
+        '''
+        See the raw data.
+        '''
+        return self.view(MaskedArray)
 
     def __getitem__(self, key):
+        '''
+        Return mapped values.
+        '''
         v = super(MappedArray, self).__getitem__(key)
         if self.values_mapping:
             if isinstance(key, slice):
