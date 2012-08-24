@@ -37,10 +37,9 @@ class MappedArray(MaskedArray):
         '''
         Convert the result into correct type.
         '''
-        result = out_arr.view(MappedArray)
-        return self.__apply_attributes__(result)
+        return self.__apply_attributes__(out_arr)
 
-    def __apply__attributes__(self, result):
+    def __apply_attributes__(self, result):
         result.values_mapping = self.values_mapping
         result.rev_values_mapping = self.rev_values_mapping
         return result
@@ -67,7 +66,8 @@ class MappedArray(MaskedArray):
         if self.values_mapping:
             if isinstance(key, slice):
                 data = [self.values_mapping.get(x, None) for x in v.data]
-                v = MaskedArray(data, v.mask)
+                mask = getattr(v, 'mask', False)
+                v = MaskedArray(data, mask, dtype=object)
             else:
                 if v is not masked:
                     v = self.values_mapping.get(v, None)

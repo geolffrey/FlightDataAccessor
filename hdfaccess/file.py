@@ -334,9 +334,9 @@ class hdf_file(object):    # rare case of lower case?!
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
         kwargs = {}
-        # if 'values_mapping' in param_group.attrs:
-        #     mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
-        #     kwargs['values_mapping'] = mapping
+        if 'values_mapping' in param_group.attrs:
+            mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
+            kwargs['values_mapping'] = mapping
         if 'frequency' in param_group.attrs:
             kwargs['frequency'] = param_group.attrs['frequency']
         # Backwards compatibility. Q: When can this be removed?
@@ -428,6 +428,9 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['units'] = param.units
         if hasattr(param, 'data_type') and param.data_type is not None:
             param_group.attrs['data_type'] = param.data_type
+        if hasattr(param, 'values_mapping'):
+            param_group.attrs['values_mapping'] = simplejson.dumps(
+                param.values_mapping)
         description = param.description if hasattr(param, 'description') else ''
         param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
