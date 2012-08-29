@@ -1,4 +1,5 @@
 import h5py
+import mock
 import numpy as np
 import os
 import random
@@ -225,3 +226,36 @@ class TestHdfFile(unittest.TestCase):
         '''
         self.assertEqual(sorted(self.hdf_file.keys()),
                          sorted([self.param_name, self.masked_param_name]))
+
+    def test_startswith(self):
+        params = ('Airspeed Two', 'Airspeed One', 'blah')
+        mock_keys = mock.Mock(spec=['keys'], return_value = params)
+        self.hdf_file.keys = mock_keys
+        
+        self.assertEqual(self.hdf_file.startswith('Airspeed'),
+                         ['Airspeed One', 'Airspeed Two'])
+    
+    def test_search(self):
+        """
+        """
+        params = ['ILS Localizer', 'ILS Localizer (R)', 'ILS Localizer (L)', 'Rate of Climb', 'Altitude STD', 
+                  'Brake (R) Pressure Ourboard', 'Brake (L) Pressure Inboard', 'ILS Localizer Deviation Warning',
+                  'ILS Localizer Test Tube Inhibit', 'ILS Localizer Beam Anomaly', 'ILS Localizer Engaged']
+        
+        mock_keys = mock.Mock(spec=['keys'], return_value = params)
+        self.hdf_file.keys = mock_keys
+        
+        search_key = 'ILS Localizer'
+        
+        expected_output = ['ILS Localizer', 'ILS Localizer (L)', 'ILS Localizer (R)', 'ILS Localizer Beam Anomaly', 'ILS Localizer Deviation Warning',
+                  'ILS Localizer Engaged', 'ILS Localizer Test Tube Inhibit']
+        
+        res = self.hdf_file.search(search_key)
+        self.assertEqual(res, expected_output)
+        
+        search_key_star = 'ILS Localizer (*)'
+        
+        expected_output_star = ['ILS Localizer (L)', 'ILS Localizer (R)']
+        res = self.hdf_file.search(search_key_star)
+        self.assertEqual(res, expected_output_star)
+        
