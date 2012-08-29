@@ -330,7 +330,6 @@ class hdf_file(object):    # rare case of lower case?!
             raise KeyError("%s" % name)
         param_group = self.hdf['series'][name]
         data = param_group['data']
-        mapping = param_group.get('values_mapping')
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
         kwargs = {}

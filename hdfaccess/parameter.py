@@ -6,22 +6,32 @@ Parameter container class.
 '''
 from numpy.ma import MaskedArray, masked
 
+# The value used to fill in MappedArrays for keys not within values_mapping
+NO_MAPPING = '?'  # only when getting values, setting raises ValueError
 
 class MappedArray(MaskedArray):
     '''
     MaskedArray which optionally converts its values using provided mapping.
-
+    Has a dtype of int.
+    
+    Provide keyword argument 'values_mapping' when initialising, e.g.:
+        MappedArray(np.ma.arange(3, mask=[1,0,0]), values_mapping={0:'zero', 2:'two'}
+    
+    Note: first argument is a MaskedArray object.
+    
     For detils about numpy array subclassing see
     http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
     '''
     def __new__(subtype, *args, **kwargs):
         '''
         Create new object.
+        
+        No default mapping - raises KeyError if values_mapping not in kwargs
         '''
-        values_mapping = kwargs.pop('values_mapping', {})
+        values_mapping = kwargs.pop('values_mapping')
         obj = MaskedArray.__new__(MaskedArray, *args, **kwargs)
         obj.values_mapping = values_mapping
-        obj.rev_values_mapping = {
+        obj.state = {
             v: k for k, v in obj.values_mapping.iteritems()}
         obj.__class__ = MappedArray
         return obj
@@ -31,7 +41,7 @@ class MappedArray(MaskedArray):
         Finalise the newly created object.
         '''
         self.values_mapping = getattr(obj, 'values_mapping', None)
-        self.rev_values_mapping = getattr(obj, 'rev_values_mapping', None)
+        self.state = getattr(obj, 'state', None)
 
     def __array_wrap__(self, out_arr, context=None):
         '''
@@ -41,9 +51,29 @@ class MappedArray(MaskedArray):
 
     def __apply_attributes__(self, result):
         result.values_mapping = self.values_mapping
-        result.rev_values_mapping = self.rev_values_mapping
+        result.state = self.state
         return result
-
+        
+    def __repr__(self):
+        n = len(self.shape)
+        name = 'mapped_array'
+        parameters = dict(name=name, 
+                          nlen=" " * len(name),
+                          data=str(self),
+                          sdata=str(MaskedArray([self.values_mapping.get(x, NO_MAPPING) for x in self.data], mask=self.mask)), # WARNING: SLOW!
+                          mask=str(self._mask),
+                          fill=str(self.fill_value), 
+                          dtype=str(self.dtype),
+                          values=self.values_mapping)
+        short_std="""\
+masked_%(name)s(values = %(sdata)s,
+       %(nlen)s   data = %(data)s,
+       %(nlen)s   mask = %(mask)s,
+%(nlen)s    fill_value = %(fill)s,
+%(nlen)svalues_mapping = %(values)s)
+"""     
+        return short_std % parameters
+    
     def copy(self):
         '''
         Copy custom atributes on self.copy().
@@ -61,22 +91,37 @@ class MappedArray(MaskedArray):
     def __getitem__(self, key):
         '''
         Return mapped values.
+                
+        Note: Returns MappedArray if sliced
+        
+        Note: Returns NO_MAPPING where mapping is not available.
+        Q: Shouldn't it use self.fill_value which for string types is 'N/A'
         '''
         v = super(MappedArray, self).__getitem__(key)
         if self.values_mapping:
             if isinstance(key, slice):
-                data = [self.values_mapping.get(x, None) for x in v.data]
-                mask = getattr(v, 'mask', False)
-                v = MaskedArray(data, mask, dtype=object)
+                ##data = [self.values_mapping.get(x, NO_MAPPING) for x in v.data]
+                ##mask = getattr(v, 'mask', False)
+                ##v = MappedArray(MaskedArray(data, mask, dtype=str), 
+                                ##values_mapping=self.values_mapping)
+                return self.__apply_attributes__(v)
             else:
                 if v is not masked:
-                    v = self.values_mapping.get(v, None)
+                    v = self.values_mapping.get(v, NO_MAPPING)
+                else:
+                    pass
         return v
 
-    # def __setitem__(self, key, val):
-    #     if isinstance(key, slice) and self.values_mapping:
-    #     v = self.rev_values_mapping.get(val, val)
-    #     return super(MappedArray, self).__setitem__(key, v)
+    def __setitem__(self, key, val):
+        if not isinstance(val, int):
+            # raises KeyError if mapping does not exist for val
+            if isinstance(key, slice):
+                mapped_val = [self.state[v] for v in val]
+                return super(MappedArray, self).__setitem__(key, mapped_val)
+            else:
+                # single value
+                return super(MappedArray, self).__setitem__(key, self.state[val])
+        return super(MappedArray, self).__setitem__(key, val)
 
 
 class Parameter(object):
