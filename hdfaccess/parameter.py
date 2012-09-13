@@ -40,6 +40,7 @@ class MappedArray(MaskedArray):
         '''
         Finalise the newly created object.
         '''
+        super(MappedArray, self).__array_finalize__(obj)
         self.values_mapping = getattr(obj, 'values_mapping', None)
         self.state = getattr(obj, 'state', None)
 
@@ -80,6 +81,12 @@ masked_%(name)s(values = %(sdata)s,
         '''
         result = super(MappedArray, self).copy()
         return self.__apply_attributes__(result)
+
+    def get_state_value(self, state):
+        '''
+        Return raw value for given state.
+        '''
+        return self.state[state]
 
     @property
     def raw(self):
