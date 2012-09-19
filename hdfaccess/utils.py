@@ -44,7 +44,7 @@ def concat_hdf(hdf_paths, dest=None):
                     assert param.units == master_param.units
                     # join arrays together
                     master_param.array = np.ma.concatenate(
-                        (master_param.array, param.array))
+                        (master_param.raw_array, param.raw_array))
                     # re-save parameter
                     hdf_master[param_name] = master_param
                 # extend the master's duration
@@ -75,12 +75,10 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     :return: path to output hdf file containing specified segment.
     :rtype: str
     '''
-    # Q: Is there a better way to clone the contents of an hdf file?
-    shutil.copy(hdf_path, dest)
-    with h5py.File(hdf_path, 'r+') as hdf:
-        for param_name in hdf['series'].keys():
-            if param_name not in params_to_keep:
-                del hdf['series'][param_name]
+    with hdf_file(hdf_path, 'r') as hdf, hdf_file(dest) as hdf_dest:
+        params = hdf.get_params(params_to_keep)
+        for param_name, param in params.iteritems():
+            hdf_dest[param_name] = param
     return dest
 
 
@@ -189,17 +187,17 @@ def write_segment(source, segment, dest, supf_boundary=True):
                         supf_stop_index = int(supf_stop_secs * param.hz)
                         param_stop_index = int(segment.stop * param.hz)
                     else:
-                        supf_stop_index = len(param.array)
+                        supf_stop_index = len(param.raw_array)
                         param_stop_index = supf_stop_index
                 
-                    param.array = param.array[supf_start_index:supf_stop_index]
+                    param.array = param.raw_array[supf_start_index:supf_stop_index]
                     # Mask data outside of split.
                     param.array[:param_start_index] = np.ma.masked
                     param.array[param_stop_index:] = np.ma.masked
                 else:
                     start = int(segment.start * param.hz) if segment.start else 0
                     stop = int(math.ceil(segment.stop * param.hz)) if segment.stop else len(param.array)
-                    param.array = param.array[start:stop]
+                    param.array = param.raw_array[start:stop]
                 # save modified parameter back to file
                 dest_hdf[param_name] = param
                 logging.debug("Finished writing segment: %s", dest_hdf)

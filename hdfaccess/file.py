@@ -42,6 +42,9 @@ class hdf_file(object):    # rare case of lower case?!
     
     def __init__(self, file_path_or_obj, cache_param_list=[]):
         '''
+        Opens an HDF file (or accepts and already open file object) - will
+        create if does not exist!
+        
         :param cache_param_list: Names of parameters to cache where accessed
         :type cache_param_list: list of str
         :param file_path_or_obj: Can be either the path to an HDF file or an already opened HDF file object.
@@ -247,15 +250,15 @@ class hdf_file(object):    # rare case of lower case?!
         
     def search(self, pattern):
         '''
-         Searches for param names that matches with (*) or (?) expression. If found, 
-         the pattern is converted to a regex and matched against the param names
-         in the hdf file. If a match is found, the param is added as a key in a list
-         and returned.
+        Searches for param names that matches with (*) or (?) expression. If
+        found, the pattern is converted to a regex and matched against the
+        param names in the hdf file. If a match is found, the param is added
+        as a key in a list and returned.
          
-         If a match with the regular expression is not found, then a list of params 
-         are returned that contains the substring 'pattern'.
+        If a match with the regular expression is not found, then a list of
+        params are returned that contains the substring 'pattern'.
          
-        :param pattern: A string, either a regular expression or a string.
+        :param pattern: Pattern to search for (case insensitve).
         :param type: string
         :returns: list of sorted keys(params)
         :rtype: list
@@ -276,8 +279,17 @@ class hdf_file(object):    # rare case of lower case?!
             PATTERN = pattern.upper()
             return sorted(
                 filter(lambda k: PATTERN in k.upper(), self.keys()))
+        
+        
+        
+    def startswith(self, term):
+        '''
+        Searches for keys which start with the term. Case sensitive.
+        '''
+        return sorted(filter(lambda x: x.startswith(term), self.keys()))
     
-    def get_params(self, param_names=None):
+    
+    def get_params(self, param_names=None, raise_keyerror=False):
         '''
         Returns params that are available, `ignores` those that aren't.
     
@@ -293,7 +305,10 @@ class hdf_file(object):    # rare case of lower case?!
             try:
                 param_name_to_obj[name] = self[name]
             except KeyError:
-                pass # ignore parameters that aren't available
+                if raise_keyerror:
+                    raise
+                else:
+                    pass # ignore parameters that aren't available
         return param_name_to_obj
 
     def get_param(self, name):
@@ -318,6 +333,9 @@ class hdf_file(object):    # rare case of lower case?!
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
         kwargs = {}
+        if 'values_mapping' in param_group.attrs:
+            mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
+            kwargs['values_mapping'] = mapping
         if 'frequency' in param_group.attrs:
             kwargs['frequency'] = param_group.attrs['frequency']
         # Backwards compatibility. Q: When can this be removed?
@@ -329,15 +347,15 @@ class hdf_file(object):    # rare case of lower case?!
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
         elif 'description' in param_group.attrs:
-            # Backwards compatibility for HDF files converted from AGS where the
-            # units are stored in the description. Units will be invalid if
+            # Backwards compatibility for HDF files converted from AGS where
+            # the units are stored in the description. Units will be invalid if
             # parameters from a FlightDataAnalyser HDF do not have 'units'
-            # attributes.            
+            # attributes.
             description = param_group.attrs['description']
             if description:
                 kwargs['units'] = description
         if 'data_type' in param_group.attrs:
-            kwargs['data_type'] = param_group.attrs['data_type']            
+            kwargs['data_type'] = param_group.attrs['data_type']
         if 'description' in param_group.attrs:
             kwargs['description'] = param_group.attrs['description']
         p = Parameter(name, array, **kwargs)
@@ -409,6 +427,9 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['units'] = param.units
         if hasattr(param, 'data_type') and param.data_type is not None:
             param_group.attrs['data_type'] = param.data_type
+        if hasattr(param, 'values_mapping'):
+            param_group.attrs['values_mapping'] = simplejson.dumps(
+                param.values_mapping)
         description = param.description if hasattr(param, 'description') else ''
         param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies

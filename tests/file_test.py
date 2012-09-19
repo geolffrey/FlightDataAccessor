@@ -9,7 +9,7 @@ import unittest
 from datetime import datetime
 
 from hdfaccess.file import hdf_file
-from hdfaccess.parameter import Parameter
+from hdfaccess.parameter import Parameter, MappedArray
 
 TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 TEMP_DIR_PATH = os.path.join(TEST_DATA_DIR_PATH, 'temp')
@@ -226,6 +226,14 @@ class TestHdfFile(unittest.TestCase):
         '''
         self.assertEqual(sorted(self.hdf_file.keys()),
                          sorted([self.param_name, self.masked_param_name]))
+
+    def test_startswith(self):
+        params = ('Airspeed Two', 'Airspeed One', 'blah')
+        mock_keys = mock.Mock(spec=['keys'], return_value = params)
+        self.hdf_file.keys = mock_keys
+        
+        self.assertEqual(self.hdf_file.startswith('Airspeed'),
+                         ['Airspeed One', 'Airspeed Two'])
     
     def test_search(self):
         """
@@ -252,5 +260,20 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(res, expected_output_star)
         
         
+    def test_mapped_array(self):
+        # created mapped array
+        mapping = {0:'zero', 2:'two', 3:'three'}
+        array = np.ma.array(range(5)+range(5), mask=[1,1,1,0,0,0,0,0,1,1])
+        multi_p = Parameter('multi', array, values_mapping=mapping)
+        multi_p.array[0] = 'three'
         
+        # save array to hdf
+        self.hdf_file['multi'] = multi_p
+        self.hdf_file.close()
         
+        # check hdf has mapping and integer values stored
+        with hdf_file(self.hdf_path) as hdf:
+            saved = hdf['multi']
+            self.assertEqual(str(saved.array[:]), 
+                             '[three -- -- three None zero None two -- --]')
+            self.assertEqual(saved.array.data.dtype, np.int)
