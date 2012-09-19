@@ -30,12 +30,13 @@ class MappedArray(MaskedArray):
 
         No default mapping - raises KeyError if values_mapping not in kwargs
         '''
-        values_mapping = kwargs.pop('values_mapping')
+        values_mapping = kwargs.pop('values_mapping', {})
         obj = MaskedArray.__new__(MaskedArray, *args, **kwargs)
-        obj.values_mapping = values_mapping
-        obj.state = {
-            v: k for k, v in obj.values_mapping.iteritems()}
         obj.__class__ = MappedArray
+
+        # Must occur after class change for obj.state to update!
+        obj.values_mapping = values_mapping
+
         return obj
 
     def __array_finalize__(self, obj):
@@ -43,8 +44,7 @@ class MappedArray(MaskedArray):
         Finalise the newly created object.
         '''
         super(MappedArray, self).__array_finalize__(obj)
-        self.values_mapping = getattr(obj, 'values_mapping', None)
-        self.state = getattr(obj, 'state', None)
+        self.values_mapping = getattr(obj, 'values_mapping', {})
 
     def __array_wrap__(self, out_arr, context=None):
         '''
@@ -54,8 +54,15 @@ class MappedArray(MaskedArray):
 
     def __apply_attributes__(self, result):
         result.values_mapping = self.values_mapping
-        result.state = self.state
         return result
+
+    def __setattr__(self, key, value):
+        '''
+        '''
+        # Update the reverse mappings in self.state
+        if key == 'values_mapping':
+            self.state = {v: k for k, v in value.iteritems()}
+        super(MappedArray, self).__setattr__(key, value)
 
     def __repr__(self):
         name = 'mapped_array'
