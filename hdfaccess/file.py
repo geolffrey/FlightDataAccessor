@@ -330,7 +330,6 @@ class hdf_file(object):    # rare case of lower case?!
             raise KeyError("%s" % name)
         param_group = self.hdf['series'][name]
         data = param_group['data']
-        mapping = param_group.get('values_mapping')
         mask = param_group.get('mask', False)
         array = np.ma.masked_array(data, mask=mask)
         kwargs = {}
@@ -344,6 +343,8 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['offset'] = param_group.attrs['supf_offset']
         if 'arinc_429' in param_group.attrs:
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
+        if 'invalid' in param_group.attrs:
+            kwargs['invalid'] = param_group.attrs['invalid']
         # Units
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
@@ -424,6 +425,8 @@ class hdf_file(object):    # rare case of lower case?!
         # HDF file as an attribute.
         if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
             param_group.attrs['arinc_429'] = param.arinc_429
+        if hasattr(param, 'invalid') and param.invalid is not None:
+            param_group.attrs['invalid'] = param.invalid
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
         if hasattr(param, 'data_type') and param.data_type is not None:
@@ -435,6 +438,17 @@ class hdf_file(object):    # rare case of lower case?!
         param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
+    
+    def valid_param_names(self):
+        '''
+        '''
+        valid_params = []
+        for param in self.keys():
+            if self.hdf['series'][param].attrs.get('invalid') == 1:
+                continue
+            else:
+                valid_params.append(param)
+        return valid_params
     
     def set_param_limits(self, name, limits):
         '''
