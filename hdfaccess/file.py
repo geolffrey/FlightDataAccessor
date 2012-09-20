@@ -28,7 +28,7 @@ class hdf_file(object):    # rare case of lower case?!
     hdf['series']['Altitude AAL'].attrs['limits'] (json)
     """
     # HDF file settings should be consistent, therefore hardcoding defaults.
-    DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 3}
+    DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 6}
     
     def __repr__(self):
         '''

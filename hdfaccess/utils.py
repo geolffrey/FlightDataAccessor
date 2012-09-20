@@ -1,13 +1,24 @@
+import argparse
+import h5py
 import logging
 import math
-import shutil
 import numpy as np
 import os
-import h5py
+import shutil
 
 from hdfaccess.file import hdf_file
 
 from utilities.filesystem_tools import copy_file
+
+
+def _copy_attrs(source_group, target_group):
+    '''
+    While the library can recursively copy groups and datasets, there does
+    not seem to be a simple way to copy all of a group's attributes at once.
+    '''
+    for key, value in source_group.attrs.iteritems():
+        target_group.attrs[key] = value
+
 
 def concat_hdf(hdf_paths, dest=None):
     '''
@@ -63,7 +74,7 @@ def concat_hdf(hdf_paths, dest=None):
 
 def strip_hdf(hdf_path, params_to_keep, dest):
     '''
-    Strip an HDF file of all parameters apart from those in param_names. Does
+    Strip an HDF file of all parameters apart from those in params_to_keep. Does
     not raise an exception if any of the params_to_keep are not in the HDF file.
     
     :param hdf_path: file path of hdf file.
@@ -72,14 +83,15 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     :type param_to_keep: list of str
     :param dest: destination path for stripped output file
     :type dest: str
-    :return: path to output hdf file containing specified segment.
-    :rtype: str
+    :return: all parameters names within the output hdf file
+    :rtype: [str]
     '''
-    with hdf_file(hdf_path, 'r') as hdf, hdf_file(dest) as hdf_dest:
+    with hdf_file(hdf_path) as hdf, hdf_file(dest) as hdf_dest:
+        _copy_attrs(hdf.hdf, hdf_dest.hdf) # Copy top-level attrs.
         params = hdf.get_params(params_to_keep)
         for param_name, param in params.iteritems():
             hdf_dest[param_name] = param
-    return dest
+    return params.keys()
 
 
 def write_segment(source, segment, dest, supf_boundary=True):
@@ -109,15 +121,6 @@ def write_segment(source, segment, dest, supf_boundary=True):
     TODO: Support segmenting parameter masks. Q: Does this mean copying the mask along
     with data? If so, this is already done.
     '''
-    
-    def _copy_attrs(source_group, target_group):
-        '''
-        While the library can recursively copy groups and datasets, there does
-        not seem to be a simple way to copy all of a group's attributes at once.
-        '''
-        for key, value in source_group.attrs.iteritems():
-            target_group.attrs[key] = value
-    
     if os.path.isfile(dest):
         logging.warning("File '%s' already exists, write_segments will delete file.",
                         dest)
@@ -203,3 +206,34 @@ def write_segment(source, segment, dest, supf_boundary=True):
                 logging.debug("Finished writing segment: %s", dest_hdf)
     
     return dest
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    subparser = parser.add_subparsers(dest='command',
+                                      description="Utility command, currently "
+                                      "only 'strip' is supported",
+                                      help='Additional help')
+    strip_parser = subparser.add_parser('strip')
+    strip_parser.add_argument('input_file_path', help='Input hdf filename.')    
+    strip_parser.add_argument('output_file_path', help='Output hdf filename.')
+    strip_parser.add_argument('parameters', nargs='+',
+                              help='Store this list of parameters into the '
+                              'output hdf file. All other parameters will be '
+                              'stripped.')
+    args = parser.parse_args()
+    if args.command == 'strip':
+        if not os.path.isfile(args.input_file_path):
+            parser.error("Input file path '%s' does not exist." %
+                         args.input_file_path)
+        if os.path.exists(args.output_file_path):
+            parser.error("Output file path '%s' already exists." %
+                         args.output_file_path)
+        output_parameters = strip_hdf(args.input_file_path, args.parameters,
+                                      args.output_file_path)
+        if output_parameters:
+            print 'The following parameters are in the output hdf file:'
+            for name in output_parameters:
+                print ' * %s' % name
+        else:
+            print 'No matching parameters were found in the hdf file.'    
