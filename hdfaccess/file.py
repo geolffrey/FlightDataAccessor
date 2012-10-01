@@ -348,6 +348,8 @@ class hdf_file(object):    # rare case of lower case?!
         # Units
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
+        if 'lfl' in param_group.attrs:
+            kwargs['lfl'] = param_group.attrs['lfl']            
         elif 'description' in param_group.attrs:
             # Backwards compatibility for HDF files converted from AGS where
             # the units are stored in the description. Units will be invalid if
@@ -429,6 +431,8 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['invalid'] = param.invalid
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
+        if hasattr(param, 'lfl') and param.lfl is not None:
+            param_group.attrs['lfl'] = param.units        
         if hasattr(param, 'data_type') and param.data_type is not None:
             param_group.attrs['data_type'] = param.data_type
         if hasattr(param, 'values_mapping'):

@@ -140,7 +140,7 @@ def write_segment(source, segment, dest, supf_boundary=True):
                 supf_stop_secs += 64
                 
     if supf_start_secs is None and supf_stop_secs is None:
-        logging.info("Write Segment: Segment is not being sliced, file will be copied.")   
+        logging.debug("Write Segment: Segment is not being sliced, file will be copied.")   
         shutil.copy(source, dest)
         return dest
     
@@ -153,21 +153,21 @@ def write_segment(source, segment, dest, supf_boundary=True):
             segment_duration = supf_stop_secs - supf_start_secs
         
         if source_hdf.duration == segment_duration:
-            logging.info("Write Segment: Segment duration is equal to whole "
-                         "duration, file will be copied.")
+            logging.debug("Write Segment: Segment duration is equal to whole "
+                          "duration, file will be copied.")
             shutil.copy(source, dest)
             return dest        
     
         with hdf_file(dest) as dest_hdf:
-            logging.info("Write Segment: Duration %.2fs to be written to %s",
-                         segment_duration, dest)
+            logging.debug("Write Segment: Duration %.2fs to be written to %s",
+                          segment_duration, dest)
             
             for group_name in source_hdf.hdf.keys(): # Copy top-level groups.
                 if group_name == 'series':
                     continue # Avoid copying parameter datasets. 
                 source_hdf.hdf.copy(group_name, dest_hdf.hdf)
-                logging.info("Copied group '%s' between '%s' and '%s'.",
-                             group_name, source, dest)
+                logging.debug("Copied group '%s' between '%s' and '%s'.",
+                              group_name, source, dest)
             
             _copy_attrs(source_hdf.hdf, dest_hdf.hdf) # Copy top-level attrs.
             
