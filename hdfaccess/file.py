@@ -432,7 +432,7 @@ class hdf_file(object):    # rare case of lower case?!
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
         if hasattr(param, 'lfl') and param.lfl is not None:
-            param_group.attrs['lfl'] = param.units        
+            param_group.attrs['lfl'] = param.lfl        
         if hasattr(param, 'data_type') and param.data_type is not None:
             param_group.attrs['data_type'] = param.data_type
         if hasattr(param, 'values_mapping'):
