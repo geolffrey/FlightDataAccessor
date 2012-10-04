@@ -70,10 +70,11 @@ class hdf_file(object):    # rare case of lower case?!
             self.hdf.create_group('series')
         # cache keys as accessing __iter__ on hdf groups is v.slow
         self._keys_cache = None
+        self._valid_param_names_cache = None
         # cache parameters that are used often
         self._params_cache = {}
         # this is the list of parameters to cache
-        self.cache_param_list = cache_param_list        
+        self.cache_param_list = cache_param_list
                 
     def __enter__(self):
         '''
@@ -442,17 +443,23 @@ class hdf_file(object):    # rare case of lower case?!
         param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
+        # TODO: Update valid param names cache rather than clearing it.
+        self._valid_param_names_cache = None
     
     def valid_param_names(self):
         '''
+        :returns: Only the names of valid parameters.
+        :rtype: [str]
         '''
-        valid_params = []
-        for param in self.keys():
-            if self.hdf['series'][param].attrs.get('invalid') == 1:
-                continue
-            else:
-                valid_params.append(param)
-        return valid_params
+        if self._valid_param_names_cache is None:
+            valid_params = []
+            for param in self.keys():
+                if self.hdf['series'][param].attrs.get('invalid') == 1:
+                    continue
+                else:
+                    valid_params.append(param)
+            self._valid_param_names_cache = valid_params            
+        return self._valid_param_names_cache
     
     def set_param_limits(self, name, limits):
         '''
