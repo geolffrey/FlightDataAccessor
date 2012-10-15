@@ -137,6 +137,32 @@ class hdf_file(object):    # rare case of lower case?!
     ############################################################################
     
     @property
+    def analysis_version(self):
+        '''
+        Accessor for the root-level 'version' attribute.
+        
+        :returns: Version of the FlightDataAnalyser which processed this HDF file.
+        :rtype: str or None
+        '''
+        return self.hdf.attrs.get('analysis_version')
+            
+    @analysis_version.setter
+    def analysis_version(self, analysis_version):
+        '''
+        Mutator for the root-level 'version' attribute. If version is None the
+        'version' attribute will be deleted.
+        
+        :param version: FlightDataAnalyser version.
+        :type version: str
+        :rtype: None
+        '''
+        if analysis_version is None: # Cannot store None as an HDF attribute.
+            if 'analysis_version' in self.hdf.attrs:
+                del self.hdf.attrs['analysis_version']
+        else:
+            self.hdf.attrs['analysis_version'] = analysis_version    
+    
+    @property
     def dependency_tree(self):
         '''
         Accessor for the root-level 'dependency_tree' attribute.
