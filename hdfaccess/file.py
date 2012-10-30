@@ -499,7 +499,7 @@ class hdf_file(object):    # rare case of lower case?!
         param_group = self.get_or_create(name)
         param_group.attrs['limits'] = simplejson.dumps(limits)
         
-    def get_param_limits(self, name):
+    def get_param_limits(self, name, default=None):
         '''
         Returns a parameter's operating limits stored within the groups
         'limits' attribute. Decodes limits from JSON into dict.
@@ -515,7 +515,7 @@ class hdf_file(object):    # rare case of lower case?!
             # otherwise h5py.File object will crash and close.
             raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
-        return simplejson.loads(limits) if limits else None
+        return simplejson.loads(limits) if limits else default
     
     def get_matching(self, regex_str):
         '''
