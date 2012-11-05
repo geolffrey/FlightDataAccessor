@@ -414,9 +414,13 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['name'] = str(param_name) # Fails to set unicode attribute.
         return param_group
 
-    def set_param(self, param):
+    def set_param(self, param, save_data=True, save_mask=True):
         '''
         Store parameter and associated attributes on the HDF file.
+        
+        In order to save space re-writing data and masks to file when only
+        one has changed or the attributes only have changed, the save_data
+        and save_mask flags can be disabled as required.
         
         Parameter.name canot contain forward slashes as they are used as an
         HDF identifier which supports filesystem-style indexing, e.g.
@@ -426,27 +430,28 @@ class hdf_file(object):    # rare case of lower case?!
         :param array: Array containing data and potentially a mask for the data.
         :type array: np.array or np.ma.masked_array
         '''
+        # Allow both arrays and masked_arrays.
+        if not hasattr(param.array, 'mask'):
+            param.array = np.ma.masked_array(param.array, mask=False)
+
         if param.name in self.cache_param_list:
             logging.debug("Storing parameter '%s' in HDF cache", param.name)
             self._params_cache[param.name] = param
-        # Allow both arrays and masked_arrays.
-        if hasattr(param.array, 'mask'):
-            array = param.array
-        else:
-            array = np.ma.masked_array(param.array, mask=False)
             
         param_group = self.get_or_create(param.name)
-        if 'data' in param_group:
-             # Dataset must be deleted before recreation.
-            del param_group['data']
-        param_group.create_dataset('data', data=array.data, 
-                                   **self.DATASET_KWARGS)
-        if 'mask' in param_group:
-            # Existing mask will no longer reflect the new data.
-            del param_group['mask']
-        mask = np.ma.getmaskarray(array)
-        param_group.create_dataset('mask', data=mask,
-                                   **self.DATASET_KWARGS)
+        if save_data:
+            if 'data' in param_group:
+                 # Dataset must be deleted before recreation.
+                del param_group['data']
+            param_group.create_dataset('data', data=param.array.data, 
+                                       **self.DATASET_KWARGS)
+        if save_mask:
+            if 'mask' in param_group:
+                # Existing mask will no longer reflect the new data.
+                del param_group['mask']
+            mask = np.ma.getmaskarray(param.array)
+            param_group.create_dataset('mask', data=mask,
+                                       **self.DATASET_KWARGS)
         # Set parameter attributes
         param_group.attrs['supf_offset'] = param.offset
         param_group.attrs['frequency'] = param.frequency
