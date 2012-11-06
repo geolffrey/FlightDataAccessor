@@ -180,16 +180,57 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(series[name2].attrs['frequency'], param2_frequency)
         self.assertEqual(series[name2].attrs['supf_offset'], param2_offset)
         self.assertEqual(series[name2].attrs['arinc_429'], param2_arinc_429)
+        
         # Set existing parameter's data with np.array.
         array = np.arange(200)
         set_param_data(name1, Parameter(name1, array))
         self.assertTrue(np.all(series[name1]['data'].value == array))
+        
         # Set existing parameter's data with np.ma.masked_array.
         mask = [bool(random.randint(0, 1)) for x in range(len(array))]
         masked_array = np.ma.masked_array(data=array, mask=mask)
         set_param_data(name1, Parameter(name1, masked_array))
         self.assertTrue(np.all(series[name1]['data'].value == array))
         self.assertTrue(np.all(series[name1]['mask'].value == mask))
+        
+        
+    def test_update_param_mask(self):
+        # setup original array
+        name1 = 'Airspeed Minus Vref'
+        array = np.arange(200)
+        self.hdf_file.set_param(Parameter(name1, array))
+        series = self.hdf_file.hdf['series']
+        
+        # Set mask changes, but not Data array
+        new_array = np.arange(200)[::-1]
+        new_mask = [bool(random.randint(0, 1)) for x in range(len(new_array))]
+        masked_array = np.ma.masked_array(data=new_array, mask=new_mask)
+        
+        self.hdf_file.set_param(Parameter(name1, masked_array), 
+                                save_data=False, save_mask=True)
+        # assert new mask is saved
+        self.assertTrue(np.all(series[name1]['mask'].value == new_mask))
+        # asssert data remains same as original array
+        self.assertTrue(np.all(series[name1]['data'].value == array)) 
+        
+        # This test is not currently performed:
+        ### check is conducted to ensure data and mask are still the same length 
+        ### (and that the data exists)
+        ##shorter_masked_array = np.ma.arange(100)
+        ##self.assertRaises(np.ma.core.MaskError, hdf_file.set_param, 
+                          ##Parameter(name1, shorter_masked_array), 
+                          ##dict(save_data=False))
+        
+
+    def test_update_param_attributes(self):
+        # save initial Parameter to file
+        self.hdf_file.set_param(Parameter('Blah', np.ma.arange(1)))
+        #Update the invalidity flag only
+        self.hdf_file.set_param(Parameter('Blah', np.ma.arange(1), invalid=1),
+                                save_data=False, save_mask=False)
+        self.assertEqual(self.hdf_file['Blah'].invalid, 1)
+        
+
     
     def test_get_param_data(self):
         self.__test_get_param_data(self.hdf_file.get_param)
