@@ -216,7 +216,36 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['duration']
         else:
             self.hdf.attrs['duration'] = duration
-    
+            
+
+    @property
+    def reliable_frame_counter(self):
+        '''
+        Accessor for the root-level 'reliable_frame_counter' attribute.
+        
+        :rtype: bool or None
+        '''
+        reliable_frame_counter = self.hdf.attrs.get('reliable_frame_counter')
+        return bool(reliable_frame_counter) if reliable_frame_counter is not None else None
+            
+    @reliable_frame_counter.setter
+    def reliable_frame_counter(self, reliable_frame_counter):
+        '''
+        Mutator for the root-level 'reliable_frame_counter' attribute. 
+        If reliable_frame_counter is None the 'reliable_frame_counter' attribute
+        will be deleted.
+        
+        :param reliable_frame_counter: Flag indicating whether frame counter is reliable
+        :type reliable_frame_counter: bool
+        :rtype: None
+        '''
+        if reliable_frame_counter is None: # Cannot store None as an HDF attribute.
+            if 'reliable_frame_counter' in self.hdf.attrs:
+                del self.hdf.attrs['reliable_frame_counter']
+        else:
+            self.hdf.attrs['reliable_frame_counter'] = 1 if reliable_frame_counter else 0
+
+
     @property
     def start_datetime(self):
         '''
@@ -248,6 +277,33 @@ class hdf_file(object):    # rare case of lower case?!
             else:
                 timestamp = start_datetime
             self.hdf.attrs['start_timestamp'] = timestamp
+
+
+    @property
+    def superframe_present(self):
+        '''
+        Accessor for the root-level 'superframe_present' attribute.
+        
+        :rtype: bool or None
+        '''
+        superframe_present = self.hdf.attrs.get('superframe_present')
+        return bool(superframe_present) if superframe_present is not None else None
+            
+    @superframe_present.setter
+    def superframe_present(self, superframe_present):
+        '''
+        Mutator for the root-level 'superframe_present' attribute. If superframe_present is None the
+        'superframe_present' attribute will be deleted.
+        
+        :param superframe_present: Flag indicating whether superframes are recorded
+        :type superframe_present: bool
+        :rtype: None
+        '''
+        if superframe_present is None: # Cannot store None as an HDF attribute.
+            if 'superframe_present' in self.hdf.attrs:
+                del self.hdf.attrs['superframe_present']
+        else:
+            self.hdf.attrs['superframe_present'] = 1 if superframe_present else 0
 
     @property
     def version(self):
