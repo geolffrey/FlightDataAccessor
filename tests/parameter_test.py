@@ -63,7 +63,25 @@ class TestMappedArray(unittest.TestCase):
         # ensure string vals is within repr
         print a.__repr__()
         self.assertTrue('one' in a.__repr__())
-
+        
+    def test_getitem_filters_boolean_array(self):
+        ma = MappedArray(np.ma.arange(4,-1,step=-1), values_mapping={1:'one', 2:'two'})
+        
+        # boolean returned where: array == value
+        #                                 4       3      2     >1<     0
+        self.assertEqual(list(ma == 1), [False, False, False, True, False])
+        
+        # Nice to Have : Overide == for state
+        # boolean returned where: array == 'state'
+        #                                     4       3     >2<      1     0
+        self.assertEqual(list(ma == 'two'), [False, False, True,  False, False])
+        
+        n = np.arange(5)
+        self.assertEqual(list(n[ma <= 1]), [3, 4])   # last two elements in ma are <= 1       
+        
+        # boolean returned where: array == 'state'
+        self.assertEqual(list(ma[ma <= 1]), ['one', '?'])  # last two elements in ma are <= 1
+        
 
 class TestParameter(unittest.TestCase):
     def setUp(self):

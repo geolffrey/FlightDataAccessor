@@ -44,7 +44,7 @@ class MappedArray(MaskedArray):
         Finalise the newly created object.
         '''
         super(MappedArray, self).__array_finalize__(obj)
-        self.values_mapping = getattr(obj, 'values_mapping', {})
+        ##self.values_mapping = getattr(obj, 'values_mapping', {})
 
     def __array_wrap__(self, out_arr, context=None):
         '''
@@ -106,6 +106,12 @@ masked_%(name)s(values = %(sdata)s,
         See the raw data.
         '''
         return self.view(MaskedArray)
+    
+    def __eq__(self, other):
+        if other in self.state:
+            other = self.state[other]
+            ##return self.raw == numeric
+        return super(MappedArray, self).__eq__(other)
 
     def __getitem__(self, key):
         '''
@@ -117,14 +123,17 @@ masked_%(name)s(values = %(sdata)s,
         Q: Shouldn't it use self.fill_value which for string types is 'N/A'
         '''
         v = super(MappedArray, self).__getitem__(key)
-        if self.values_mapping:
-            if isinstance(key, slice):
+        if hasattr(self, 'values_mapping'):
+            if isinstance(v, MappedArray):
+                # Slicing or filtering
+                # MappedArray()[:2] or MappedArray()[(True, False)]
                 return self.__apply_attributes__(v)
+            elif v is not masked:
+                # Indexing for a single value
+                # MappedArray()[4] 
+                v = self.values_mapping.get(v, NO_MAPPING)
             else:
-                if v is not masked:
-                    v = self.values_mapping.get(v, NO_MAPPING)
-                else:
-                    pass
+                pass
         return v
 
     def __setitem__(self, key, val):
