@@ -28,7 +28,7 @@ class MappedArray(MaskedArray):
         '''
         Create new object.
 
-        No default mapping - raises KeyError if values_mapping not in kwargs
+        No default mapping - use empty dictionary.
         '''
         values_mapping = kwargs.pop('values_mapping', {})
         obj = MaskedArray.__new__(MaskedArray, *args, **kwargs)

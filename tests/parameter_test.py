@@ -51,8 +51,8 @@ class TestMappedArray(unittest.TestCase):
         self.assertTrue(a[3] is np.ma.masked) # mask is maintained
 
     def test_no_mapping(self):
-        # values_mapping is a requirement.
-        self.assertRaises(KeyError, MappedArray, np.array(10))
+        # values_mapping is no longer a requirement. (check no exception raised)
+        self.assertTrue(all(MappedArray(np.arange(10)).data == np.arange(10)))
         
     def test_repr(self):
         values = [1, 2, 3, 3]
