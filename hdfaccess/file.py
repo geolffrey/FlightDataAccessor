@@ -532,6 +532,42 @@ class hdf_file(object):    # rare case of lower case?!
         #TODO: Possible to store validity percentage upon name.attrs
         # TODO: Update valid param names cache rather than clearing it.
         self._valid_param_names_cache = None
+        
+        
+    def __delitem__(self, param_name):
+        '''
+        Delete a parameter (and associated information) from the HDF.
+        
+        Note: Space will not be reclaimed.
+        
+        :param param_name: Parameter name to be deleted
+        :type param_name: String
+        '''
+        if param_name in self:
+            del self.hdf['series'][param_name]
+            self._keys_cache.remove(param_name)
+        else:
+            raise KeyError("%s" % param_name)
+        
+    def delete_params(self, param_names, raise_keyerror=False):
+        '''
+        Calls del_param for each parameter name in list.
+        
+        Note: Space will not be reclaimed.
+
+        :param param_name: Parameter names to be deleted
+        :type param_name: List of Strings
+        :param raise_keyerror: Raise KeyError if encounters a parameter that is not available
+        :type raise_keyerror: Bool
+        '''
+        for param_name in param_names:
+            try:
+                del self[param_name]
+            except KeyError:
+                if raise_keyerror:
+                    raise
+                else:
+                    pass # ignore parameters that aren't available
     
     def valid_param_names(self):
         '''

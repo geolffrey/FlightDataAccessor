@@ -316,5 +316,26 @@ class TestHdfFile(unittest.TestCase):
         with hdf_file(self.hdf_path) as hdf:
             saved = hdf['multi']
             self.assertEqual(str(saved.array[:]), 
-                             '[three -- -- three None zero None two -- --]')
+                             '[three -- -- three ? zero ? two -- --]')
             self.assertEqual(saved.array.data.dtype, np.int)
+            
+            
+    def test__delitem__(self):
+        p = 'TEST_PARAM10'
+        self.assertTrue(p in self.hdf_file)
+        del self.hdf_file[p]
+        self.assertFalse(p in self.hdf_file)
+        self.assertFalse(p in self.hdf_file.hdf['series'])
+        
+        self.assertRaises(KeyError, self.hdf_file.__delitem__, 'INVALID_PARAM_NAME')
+        
+    def test_delete_params(self):
+        ps = ['TEST_PARAM10', 'TEST_PARAM11', 'INVALID_PARAM_NAME']
+        self.assertTrue(ps[0] in self.hdf_file)
+        self.assertTrue(ps[1] in self.hdf_file)
+        self.assertFalse(ps[2] in self.hdf_file) # invalid is not there
+        # delete and ensure by default keyerrors are supressed
+        self.hdf_file.delete_params(ps)
+        for p in ps:
+            self.assertFalse(p in self.hdf_file)
+            

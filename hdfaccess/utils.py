@@ -199,7 +199,7 @@ def write_segment(source, segment, dest, supf_boundary=True):
                     param.array[param_stop_index:] = np.ma.masked
                 else:
                     start = int(segment.start * param.hz) if segment.start else 0
-                    stop = int(math.ceil(segment.stop * param.hz)) if segment.stop else len(param.array)
+                    stop = int(math.floor(segment.stop * param.hz))+1 if segment.stop else len(param.array)
                     param.array = param.raw_array[start:stop]
                 # save modified parameter back to file
                 dest_hdf[param_name] = param

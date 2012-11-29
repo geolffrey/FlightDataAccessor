@@ -51,8 +51,8 @@ class TestMappedArray(unittest.TestCase):
         self.assertTrue(a[3] is np.ma.masked) # mask is maintained
 
     def test_no_mapping(self):
-        # values_mapping is a requirement.
-        self.assertRaises(KeyError, MappedArray, np.array(10))
+        # values_mapping is no longer a requirement. (check no exception raised)
+        self.assertTrue(all(MappedArray(np.arange(10)).data == np.arange(10)))
         
     def test_repr(self):
         values = [1, 2, 3, 3]
@@ -63,7 +63,25 @@ class TestMappedArray(unittest.TestCase):
         # ensure string vals is within repr
         print a.__repr__()
         self.assertTrue('one' in a.__repr__())
-
+        
+    def test_getitem_filters_boolean_array(self):
+        ma = MappedArray(np.ma.arange(4,-1,step=-1), values_mapping={1:'one', 2:'two'})
+        
+        # boolean returned where: array == value
+        #                                 4       3      2     >1<     0
+        self.assertEqual(list(ma == 1), [False, False, False, True, False])
+        
+        # Nice to Have : Overide == for state
+        # boolean returned where: array == 'state'
+        #                                     4       3     >2<      1     0
+        self.assertEqual(list(ma == 'two'), [False, False, True,  False, False])
+        
+        n = np.arange(5)
+        self.assertEqual(list(n[ma <= 1]), [3, 4])   # last two elements in ma are <= 1       
+        
+        # boolean returned where: array == 'state'
+        self.assertEqual(list(ma[ma <= 1]), ['one', '?'])  # last two elements in ma are <= 1
+        
 
 class TestParameter(unittest.TestCase):
     def setUp(self):
