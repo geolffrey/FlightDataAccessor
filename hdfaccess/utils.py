@@ -203,7 +203,7 @@ def write_segment(source, segment, dest, supf_boundary=True):
                     param.array = param.raw_array[start:stop]
                 # save modified parameter back to file
                 dest_hdf[param_name] = param
-                logging.debug("Finished writing segment: %s", dest_hdf)
+                #logging.debug("Finished writing segment: %s", dest_hdf)
     
     return dest
 
