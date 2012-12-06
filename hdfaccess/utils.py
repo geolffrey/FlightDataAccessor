@@ -86,7 +86,7 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     :return: all parameters names within the output hdf file
     :rtype: [str]
     '''
-    with hdf_file(hdf_path) as hdf, hdf_file(dest) as hdf_dest:
+    with hdf_file(hdf_path) as hdf, hdf_file(dest, create=True) as hdf_dest:
         _copy_attrs(hdf.hdf, hdf_dest.hdf) # Copy top-level attrs.
         params = hdf.get_params(params_to_keep)
         for param_name, param in params.iteritems():
@@ -158,7 +158,7 @@ def write_segment(source, segment, dest, supf_boundary=True):
             shutil.copy(source, dest)
             return dest        
     
-        with hdf_file(dest) as dest_hdf:
+        with hdf_file(dest, create=True) as dest_hdf:
             logging.debug("Write Segment: Duration %.2fs to be written to %s",
                           segment_duration, dest)
             
@@ -199,7 +199,7 @@ def write_segment(source, segment, dest, supf_boundary=True):
                     param.array[param_stop_index:] = np.ma.masked
                 else:
                     start = int(segment.start * param.hz) if segment.start else 0
-                    stop = int(math.ceil(segment.stop * param.hz)) if segment.stop else len(param.array)
+                    stop = int(math.floor(segment.stop * param.hz))+1 if segment.stop else len(param.array)
                     param.array = param.raw_array[start:stop]
                 # save modified parameter back to file
                 dest_hdf[param_name] = param

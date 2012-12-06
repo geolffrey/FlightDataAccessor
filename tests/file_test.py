@@ -316,5 +316,49 @@ class TestHdfFile(unittest.TestCase):
         with hdf_file(self.hdf_path) as hdf:
             saved = hdf['multi']
             self.assertEqual(str(saved.array[:]), 
-                             '[three -- -- three None zero None two -- --]')
+                             '[three -- -- three ? zero ? two -- --]')
             self.assertEqual(saved.array.data.dtype, np.int)
+            
+            
+    def test__delitem__(self):
+        p = 'TEST_PARAM10'
+        self.assertTrue(p in self.hdf_file)
+        del self.hdf_file[p]
+        self.assertFalse(p in self.hdf_file)
+        self.assertFalse(p in self.hdf_file.hdf['series'])
+        
+        self.assertRaises(KeyError, self.hdf_file.__delitem__, 'INVALID_PARAM_NAME')
+        
+    def test_delete_params(self):
+        ps = ['TEST_PARAM10', 'TEST_PARAM11', 'INVALID_PARAM_NAME']
+        self.assertTrue(ps[0] in self.hdf_file)
+        self.assertTrue(ps[1] in self.hdf_file)
+        self.assertFalse(ps[2] in self.hdf_file) # invalid is not there
+        # delete and ensure by default keyerrors are supressed
+        self.hdf_file.delete_params(ps)
+        for p in ps:
+            self.assertFalse(p in self.hdf_file)
+            
+            
+    def test_create_file(self):
+        temp = 'temp_new_file.hdf5'
+        if os.path.exists(temp):
+            os.remove(temp)
+        # cannot create file without specifying 'create=True'
+        self.assertRaises(IOError, hdf_file, temp)
+        self.assertFalse(os.path.exists(temp))
+        # this one will create the file
+        hdf = hdf_file(temp, create=True)
+        self.assertTrue(os.path.exists(temp))
+        self.assertEqual(hdf.hdfaccess_version, 1)
+        os.remove(temp)
+            
+            
+    def test_set_attributes(self):
+        # Test setting a datetime as it's a non-json non-string type.
+        self.assertFalse(self.hdf_file.hdf.attrs.get('start_datetime'))
+        self.hdf_file.set_attr('start_datetime', datetime.now())
+        self.assertEqual(self.hdf_file.get_attr('non-existing'), None)
+        # ensure that HDF is still working after keyerror raised!
+        self.assertTrue('start_datetime' in self.hdf_file.hdf.attrs)
+        
