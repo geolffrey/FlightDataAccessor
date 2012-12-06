@@ -28,7 +28,7 @@ class hdf_file(object):    # rare case of lower case?!
     hdf['series']['Altitude AAL'].attrs['limits'] (json)
     """
     # HDF file settings should be consistent, therefore hardcoding defaults.
-    DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 3}
+    DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 6}
     
     def __repr__(self):
         '''
@@ -70,10 +70,11 @@ class hdf_file(object):    # rare case of lower case?!
             self.hdf.create_group('series')
         # cache keys as accessing __iter__ on hdf groups is v.slow
         self._keys_cache = None
+        self._valid_param_names_cache = None
         # cache parameters that are used often
         self._params_cache = {}
         # this is the list of parameters to cache
-        self.cache_param_list = cache_param_list        
+        self.cache_param_list = cache_param_list
                 
     def __enter__(self):
         '''
@@ -123,7 +124,9 @@ class hdf_file(object):    # rare case of lower case?!
         :rtype: list of str
         '''
         if not self._keys_cache:
-            self._keys_cache = sorted(self.hdf['series'].keys())
+            series = self.hdf['series']
+            keys = series.keys()
+            self._keys_cache = sorted(keys)
         return self._keys_cache
     get_param_list = keys
     
@@ -134,6 +137,32 @@ class hdf_file(object):    # rare case of lower case?!
     
     # HDF Attribute properties
     ############################################################################
+    
+    @property
+    def analysis_version(self):
+        '''
+        Accessor for the root-level 'version' attribute.
+        
+        :returns: Version of the FlightDataAnalyser which processed this HDF file.
+        :rtype: str or None
+        '''
+        return self.hdf.attrs.get('analysis_version')
+            
+    @analysis_version.setter
+    def analysis_version(self, analysis_version):
+        '''
+        Mutator for the root-level 'version' attribute. If version is None the
+        'version' attribute will be deleted.
+        
+        :param version: FlightDataAnalyser version.
+        :type version: str
+        :rtype: None
+        '''
+        if analysis_version is None: # Cannot store None as an HDF attribute.
+            if 'analysis_version' in self.hdf.attrs:
+                del self.hdf.attrs['analysis_version']
+        else:
+            self.hdf.attrs['analysis_version'] = analysis_version    
     
     @property
     def dependency_tree(self):
@@ -189,7 +218,36 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['duration']
         else:
             self.hdf.attrs['duration'] = duration
-    
+            
+
+    @property
+    def reliable_frame_counter(self):
+        '''
+        Accessor for the root-level 'reliable_frame_counter' attribute.
+        
+        :rtype: bool or None
+        '''
+        reliable_frame_counter = self.hdf.attrs.get('reliable_frame_counter')
+        return bool(reliable_frame_counter) if reliable_frame_counter is not None else None
+            
+    @reliable_frame_counter.setter
+    def reliable_frame_counter(self, reliable_frame_counter):
+        '''
+        Mutator for the root-level 'reliable_frame_counter' attribute. 
+        If reliable_frame_counter is None the 'reliable_frame_counter' attribute
+        will be deleted.
+        
+        :param reliable_frame_counter: Flag indicating whether frame counter is reliable
+        :type reliable_frame_counter: bool
+        :rtype: None
+        '''
+        if reliable_frame_counter is None: # Cannot store None as an HDF attribute.
+            if 'reliable_frame_counter' in self.hdf.attrs:
+                del self.hdf.attrs['reliable_frame_counter']
+        else:
+            self.hdf.attrs['reliable_frame_counter'] = 1 if reliable_frame_counter else 0
+
+
     @property
     def start_datetime(self):
         '''
@@ -221,6 +279,33 @@ class hdf_file(object):    # rare case of lower case?!
             else:
                 timestamp = start_datetime
             self.hdf.attrs['start_timestamp'] = timestamp
+
+
+    @property
+    def superframe_present(self):
+        '''
+        Accessor for the root-level 'superframe_present' attribute.
+        
+        :rtype: bool or None
+        '''
+        superframe_present = self.hdf.attrs.get('superframe_present')
+        return bool(superframe_present) if superframe_present is not None else None
+            
+    @superframe_present.setter
+    def superframe_present(self, superframe_present):
+        '''
+        Mutator for the root-level 'superframe_present' attribute. If superframe_present is None the
+        'superframe_present' attribute will be deleted.
+        
+        :param superframe_present: Flag indicating whether superframes are recorded
+        :type superframe_present: bool
+        :rtype: None
+        '''
+        if superframe_present is None: # Cannot store None as an HDF attribute.
+            if 'superframe_present' in self.hdf.attrs:
+                del self.hdf.attrs['superframe_present']
+        else:
+            self.hdf.attrs['superframe_present'] = 1 if superframe_present else 0
 
     @property
     def version(self):
@@ -348,6 +433,8 @@ class hdf_file(object):    # rare case of lower case?!
         # Units
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
+        if 'lfl' in param_group.attrs:
+            kwargs['lfl'] = param_group.attrs['lfl']            
         elif 'description' in param_group.attrs:
             # Backwards compatibility for HDF files converted from AGS where
             # the units are stored in the description. Units will be invalid if
@@ -385,9 +472,13 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['name'] = str(param_name) # Fails to set unicode attribute.
         return param_group
 
-    def set_param(self, param):
+    def set_param(self, param, save_data=True, save_mask=True):
         '''
         Store parameter and associated attributes on the HDF file.
+        
+        In order to save space re-writing data and masks to file when only
+        one has changed or the attributes only have changed, the save_data
+        and save_mask flags can be disabled as required.
         
         Parameter.name canot contain forward slashes as they are used as an
         HDF identifier which supports filesystem-style indexing, e.g.
@@ -397,27 +488,28 @@ class hdf_file(object):    # rare case of lower case?!
         :param array: Array containing data and potentially a mask for the data.
         :type array: np.array or np.ma.masked_array
         '''
+        # Allow both arrays and masked_arrays.
+        if not hasattr(param.array, 'mask'):
+            param.array = np.ma.masked_array(param.array, mask=False)
+
         if param.name in self.cache_param_list:
             logging.debug("Storing parameter '%s' in HDF cache", param.name)
             self._params_cache[param.name] = param
-        # Allow both arrays and masked_arrays.
-        if hasattr(param.array, 'mask'):
-            array = param.array
-        else:
-            array = np.ma.masked_array(param.array, mask=False)
             
         param_group = self.get_or_create(param.name)
-        if 'data' in param_group:
-             # Dataset must be deleted before recreation.
-            del param_group['data']
-        param_group.create_dataset('data', data=array.data, 
-                                   **self.DATASET_KWARGS)
-        if 'mask' in param_group:
-            # Existing mask will no longer reflect the new data.
-            del param_group['mask']
-        mask = np.ma.getmaskarray(array)
-        param_group.create_dataset('mask', data=mask,
-                                   **self.DATASET_KWARGS)
+        if save_data:
+            if 'data' in param_group:
+                 # Dataset must be deleted before recreation.
+                del param_group['data']
+            param_group.create_dataset('data', data=param.array.data, 
+                                       **self.DATASET_KWARGS)
+        if save_mask:
+            if 'mask' in param_group:
+                # Existing mask will no longer reflect the new data.
+                del param_group['mask']
+            mask = np.ma.getmaskarray(param.array)
+            param_group.create_dataset('mask', data=mask,
+                                       **self.DATASET_KWARGS)
         # Set parameter attributes
         param_group.attrs['supf_offset'] = param.offset
         param_group.attrs['frequency'] = param.frequency
@@ -429,6 +521,8 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['invalid'] = param.invalid
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
+        if hasattr(param, 'lfl') and param.lfl is not None:
+            param_group.attrs['lfl'] = param.lfl        
         if hasattr(param, 'data_type') and param.data_type is not None:
             param_group.attrs['data_type'] = param.data_type
         if hasattr(param, 'values_mapping'):
@@ -438,17 +532,23 @@ class hdf_file(object):    # rare case of lower case?!
         param_group.attrs['description'] = description
         #TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         #TODO: Possible to store validity percentage upon name.attrs
+        # TODO: Update valid param names cache rather than clearing it.
+        self._valid_param_names_cache = None
     
     def valid_param_names(self):
         '''
+        :returns: Only the names of valid parameters.
+        :rtype: [str]
         '''
-        valid_params = []
-        for param in self.keys():
-            if self.hdf['series'][param].attrs.get('invalid') == 1:
-                continue
-            else:
-                valid_params.append(param)
-        return valid_params
+        if self._valid_param_names_cache is None:
+            valid_params = []
+            for param in self.keys():
+                if self.hdf['series'][param].attrs.get('invalid') == 1:
+                    continue
+                else:
+                    valid_params.append(param)
+            self._valid_param_names_cache = valid_params            
+        return self._valid_param_names_cache
     
     def set_param_limits(self, name, limits):
         '''
@@ -462,7 +562,7 @@ class hdf_file(object):    # rare case of lower case?!
         param_group = self.get_or_create(name)
         param_group.attrs['limits'] = simplejson.dumps(limits)
         
-    def get_param_limits(self, name):
+    def get_param_limits(self, name, default=None):
         '''
         Returns a parameter's operating limits stored within the groups
         'limits' attribute. Decodes limits from JSON into dict.
@@ -478,7 +578,7 @@ class hdf_file(object):    # rare case of lower case?!
             # otherwise h5py.File object will crash and close.
             raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
-        return simplejson.loads(limits) if limits else None
+        return simplejson.loads(limits) if limits else default
     
     def get_matching(self, regex_str):
         '''

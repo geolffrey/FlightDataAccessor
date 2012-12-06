@@ -143,7 +143,7 @@ masked_%(name)s(values = %(sdata)s,
 class Parameter(object):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
                  offset=0, arinc_429=None, invalid=None, units=None, 
-                 data_type=None, description=''):
+                 data_type=None, lfl=None, description=''):
         '''
         :param name: Parameter name
         :type name: String
@@ -173,6 +173,7 @@ class Parameter(object):
         self.arinc_429 = arinc_429
         self.units = units
         self.data_type = data_type
+        self.lfl = lfl
         self.description = description
         self.invalid = invalid
 
