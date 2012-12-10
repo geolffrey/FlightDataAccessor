@@ -348,7 +348,7 @@ class hdf_file(object):    # rare case of lower case?!
         else:
             self.hdf.attrs['version'] = version
             
-    def get_attr(self, name):
+    def get_attr(self, name, default=None):
         '''
         Get an attribute stored on the hdf.
         
@@ -358,7 +358,8 @@ class hdf_file(object):    # rare case of lower case?!
         value = self.hdf.attrs.get(name)
         if value:
             return pickle.loads(value, protocol=0)
-        return value
+        else:
+            return default
         
         
     def set_attr(self, name, value):
