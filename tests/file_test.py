@@ -339,3 +339,28 @@ class TestHdfFile(unittest.TestCase):
         for p in ps:
             self.assertFalse(p in self.hdf_file)
             
+            
+    def test_create_file(self):
+        temp = 'temp_new_file.hdf5'
+        if os.path.exists(temp):
+            os.remove(temp)
+        # cannot create file without specifying 'create=True'
+        self.assertRaises(IOError, hdf_file, temp)
+        self.assertFalse(os.path.exists(temp))
+        # this one will create the file
+        hdf = hdf_file(temp, create=True)
+        self.assertTrue(os.path.exists(temp))
+        self.assertEqual(hdf.hdfaccess_version, 1)
+        os.remove(temp)
+            
+            
+    def test_set_and_get_attributes(self):
+        # Test setting a datetime as it's a non-json non-string type.
+        self.assertFalse(self.hdf_file.hdf.attrs.get('start_datetime'))
+        self.hdf_file.set_attr('start_datetime', datetime.now())
+        self.assertEqual(self.hdf_file.get_attr('non-existing'), None)
+        self.assertEqual(self.hdf_file.get_attr('non-existing', 
+                                                default='default'), 'default')
+        # ensure that HDF is still working after keyerror raised!
+        self.assertTrue('start_datetime' in self.hdf_file.hdf.attrs)
+        
