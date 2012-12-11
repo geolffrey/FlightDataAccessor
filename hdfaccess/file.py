@@ -357,7 +357,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         value = self.hdf.attrs.get(name)
         if value:
-            return pickle.loads(value, protocol=0)
+            return pickle.loads(value)
         else:
             return default
         
