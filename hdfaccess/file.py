@@ -5,6 +5,7 @@ import logging
 import h5py
 import numpy as np
 import os
+import pickle
 import re
 import simplejson
 
@@ -15,6 +16,8 @@ from utilities.filesystem_tools import pretty_size
 
 from hdfaccess.parameter import Parameter
 
+
+HDFACCESS_VERSION = 1
 
 class hdf_file(object):    # rare case of lower case?!
     """ usage example:
@@ -40,28 +43,42 @@ class hdf_file(object):    # rare case of lower case?!
     def __str__(self):
         return self.__repr__()
     
-    def __init__(self, file_path_or_obj, cache_param_list=[]):
+    def __init__(self, file_path_or_obj, cache_param_list=[], create=False):
         '''
-        Opens an HDF file (or accepts and already open file object) - will
-        create if does not exist!
+        Opens an HDF file (or accepts and already open h5py.File object) - will
+        create if does not exist if create=True!
         
         :param cache_param_list: Names of parameters to cache where accessed
         :type cache_param_list: list of str
         :param file_path_or_obj: Can be either the path to an HDF file or an already opened HDF file object.
         :type file_path_or_obj: str or h5py.File
+        :param create: ill allow creation of file if it does not exist.
+        :type create: bool
         '''
         if isinstance(file_path_or_obj, h5py.File):
+            hdf_exists = True
             self.hdf = file_path_or_obj
             if self.hdf.mode != 'r+':
                 raise ValueError("hdf_file requires mode 'r+'.")
             self.file_path = self.hdf.filename
         else:
+            hdf_exists = os.path.isfile(file_path_or_obj)
+            if not create and not hdf_exists:
+                raise IOError('File not found: %s' % file_path_or_obj)
             self.file_path = file_path_or_obj
             # Not specifying a mode, will create the file if the path does not
             # exist and open with mode 'r+'.
             self.hdf = h5py.File(self.file_path)
+            
+        self.hdfaccess_version = self.hdf.attrs.get('hdfaccess_version', 1)
+        if hdf_exists:
+            # default version is 1
+            assert self.hdfaccess_version == HDFACCESS_VERSION
+        else:
+            # just created this file, add the current version
+            self.hdf.attrs['hdfaccess_version'] = HDFACCESS_VERSION
+            
         
-        self.attrs = self.hdf.attrs
         rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
         self.reliable_frame_counter = rfc == 1
         
@@ -254,7 +271,7 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Start datetime if 'start_timestamp' is set, otherwise None.
         :rtype: datetime or None
         '''
-        timestamp = self.attrs.get('start_timestamp')
+        timestamp = self.hdf.attrs.get('start_timestamp')
         return datetime.utcfromtimestamp(timestamp) if timestamp else None
     
     @start_datetime.setter
@@ -330,6 +347,44 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['version']
         else:
             self.hdf.attrs['version'] = version
+            
+    def get_attr(self, name, default=None):
+        '''
+        Get an attribute stored on the hdf.
+        
+        :param name: Key name for attribute to be recalled.
+        :type name: String
+        '''
+        value = self.hdf.attrs.get(name)
+        if value:
+            return pickle.loads(value)
+        else:
+            return default
+        
+        
+    def set_attr(self, name, value):
+        '''
+        Store an attribute on the hdf at the top level. Objects are pickled to 
+        ASCII.
+        
+        Note: 64KB might get used up quite quickly!
+        
+        :param name: Key name for attribute to be stored
+        :type name: String
+        :param value: Value to store as an attribute
+        :type value: any
+        '''
+        if value is None: # Cannot store None as an HDF attribute.
+            if name in self.hdf.attrs:
+                del self.hdf.attrs[name]
+            return
+        else:
+            self.hdf.attrs[name] = pickle.dumps(value, protocol=0)
+            return
+        
+
+    # HDF Accessors
+    ##########################################################################
         
     def search(self, pattern):
         '''
@@ -532,6 +587,42 @@ class hdf_file(object):    # rare case of lower case?!
         #TODO: Possible to store validity percentage upon name.attrs
         # TODO: Update valid param names cache rather than clearing it.
         self._valid_param_names_cache = None
+        
+        
+    def __delitem__(self, param_name):
+        '''
+        Delete a parameter (and associated information) from the HDF.
+        
+        Note: Space will not be reclaimed.
+        
+        :param param_name: Parameter name to be deleted
+        :type param_name: String
+        '''
+        if param_name in self:
+            del self.hdf['series'][param_name]
+            self._keys_cache.remove(param_name)
+        else:
+            raise KeyError("%s" % param_name)
+        
+    def delete_params(self, param_names, raise_keyerror=False):
+        '''
+        Calls del_param for each parameter name in list.
+        
+        Note: Space will not be reclaimed.
+
+        :param param_name: Parameter names to be deleted
+        :type param_name: List of Strings
+        :param raise_keyerror: Raise KeyError if encounters a parameter that is not available
+        :type raise_keyerror: Bool
+        '''
+        for param_name in param_names:
+            try:
+                del self[param_name]
+            except KeyError:
+                if raise_keyerror:
+                    raise
+                else:
+                    pass # ignore parameters that aren't available
     
     def valid_param_names(self):
         '''

@@ -86,6 +86,10 @@ masked_%(name)s(values = %(sdata)s,
 %(nlen)svalues_mapping = %(values)s)
 """
         return short_std % parameters
+    
+    def __str__(self):
+        return str(MaskedArray([self.values_mapping.get(x, NO_MAPPING)
+                                   for x in self.data], mask=self.mask))
 
     def copy(self):
         '''
@@ -108,9 +112,11 @@ masked_%(name)s(values = %(sdata)s,
         return self.view(MaskedArray)
     
     def __eq__(self, other):
+        '''
+        Allow comparison with Strings such as array == 'state'
+        '''
         if other in self.state:
             other = self.state[other]
-            ##return self.raw == numeric
         return super(MappedArray, self).__eq__(other)
 
     def __getitem__(self, key):
