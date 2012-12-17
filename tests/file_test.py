@@ -354,11 +354,13 @@ class TestHdfFile(unittest.TestCase):
         os.remove(temp)
             
             
-    def test_set_attributes(self):
+    def test_set_and_get_attributes(self):
         # Test setting a datetime as it's a non-json non-string type.
         self.assertFalse(self.hdf_file.hdf.attrs.get('start_datetime'))
         self.hdf_file.set_attr('start_datetime', datetime.now())
         self.assertEqual(self.hdf_file.get_attr('non-existing'), None)
+        self.assertEqual(self.hdf_file.get_attr('non-existing', 
+                                                default='default'), 'default')
         # ensure that HDF is still working after keyerror raised!
         self.assertTrue('start_datetime' in self.hdf_file.hdf.attrs)
         
