@@ -485,6 +485,8 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'invalid' in param_group.attrs:
             kwargs['invalid'] = param_group.attrs['invalid']
+        if 'invalidity_reason' in param_group.attrs:
+            kwargs['invalidity_reason'] = param_group.attrs['invalidity_reason']
         # Units
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
@@ -574,6 +576,8 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['arinc_429'] = param.arinc_429
         if hasattr(param, 'invalid') and param.invalid is not None:
             param_group.attrs['invalid'] = param.invalid
+        if hasattr(param, 'invalidity_reason') and param.invalidity_reason is not None:
+            param_group.attrs['invalidity_reason'] = param.invalidity_reason
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
         if hasattr(param, 'lfl') and param.lfl is not None:
