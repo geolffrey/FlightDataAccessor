@@ -141,9 +141,39 @@ class hdf_file(object):    # rare case of lower case?!
         :rtype: list of str
         '''
         if not self._keys_cache:
-            self._keys_cache = sorted(self.hdf['series'].keys())
+            series = self.hdf['series']
+            keys = series.keys()
+            self._keys_cache = sorted(keys)
         return self._keys_cache
     get_param_list = keys
+    
+    def lfl_keys(self):
+        '''
+        Parameter group names within the series group which came from the
+        Logical Frame Layout.
+        
+        :returns: List of LFL parameter names.
+        :rtype: list of str
+        '''
+        lfl_keys = []
+        for param_name in self.keys():
+            if self.hdf['series'][param_name].attrs.get('lfl'):
+                lfl_keys.append(param_name)
+        return lfl_keys
+    
+    def derived_keys(self):
+        '''
+        Parameter group names within the series group which are derived
+        parameters.
+        
+        :returns: List of derived parameter names.
+        :rtype: list of str
+        '''
+        derived_keys = []
+        for param_name in self.keys():
+            if not self.hdf['series'][param_name].attrs.get('lfl'):
+                derived_keys.append(param_name)
+        return derived_keys
     
     def close(self):
         self.hdf.flush() # Q: required?
@@ -357,7 +387,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         value = self.hdf.attrs.get(name)
         if value:
-            return pickle.loads(value, protocol=0)
+            return pickle.loads(value)
         else:
             return default
         
@@ -483,6 +513,8 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'invalid' in param_group.attrs:
             kwargs['invalid'] = param_group.attrs['invalid']
+        if 'invalidity_reason' in param_group.attrs:
+            kwargs['invalidity_reason'] = param_group.attrs['invalidity_reason']
         # Units
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
@@ -572,13 +604,15 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['arinc_429'] = param.arinc_429
         if hasattr(param, 'invalid') and param.invalid is not None:
             param_group.attrs['invalid'] = param.invalid
+        if hasattr(param, 'invalidity_reason') and param.invalidity_reason is not None:
+            param_group.attrs['invalidity_reason'] = param.invalidity_reason
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
         if hasattr(param, 'lfl') and param.lfl is not None:
             param_group.attrs['lfl'] = param.lfl        
         if hasattr(param, 'data_type') and param.data_type is not None:
             param_group.attrs['data_type'] = param.data_type
-        if hasattr(param, 'values_mapping'):
+        if hasattr(param, 'values_mapping') and param.values_mapping:
             param_group.attrs['values_mapping'] = simplejson.dumps(
                 param.values_mapping)
         description = param.description if hasattr(param, 'description') else ''
