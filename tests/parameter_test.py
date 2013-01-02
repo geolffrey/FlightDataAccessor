@@ -76,6 +76,13 @@ class TestMappedArray(unittest.TestCase):
         #                                     4       3     >2<      1     0
         self.assertEqual(list(ma == 'two'), [False, False, True,  False, False])
         
+        # check __repr__ and __str__ work
+        self.assertEqual((ma == 'two').__str__(), '[False False  True False False]')
+        self.assertEqual((ma == 'two').__repr__(), '''\
+masked_array(data = [False False  True False False],
+             mask = False,
+       fill_value = True)
+''')
         n = np.arange(5)
         self.assertEqual(list(n[ma <= 1]), [3, 4])   # last two elements in ma are <= 1       
         

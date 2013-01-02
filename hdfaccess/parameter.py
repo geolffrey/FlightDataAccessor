@@ -117,7 +117,7 @@ masked_%(name)s(values = %(sdata)s,
         '''
         if other in self.state:
             other = self.state[other]
-        return super(MappedArray, self).__eq__(other)
+        return MaskedArray.__eq__(self.raw, other)
 
     def __getitem__(self, key):
         '''
