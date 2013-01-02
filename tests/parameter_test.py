@@ -49,7 +49,25 @@ class TestMappedArray(unittest.TestCase):
         self.assertEqual(a[1], 'three') # updated value
         self.assertTrue(a[1] is not np.ma.masked) # mask is lost
         self.assertTrue(a[3] is np.ma.masked) # mask is maintained
-
+        
+        a.mask = False
+        a[:3] = np.ma.masked
+        self.assertEqual(list(a.raw.mask), [True, True, True, False])
+        a[:] = np.ma.array([3,3,3,3], mask=[False, False, True, True])
+        self.assertEqual(list(a.raw.mask), [False, False, True, True])
+        # set a slice to a single value
+        a[2:] = 'one'
+        self.assertEqual(list(a.raw.data[2:]), [1, 1])
+        a[2:] = 3
+        self.assertEqual(list(a.raw.data[2:]), [3, 3])
+        # set a slice to a single element list (odd but consistent with numpy)
+        a[2:] = [2]
+        self.assertEqual(list(a.raw.data[2:]), [2, 2])
+        a[2:] = ['three']
+        self.assertEqual(list(a.raw.data[2:]), [3, 3])
+        # unequal number of arguments
+        self.assertRaises(ValueError, a.__setitem__, slice(-3, None), ['one', 'one'])
+        
     def test_no_mapping(self):
         # values_mapping is no longer a requirement. (check no exception raised)
         self.assertTrue(all(MappedArray(np.arange(10)).data == np.arange(10)))

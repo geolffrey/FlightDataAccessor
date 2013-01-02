@@ -143,16 +143,38 @@ masked_%(name)s(values = %(sdata)s,
         return v
 
     def __setitem__(self, key, val):
-        if not isinstance(val, int):
-            # raises KeyError if mapping does not exist for val
-            if isinstance(key, slice):
-                mapped_val = [self.state[v] for v in val]
-                return super(MappedArray, self).__setitem__(key, mapped_val)
+        '''
+        Raises KeyError if mapping does not exist for val (unless val is masked)
+        '''
+        if val is masked or \
+           isinstance(val, int) or \
+           getattr(val, 'dtype', None) == int:
+            # expecting:
+            # self[:3] = np.ma.masked
+            # self[:3] = 2
+            # self[:3] = np.ma.array([2,2,2])
+            return super(MappedArray, self).__setitem__(key, val)
+        else:
+            if isinstance(val, basestring):
+                # expecting self[:3] = 'one'
+                return super(MappedArray, self).__setitem__(key, self.state[val])
             else:
-                # single value
-                return super(MappedArray, self).__setitem__(key,
-                                                            self.state[val])
-        return super(MappedArray, self).__setitem__(key, val)
+                # expecting the following options (all the same):
+                # self[:3] = ['two', 'two', 'two']
+                # self[:3] = [2, 2, 2]
+                # self[:3] = ['two']
+                # self[:3] = [2]
+                mapped_val = []
+                for v in val:  # potentially slow if val is a large array!
+                    if v in self.state:
+                        # v is a string
+                        mapped_val.append(self.state[v])
+                    elif v in self.values_mapping or v is masked:
+                        # v is an int
+                        mapped_val.append(v)
+                    else:
+                        raise KeyError("Value '%s' not in values mapping" % v)
+                return super(MappedArray, self).__setitem__(key, mapped_val)
 
 
 class Parameter(object):
