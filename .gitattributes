@@ -1,0 +1,7 @@
+*       eol=lf
+*.gif   binary
+*.hdf5  binary
+*.jar   binary
+*.jpg   binary
+*.pdf   binary
+*.png   binary

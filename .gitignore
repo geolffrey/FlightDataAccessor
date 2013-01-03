@@ -40,3 +40,6 @@ pylint.log
 
 # HDFAccess cruft
 tests/test_data/temp/*
+
+# Keep empty directories
+!.git*
