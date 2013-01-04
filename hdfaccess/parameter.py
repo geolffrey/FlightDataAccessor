@@ -111,13 +111,53 @@ masked_%(name)s(values = %(sdata)s,
         '''
         return self.view(MaskedArray)
     
+    def __coerce_type(self, other):
+        '''
+        Coerces an argument of unknown type into consistently numpy comparable 
+        type. As used by comparison methods __eq__ etc.
+        
+        e.g. 'one' -> 1, ['one', 'two'] -> [1, 2]
+        '''
+        try:
+            if other in self.state:
+                other = self.state[other]
+        except TypeError:  # unhashable type: 'list'
+            if getattr(other, 'dtype', None) == int:
+                # comparable to raw array, skip past
+                pass
+            elif hasattr(other, '__iter__'):
+                # A list of possibly mixed types is provided, convert string 
+                # states where possible.
+                other = [self.state.get(el, None if isinstance(el, basestring) 
+                                        else el) for el in other]
+            else:
+                pass  # allow equality by MaskedArray
+        return other
+
     def __eq__(self, other):
         '''
         Allow comparison with Strings such as array == 'state'
         '''
-        if other in self.state:
-            other = self.state[other]
-        return MaskedArray.__eq__(self.raw, other)
+        return MaskedArray.__eq__(self.raw, self.__coerce_type(other))
+    
+    def __ne__(self, other):
+        '''
+        In MappedArrays, != is always the opposite of ==
+        '''
+        return 1 - self.__eq__(other)
+    
+    def __gt__(self, other):
+        "works - but comparing against string states is not recommended"
+        return MaskedArray.__gt__(self.raw, self.__coerce_type(other))
+
+    def __ge__(self, other):
+        return MaskedArray.__ge__(self.raw, self.__coerce_type(other))
+
+    def __lt__(self, other):
+        return MaskedArray.__lt__(self.raw, self.__coerce_type(other))
+
+    def __le__(self, other):
+        return MaskedArray.__le__(self.raw, self.__coerce_type(other))
 
     def __getitem__(self, key):
         '''
