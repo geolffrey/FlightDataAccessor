@@ -2,3 +2,4 @@ clonedigger
 nosexcover
 pep8
 pyflakes
+mock
