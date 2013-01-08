@@ -12,7 +12,7 @@ __maintainer__ = 'Flight Data Services Ltd'
 __maintainer_email__ = 'developers@flightdataservices.com'
 __url__ = 'http://www.flightdatacommunity.com/'
 __description__ = 'An interface for HDF files containing flight data.'
-__download_url__= ''
+__download_url__ = ''
 __classifiers__ = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
@@ -22,7 +22,7 @@ __classifiers__ = [
     'Programming Language :: Python :: Implementation :: CPython',
     'Operating System :: OS Independent',
     'Topic :: Software Development',
-    ]
+]
 __platforms__ = ['OS Independent']
 __license__ = 'Open Software License (OSL-3.0)'
 __keywords__ = ['hdf', 'numpy', 'flight', 'data']

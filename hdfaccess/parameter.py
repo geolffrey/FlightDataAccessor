@@ -86,7 +86,7 @@ masked_%(name)s(values = %(sdata)s,
 %(nlen)svalues_mapping = %(values)s)
 """
         return short_std % parameters
-    
+
     def __str__(self):
         return str(MaskedArray([self.values_mapping.get(x, NO_MAPPING)
                                    for x in self.data], mask=self.mask))
@@ -110,12 +110,12 @@ masked_%(name)s(values = %(sdata)s,
         See the raw data.
         '''
         return self.view(MaskedArray)
-    
+
     def __coerce_type(self, other):
         '''
-        Coerces an argument of unknown type into consistently numpy comparable 
+        Coerces an argument of unknown type into consistently numpy comparable
         type. As used by comparison methods __eq__ etc.
-        
+
         e.g. 'one' -> 1, ['one', 'two'] -> [1, 2]
         '''
         try:
@@ -126,9 +126,9 @@ masked_%(name)s(values = %(sdata)s,
                 # comparable to raw array, skip past
                 pass
             elif hasattr(other, '__iter__'):
-                # A list of possibly mixed types is provided, convert string 
+                # A list of possibly mixed types is provided, convert string
                 # states where possible.
-                other = [self.state.get(el, None if isinstance(el, basestring) 
+                other = [self.state.get(el, None if isinstance(el, basestring)
                                         else el) for el in other]
             else:
                 pass  # allow equality by MaskedArray
@@ -139,13 +139,13 @@ masked_%(name)s(values = %(sdata)s,
         Allow comparison with Strings such as array == 'state'
         '''
         return MaskedArray.__eq__(self.raw, self.__coerce_type(other))
-    
+
     def __ne__(self, other):
         '''
         In MappedArrays, != is always the opposite of ==
         '''
         return 1 - self.__eq__(other)
-    
+
     def __gt__(self, other):
         "works - but comparing against string states is not recommended"
         return MaskedArray.__gt__(self.raw, self.__coerce_type(other))
@@ -176,7 +176,7 @@ masked_%(name)s(values = %(sdata)s,
                 return self.__apply_attributes__(v)
             elif v is not masked:
                 # Indexing for a single value
-                # MappedArray()[4] 
+                # MappedArray()[4]
                 v = self.values_mapping.get(v, NO_MAPPING)
             else:
                 pass
@@ -219,7 +219,7 @@ masked_%(name)s(values = %(sdata)s,
 
 class Parameter(object):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
-                 offset=0, arinc_429=None, invalid=None, invalidity_reason=None, 
+                 offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
                  units=None, data_type=None, lfl=None, description=''):
         '''
         :param name: Parameter name

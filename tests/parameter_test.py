@@ -36,24 +36,24 @@ class TestMappedArray(unittest.TestCase):
         # get mapped data value
         self.assertEqual(type(a), MappedArray)
         self.assertEqual(a.state['one'], 1)
-        
+
     def test_set_slice(self):
         values = [1, 2, 3, 3]
         mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False, True]
         arr = np.ma.MaskedArray(values, mask)
         a = MappedArray(arr, values_mapping=mapping)
-        a[:2] = ['two', 'three'] # this will unmask second item!
+        a[:2] = ['two', 'three']  # this will unmask second item!
         self.assertEqual(a[0], 'two')
         self.assertEqual(list(a.raw), [2, 3, 3, np.ma.masked])
-        self.assertEqual(a[1], 'three') # updated value
-        self.assertTrue(a[1] is not np.ma.masked) # mask is lost
-        self.assertTrue(a[3] is np.ma.masked) # mask is maintained
-        
+        self.assertEqual(a[1], 'three')  # updated value
+        self.assertTrue(a[1] is not np.ma.masked)  # mask is lost
+        self.assertTrue(a[3] is np.ma.masked)  # mask is maintained
+
         a.mask = False
         a[:3] = np.ma.masked
         self.assertEqual(list(a.raw.mask), [True, True, True, False])
-        a[:] = np.ma.array([3,3,3,3], mask=[False, False, True, True])
+        a[:] = np.ma.array([3, 3, 3, 3], mask=[False, False, True, True])
         self.assertEqual(list(a.raw.mask), [False, False, True, True])
         # set a slice to a single value
         a[2:] = 'one'
@@ -67,35 +67,35 @@ class TestMappedArray(unittest.TestCase):
         self.assertEqual(list(a.raw.data[2:]), [3, 3])
         # unequal number of arguments
         self.assertRaises(ValueError, a.__setitem__, slice(-3, None), ['one', 'one'])
-        
+
     def test_no_mapping(self):
         # values_mapping is no longer a requirement. (check no exception raised)
         self.assertTrue(all(MappedArray(np.arange(10)).data == np.arange(10)))
-        
+
     def test_repr(self):
         values = [1, 2, 3, 3]
         mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False, True]
         arr = np.ma.MaskedArray(values, mask)
-        a = MappedArray(arr, values_mapping=mapping)        
+        a = MappedArray(arr, values_mapping=mapping)
         # ensure string vals is within repr
         print a.__repr__()
         self.assertTrue('one' in a.__repr__())
-        
+
     def test_getitem_filters_boolean_array(self):
         "Tests __getitem__ and __eq__ and __ne__"
-        ma = MappedArray(np.ma.arange(4,-1,step=-1), values_mapping={1:'one', 2:'two'})
-        
+        ma = MappedArray(np.ma.arange(4, -1, step=-1), values_mapping={1: 'one', 2: 'two'})
+
         # boolean returned where: array == value
         #                                 4       3      2     >1<     0
-        self.assertEqual(list(ma == 1), [False, False, False, True , False])
-        self.assertEqual(list(ma != 1), [True , True , True , False, True ])
-        
+        self.assertEqual(list(ma == 1), [False, False, False, True, False])
+        self.assertEqual(list(ma != 1), [True, True, True, False, True])
+
         # Nice to Have : Overide == for state
         # boolean returned where: array == 'state'
         #                                     4       3     >2<      1     0
-        self.assertEqual(list(ma == 'two'), [False, False, True , False, False])
-        self.assertEqual(list(ma != 'two'), [True , True , False, True , True ])
+        self.assertEqual(list(ma == 'two'), [False, False, True, False, False])
+        self.assertEqual(list(ma != 'two'), [True, True, False, True, True])
 
         # check __repr__ and __str__ work
         self.assertEqual((ma == 'two').__str__(), '[False False  True False False]')
@@ -105,33 +105,33 @@ masked_array(data = [False False  True False False],
        fill_value = True)
 ''')
         n = np.arange(5)
-        self.assertEqual(list(n[ma <= 1]), [3, 4])   # last two elements in ma are <= 1       
-        
+        self.assertEqual(list(n[ma <= 1]), [3, 4])   # last two elements in ma are <= 1
+
         # boolean returned where: array == 'state'
         self.assertEqual(list(ma[ma <= 1]), ['one', '?'])  # last two elements in ma are <= 1
-    
+
     def test_array_equality(self):
-        ma = MappedArray(np.ma.arange(1,4), values_mapping={1:'one', 2:'two'})
-        
+        ma = MappedArray(np.ma.arange(1, 4), values_mapping={1: 'one', 2: 'two'})
+
         # unequal length arrays compared return False in np
         self.assertEqual(ma == ['one', 'two'], False)
-        
+
         # mapped values
         np.testing.assert_array_equal(ma[:2] == ['one', 'two'], [True, True])
         np.testing.assert_array_equal(ma[:2] == ['one', 'one'], [True, False])
         np.testing.assert_array_equal(ma[:2] == ['INVALID', 'one'], [False, False])
-        
+
         # where no mapping exists
         np.testing.assert_array_equal(ma == [1, 2, 3], [True, True, True])
         # test using dtype=int
         np.testing.assert_array_equal(ma == np.ma.array([1, 2, 3]), [True, True, True])
-        # no mapping means you cannot find those values! Always get a FAIL 
+        # no mapping means you cannot find those values! Always get a FAIL
         # - sort out your values mapping!
         np.testing.assert_array_equal(ma == ['one', 'two', None], [True, True, False])
         np.testing.assert_array_equal(ma == ['one', 'two', '?'], [True, True, False])
         # test __ne__ (easy by comparison!)
         np.testing.assert_array_equal(ma != ['one', 'two', '?'], [False, False, True])
- 
+
         # masked values
         ma[0] = np.ma.masked
         np.testing.assert_array_equal(ma[:2] == [np.ma.masked, 2], [True, True])

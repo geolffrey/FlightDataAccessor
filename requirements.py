@@ -18,9 +18,9 @@ automatically combined from all requirements files found.
 Basic example usage for ``requirements*.txt`` in the same directory:
 
     from requirements import RequirementsParser
-    
+
     requirements = RequirementsParser()
-    
+
     setup(
         ...
         install_requires=requirements.install_requires,
@@ -246,17 +246,17 @@ def _read_requirements_file(filename, data=None):
                 # Only act if packages have the same name:
                 cached_name = package[0].lower().replace('_', '-')
                 current_name = components[0].lower().replace('_', '-')
-                if cached_name == current_name: # attempt to update if names match
-                    if not package[1]: # cached package has no operator
-                        if components[1]: # have a more specific package
+                if cached_name == current_name:  # attempt to update if names match
+                    if not package[1]:  # cached package has no operator
+                        if components[1]:  # have a more specific package
                             package[1:2] = components[1:2]
-                    else: # cached package has an operator
-                        if not components[1]: # have a less specific package
-                            pass # just fall through and update extras
-                        elif package[1] == components[1]: # matching operator
-                            if package[2] != components[2]: # differing versions
+                    else:  # cached package has an operator
+                        if not components[1]:  # have a less specific package
+                            pass  # just fall through and update extras
+                        elif package[1] == components[1]:  # matching operator
+                            if package[2] != components[2]:  # differing versions
                                 continue
-                        else: # conflicting operators... help!
+                        else:  # conflicting operators... help!
                             # FIXME: Find a solution or report an error?
                             continue
                     # Update list of extras:
@@ -424,8 +424,8 @@ class RequirementsParser(object):
 
     def early_install(self, path=''):
         '''
-        Installs the packages listed in requirements_early.txt        
-        '''        
+        Installs the packages listed in requirements_early.txt
+        '''
         filename = _build_filename(path, '%s.%s', 'requirements_early', 'txt')
         if os.path.isfile(filename):
             try:
@@ -433,9 +433,9 @@ class RequirementsParser(object):
                 + filename, shell=True)
                 if rc:
                     print >>sys.stderr, 'Failed to install requirements_early.txt'
-                    sys.exit(rc)                
+                    sys.exit(rc)
             except OSError, e:
-                print >>sys.stderr, "Execution failed:", e 
+                print >>sys.stderr, "Execution failed:", e
                 sys.exit(101)
 
 

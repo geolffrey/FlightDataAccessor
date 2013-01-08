@@ -11,7 +11,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import os
+import sys
 import hdfaccess as pkg
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -255,15 +256,15 @@ intersphinx_mapping = {'http://docs.python.org/': None}
 # If there is more than one author, separate them with \\.
 # For example: r'Guido van Rossum\\Fred L. Drake, Jr., editor'
 #
-# The options element is a dictionary that lets you override 
+# The options element is a dictionary that lets you override
 # this config per-document.
-# For example, 
-# ('index', u'MyProject', u'My Project', u'Author Name', 
+# For example,
+# ('index', u'MyProject', u'My Project', u'Author Name',
 #  dict(pdf_compressed = True))
 # would mean that specific document would be compressed
 # regardless of the global pdf_compressed setting.
 
-pdf_documents = [ 
+pdf_documents = [
     ('index', pkg.__packagename__, pkg.__packagename__, pkg.__author__),
 ]
 
@@ -297,7 +298,7 @@ pdf_break_level = 1
 # or just use 'any'
 pdf_breakside = 'any'
 
-# Insert footnotes where they are defined instead of 
+# Insert footnotes where they are defined instead of
 # at the end.
 #pdf_inline_footnotes = True
 
@@ -316,7 +317,7 @@ pdf_breakside = 'any'
 # Name of the cover page template to use
 pdf_cover_template = 'sphinxcover.tmpl'
 
-# Documents to append as an appendix to all manuals.    
+# Documents to append as an appendix to all manuals.
 #pdf_appendices = []
 
 # Enable experimental feature to split table cells. Use it
