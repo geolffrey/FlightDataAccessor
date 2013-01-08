@@ -1,7 +1,7 @@
 Introduction
 ============
 
-FlightDataStorage provides a high-level interface for HDF5 files containing 
+FlightDataAccessor provides a high-level interface for HDF5 files containing 
 flight data. It provides the following utilities:
 
 * Write segment.
@@ -16,24 +16,23 @@ Installation
 Package requires ``pip`` for installation.
 ::
 
-    pip install FlightDataStorage
+    pip install FlightDataAccessor
 
 Source Code
 -----------
 
 Source code is available from `GitHub`_:
 
-* https://github.com/organizations/FlightDataServices/FlightDataStorage
+* https://github.com/FlightDataServices/FlightDataAccessor
 
 Documentation
 -------------
 
 Documentation is available from the `Python Package Index`_:
 
-* http://packages.python.org/FlightDataStorage/
+* http://packages.python.org/FlightDataAccessor/
 
 .. _Flight Data Services: http://www.flightdataservices.com/
 .. _OSL-3.0: http://www.opensource.org/licenses/osl-3.0.php
 .. _GitHub: https://github.com/
 .. _Python Package Index: http://pypi.python.org/
-

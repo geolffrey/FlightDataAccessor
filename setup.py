@@ -42,7 +42,7 @@ setup(
     tests_require=requirements.tests_require,
     extras_require=requirements.extras_require,
     dependency_links=requirements.dependency_links,
-    test_suite='nose.collector',                       
+    test_suite='nose.collector',
 )
 
 ################################################################################
