@@ -1,7 +1,6 @@
-*       eol=lf
-*.gif   binary
-*.hdf5  binary
-*.jar   binary
-*.jpg   binary
-*.pdf   binary
-*.png   binary
+# Normalise line endings:
+* text=auto
+
+# Prevent certain files from being exported:
+.gitattributes  export-ignore
+.gitignore      export-ignore
