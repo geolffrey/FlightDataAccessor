@@ -234,8 +234,10 @@ class hdf_file(object):    # rare case of lower case?!
             if 'dependency_tree' in self.hdf.attrs:
                 del self.hdf.attrs['dependency_tree']
         else:
-            self.hdf.attrs['dependency_tree'] = \
-                bz2.compress(simplejson.dumps(dependency_tree))
+            return
+            # FIXME: ValueError: VLEN strings do not support embedded NULLs
+            # self.hdf.attrs['dependency_tree'] = \
+                #bz2.compress(simplejson.dumps(dependency_tree))
 
     @property
     def duration(self):
