@@ -36,3 +36,7 @@ Documentation is available from the `Python Package Index`_:
 .. _OSL-3.0: http://www.opensource.org/licenses/osl-3.0.php
 .. _GitHub: https://github.com/
 .. _Python Package Index: http://pypi.python.org/
+
+.. image:: https://cruel-carlota.pagodabox.com/c099cd82e76dc7b272a4387fd7184813
+    :alt: githalytics.com
+    :target: http://githalytics.com/FlightDataServices/FlightDataAccessor
