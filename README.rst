@@ -16,7 +16,7 @@ Installation
 Package requires ``pip`` for installation.
 ::
 
-    pip install FlightDataAccessor
+    pip install git+https://github.com/FlightDataServices/FlightDataAccessor.git
 
 Source Code
 -----------
