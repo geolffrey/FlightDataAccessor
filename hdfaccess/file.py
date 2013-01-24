@@ -1,4 +1,4 @@
-import bz2
+import base64
 import calendar
 from datetime import datetime
 import logging
@@ -8,6 +8,7 @@ import os
 import pickle
 import re
 import simplejson
+import zlib
 
 from copy import deepcopy
 from fnmatch import translate
@@ -216,8 +217,11 @@ class hdf_file(object):    # rare case of lower case?!
         :rtype: list or None
         '''
         dependency_tree = self.hdf.attrs.get('dependency_tree')
-        return simplejson.loads(bz2.decompress(dependency_tree)) \
-               if dependency_tree else None
+        if dependency_tree:
+            return simplejson.loads(
+                zlib.decompress(base64.decodestring(dependency_tree)))
+        else:
+            return None
 
     @dependency_tree.setter
     def dependency_tree(self, dependency_tree):
@@ -225,7 +229,9 @@ class hdf_file(object):    # rare case of lower case?!
         Mutator for the root-level 'dependency_tree' attribute. If
         dependency_tree is None the 'dependency_tree' attribute will be deleted.
         The attribute is bz2 compressed due to the 64KB attribute size
-        limit of the HDF file.
+        limit of the HDF file and encoded with base64 to avoid 'ValueError: 
+        VLEN strings do not support embedded NULLs' when compressed data
+        includes null characters.
 
         :param dependency_tree: Dependency tree created by the FlightDataAnalyser during processing.
         :rtype: None
@@ -234,10 +240,9 @@ class hdf_file(object):    # rare case of lower case?!
             if 'dependency_tree' in self.hdf.attrs:
                 del self.hdf.attrs['dependency_tree']
         else:
-            return
-            # FIXME: ValueError: VLEN strings do not support embedded NULLs
-            # self.hdf.attrs['dependency_tree'] = \
-                #bz2.compress(simplejson.dumps(dependency_tree))
+            self.hdf.attrs['dependency_tree'] = \
+                base64.encodestring(
+                    zlib.compress(simplejson.dumps(dependency_tree)))
 
     @property
     def duration(self):
