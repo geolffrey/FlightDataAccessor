@@ -4,7 +4,9 @@
 '''
 Parameter container class.
 '''
-from numpy.ma import MaskedArray, masked
+
+from numpy import bool_
+from numpy.ma import MaskedArray, masked, zeros
 
 # The value used to fill in MappedArrays for keys not within values_mapping
 NO_MAPPING = '?'  # only when getting values, setting raises ValueError
@@ -103,6 +105,26 @@ masked_%(name)s(values = %(sdata)s,
         Return raw value for given state.
         '''
         return self.state[state]
+    
+    def any_of(self, *states):
+        '''
+        Return a boolean array containing True where the value of the 
+        MappedArray equals any state in states.
+        
+        :param states: List of states.
+        :type states: [str]
+        :returns: Boolean array.
+        :rtype: np.ma.array(bool)
+        '''
+        valid_states = self.values_mapping.values()
+        array = zeros(len(self), dtype=bool_)
+        for state in states:
+            if state not in valid_states:
+                raise ValueError(
+                    "State '%s' is not valid. Valid states: '%s'." %
+                    (state, valid_states))
+            array |= self == state
+        return array
 
     @property
     def raw(self):
@@ -147,7 +169,9 @@ masked_%(name)s(values = %(sdata)s,
         return 1 - self.__eq__(other)
 
     def __gt__(self, other):
-        "works - but comparing against string states is not recommended"
+        '''
+        works - but comparing against string states is not recommended
+        '''
         return MaskedArray.__gt__(self.raw, self.__coerce_type(other))
 
     def __ge__(self, other):

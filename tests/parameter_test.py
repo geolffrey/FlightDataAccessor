@@ -5,31 +5,39 @@ from hdfaccess.parameter import MappedArray, Parameter
 
 
 class TestMappedArray(unittest.TestCase):
+    mapping = {1: 'one', 2: 'two', 3: 'three'}
+    
+    def test_any_of(self):
+        values = [1, 2, 3, 2, 1, 2, 3, 2, 1]
+        a = MappedArray(values, mask=[True] + [False] * 8,
+                        values_mapping=self.mapping)
+        result = a.any_of('one', 'three')
+        self.assertEqual(
+            result.tolist(),
+            [None, False, True, False, True, False, True, False, True])
+    
     def test_create_from_list(self):
         values = [1, 2, 3]
-        mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False]
-        a = MappedArray(values, mask=mask, values_mapping=mapping)
+        a = MappedArray(values, mask=mask, values_mapping=self.mapping)
         self.assertEqual(a[0], 'one')
         self.assertTrue(a[1] is np.ma.masked)
         self.assertEqual(a[2], 'three')
 
     def test_create_from_ma(self):
         values = [1, 2, 3]
-        mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False]
         arr = np.ma.MaskedArray(values, mask)
-        a = MappedArray(arr, values_mapping=mapping)
+        a = MappedArray(arr, values_mapping=self.mapping)
         self.assertEqual(a[0], 'one')
         self.assertTrue(a[1] is np.ma.masked)
         self.assertEqual(a[2], 'three')
 
     def test_get_slice(self):
         values = [1, 2, 3]
-        mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False]
         arr = np.ma.MaskedArray(values, mask)
-        a = MappedArray(arr, values_mapping=mapping)
+        a = MappedArray(arr, values_mapping=self.mapping)
         a = a[:2]
         self.assertEqual(a[0], 'one')
         self.assertTrue(a[1] is np.ma.masked)
@@ -42,7 +50,7 @@ class TestMappedArray(unittest.TestCase):
         mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False, True]
         arr = np.ma.MaskedArray(values, mask)
-        a = MappedArray(arr, values_mapping=mapping)
+        a = MappedArray(arr, values_mapping=self.mapping)
         a[:2] = ['two', 'three']  # this will unmask second item!
         self.assertEqual(a[0], 'two')
         self.assertEqual(list(a.raw), [2, 3, 3, np.ma.masked])
@@ -74,10 +82,9 @@ class TestMappedArray(unittest.TestCase):
 
     def test_repr(self):
         values = [1, 2, 3, 3]
-        mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False, True]
         arr = np.ma.MaskedArray(values, mask)
-        a = MappedArray(arr, values_mapping=mapping)
+        a = MappedArray(arr, values_mapping=self.mapping)
         # ensure string vals is within repr
         print a.__repr__()
         self.assertTrue('one' in a.__repr__())
