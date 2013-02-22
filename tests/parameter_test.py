@@ -15,6 +15,7 @@ class TestMappedArray(unittest.TestCase):
         self.assertEqual(
             result.tolist(),
             [None, False, True, False, True, False, True, False, True])
+        self.assertRaises(ValueError, a.any_of, 'invalid')
     
     def test_create_from_list(self):
         values = [1, 2, 3]
