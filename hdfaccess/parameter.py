@@ -71,13 +71,13 @@ class MappedArray(MaskedArray):
         parameters = dict(
             name=name,
             nlen=" " * len(name),
-            data=str(self),
+            data=self.raw,
             # WARNING: SLOW!
-            sdata=str(MaskedArray([self.values_mapping.get(x, NO_MAPPING)
-                                   for x in self.data], mask=self.mask)),
-            mask=str(self._mask),
-            fill=str(self.fill_value),
-            dtype=str(self.dtype),
+            sdata=MaskedArray([self.values_mapping.get(x, NO_MAPPING)
+                               for x in self.data], mask=self.mask),
+            mask=self._mask,
+            fill=self.fill_value,
+            dtype=self.dtype,
             values=self.values_mapping
         )
         short_std = """\
@@ -91,7 +91,7 @@ masked_%(name)s(values = %(sdata)s,
 
     def __str__(self):
         return str(MaskedArray([self.values_mapping.get(x, NO_MAPPING)
-                                   for x in self.data], mask=self.mask))
+                                for x in self.data], mask=self.mask))
 
     def copy(self):
         '''
