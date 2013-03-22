@@ -13,26 +13,12 @@ import zlib
 from copy import deepcopy
 from fnmatch import translate
 
+from flightdatautilities.filesystem_tools import pretty_size
+
 from hdfaccess.parameter import Parameter
 
 
 HDFACCESS_VERSION = 1
-
-
-#FIXME: Reinstate when depenency on utilities resolved.
-##from utilities.filesystem_tools import pretty_size
-def pretty_size(size):
-    """
-    Converts size in Bytes into Human readable format
-    e.g. pretty_size(20*1024*1024*1024) = '20.0G'
-    http://snippets.dzone.com/posts/show/5434
-    """
-    suffixes = [("B",2**10), ("KB",2**20), ("MB",2**30), ("GB",2**40), ("TB",2**50)]
-    for suf, lim in suffixes:
-        if size > lim:
-            continue
-        else:
-            return round(size/float(lim/2**10),2).__str__()+suf
 
 
 class hdf_file(object):    # rare case of lower case?!
