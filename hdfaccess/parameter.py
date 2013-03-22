@@ -252,9 +252,9 @@ class Parameter(object):
         :type array: np.ma.masked_array
         :param frequency: Sample Rate / Frequency / Hz
         :type frequency: Float
-        :param offset: Offset in Superframe.
+        :param offset: The offset of the parameter in seconds within a superframe.
         :type offset: Float
-        :param units:
+        :param units: The unit of measurement the parameter is recorded in.
         :type units: str
         :param description: Description of parameter.
         :type description: str

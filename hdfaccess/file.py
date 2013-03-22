@@ -188,7 +188,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         Accessor for the root-level 'version' attribute.
 
-        :returns: Version of the FlightDataAnalyser which processed this HDF file.
+        :returns: Version of the FlightDataAnalyzer which processed this HDF file.
         :rtype: str or None
         '''
         return self.hdf.attrs.get('analysis_version')
@@ -260,7 +260,7 @@ class hdf_file(object):    # rare case of lower case?!
         Mutator for the root-level 'duration' attribute. If duration is None the
         'duration' attribute will be deleted.
 
-        :param duration: Duration of this file's data in ???.
+        :param duration: Duration of this file's data in seconds.
         :type duration: float
         :rtype: None
         '''
@@ -300,8 +300,11 @@ class hdf_file(object):    # rare case of lower case?!
     @property
     def start_datetime(self):
         '''
+        The start datetime of the data stored within the HDF file.
+        
         Converts the root-level 'start_timestamp' attribute from a timestamp to
         a datetime.
+        
         :returns: Start datetime if 'start_timestamp' is set, otherwise None.
         :rtype: datetime or None
         '''
@@ -332,6 +335,9 @@ class hdf_file(object):    # rare case of lower case?!
     @property
     def superframe_present(self):
         '''
+        Whether or the frame which was used to create the HDF file had a
+        superframe counter.
+        
         Accessor for the root-level 'superframe_present' attribute.
 
         :rtype: bool or None
@@ -360,7 +366,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         Accessor for the root-level 'version' attribute.
 
-        :returns: Version of the FlightDataAnalyser which processed this HDF file.
+        :returns: The version of downsampling applied to the HDF file.
         :rtype: str or None
         '''
         return self.hdf.attrs.get('version')
@@ -371,7 +377,7 @@ class hdf_file(object):    # rare case of lower case?!
         Mutator for the root-level 'version' attribute. If version is None the
         'version' attribute will be deleted.
 
-        :param version: FlightDataAnalyser version.
+        :param version: The version of downsampling applied to the HDF file.
         :type version: str
         :rtype: None
         '''
