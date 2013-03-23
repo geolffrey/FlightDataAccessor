@@ -93,7 +93,7 @@ View the `h5py documentation <http://www.h5py.org/docs/>`_ for more information.
 hdf_file
 --------
 
-The hdf_file class within the hdfaccess.file module provides a high-level interface to HDF files designed for saving and loading flight data. hdf_file implements a file-like interface:
+The hdf_file class within the hdfaccess.file module provides a high-level interface to HDF files designed for saving and loading flight data. hdf_file implements a file-like interface.
 
 .. code-block:: python
    
@@ -232,7 +232,7 @@ A parameter is stored as a group containing attributes and two datasets - data, 
    |      -- /series/"Altitude Radio"/mask
    |      -- /series/"Altitude Radio"/levels
 
-Example code to retrieve data and mask of the parameter:
+Example code to retrieve data and mask of the parameter.
 
 .. code-block:: python
    
