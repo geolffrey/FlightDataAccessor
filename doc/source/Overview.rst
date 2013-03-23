@@ -319,3 +319,4 @@ When a Parameter object is loaded from the HDF file, the entire data and mask da
        setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5', cache_param_list=['Acceleration Normal']); hdf['Acceleration Normal']",
        number=100)
    0.09475302696228027
+
