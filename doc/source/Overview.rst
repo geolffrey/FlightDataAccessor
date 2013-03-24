@@ -2,15 +2,15 @@
 Overview
 ========
 
-The FlightDataAccessor repository provides data types for accessing and manipulating flight data both within memory and persistent storage within `Hierarchical Data Format (HDF) <http://www.hdfgroup.org/HDF5/>`_ files.
+The `FlightDataAccessor` repository provides data types for accessing and manipulating flight data both within memory and persistent storage within `Hierarchical Data Format (HDF) <http://www.hdfgroup.org/HDF5/>`_ files.
 
-------------
-MaskedArrays
-------------
+--------------
+`MaskedArrays`
+--------------
 
-Parameter data is stored within numpy masked arrays. Masked arrays provide features for masking invalid sections of data.
+`Parameter` data is stored within `numpy` `MaskedArrays`. `MaskedArrays` provide features for masking invalid sections of data.
 
-A masked array is comprised of two numpy arrays. The first array stores the parameter's data, for instance as a series of floating point numbers, while the second stores the mask within a boolean array of equal size. If an index within the mask array is set to True, the corresponding index within the data array will not be displayed and will also be excluded from calculations.
+A `MaskedArray` is comprised of two `numpy` arrays. The first array stores the parameter's data, for instance as a series of floating point numbers, while the second stores the mask within a boolean array of equal size. If an index within the mask array is set to `True`, the corresponding index within the data array will be excluded from calculations.
 
 .. code-block:: python
    
@@ -24,13 +24,13 @@ A masked array is comprised of two numpy arrays. The first array stores the para
 
 View the `numpy documentation on masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ for more information.
 
-------------
-MappedArrays
-------------
+--------------
+`MappedArrays`
+--------------
 
-The MappedArray class defined within the FlightDataAccessor repository subclasses np.ma.MaskedArray. MappedArrays provide support for defining a mapping between raw data values and state names. This type of array is used to store the data of Discrete and Multi-state parameters.
+The `MappedArray` class defined within the `FlightDataAccessor` repository subclasses `np.ma.MaskedArray`. `MappedArrays` provide support for defining a mapping between raw data values and state names. This type of array is used to store the data of `Discrete` and `Multi-state` parameters.
 
-Discrete parameters record values of either 1 or 0 whereas Multi-state parameters record a variable number of states, each represented by a different integer value. The mapping of integer values to states is not consistent between different frames, engine types and aircraft. Discrete parameters may have inverted logic where 0 is True and 1 is False. By defining a consistent of list of state names for each parameter and a mapping of raw data to state for each frame, Discrete and Multi-state parameters can be accessed consistently using MappedArrays.
+`Discrete` parameters record values of either 1 or 0 whereas `Multi-state` parameters record a variable number of states, each represented by a different integer value. The mapping of integer values to states is not consistent between different frames, engine types and aircraft. `Discrete` parameters may have inverted logic where 0 is `True` and 1 is `False`. By defining a consistent of list of state names for each parameter and a mapping of raw data to state for each frame, `Discrete` and `Multi-state` parameters can be accessed consistently using MappedArrays.
 
 .. code-block:: python
    
@@ -46,17 +46,17 @@ Discrete parameters record values of either 1 or 0 whereas Multi-state parameter
 Parameters
 ----------
 
-The Parameter class within the hdfaccess.parameter module represents a parameter as defined within a Logical Frame Layout or a DerivedParameterNode within the FlightDataAnalyzer.
+The `Parameter` class within the `hdfaccess.parameter` module represents a parameter as defined within a logical frame layout or a `DerivedParameterNode` within the `FlightDataAnalyzer`.
 
-A Parameter object has the following attributes:
+A `Parameter` object has the following attributes:
 
 * name - The name of the parameter.
 * frequency - The frequency/sample rate which the parameter is recorded at.
 * offset - The offset of the parameter in seconds within a superframe.
 * units - The unit of measurement the parameter is recorded in.
 * description - A description of the parameter.
-* array - A MaskedArray or MappedArray containing the parameter's data.
-* values_mapping - Optional. This attribute will contain the same values mapping as the parameter's array if it is a MappedArray.
+* array - A `MaskedArray` or `MappedArray` containing the parameter's data.
+* values_mapping - Optional. This attribute will contain the same values mapping as the parameter's array if it is a `MappedArray`.
 
 .. code-block:: python
    
@@ -68,11 +68,11 @@ A Parameter object has the following attributes:
    >>> print param.array
    [ 59.345  59.346  59.347]
 
-------------------------------
-Hierarchical Data Format (HDF)
-------------------------------
+-------------------------------
+`Hierarchical Data Format (HDF)`
+-------------------------------
 
-HDF5 is the chosen format for storing flight data and associated information. HDF files are accessed via the interface provided by the h5py Python library. The structure of an HDF file is similar to a filesystem where groups, container structures resembling directories, may contain a number of datasets and subgroups. Datasets are multi-dimensional arrays which are converted by h5py into numpy arrays.
+`HDF5` is the chosen format for storing flight data and associated information. The structure of an HDF file is similar to a filesystem where groups, container structures resembling directories, may contain a number of datasets and subgroups. Datasets store multi-dimensional arrays.
 
 .. code-block:: python
    
@@ -85,15 +85,13 @@ HDF5 is the chosen format for storing flight data and associated information. HD
    >>> print hdf['series']['Latitude']['data']
    <HDF5 dataset "data": shape (5888,), type "<f8">
 
-Groups may also contain up to 64KB of key value attribute pairs which are converted by h5py into Python dictionaries.
+`Groups` may also contain up to 64KB of key value attribute pairs.
 
-View the `h5py documentation <http://www.h5py.org/docs/>`_ for more information.
+----------
+`hdf_file`
+----------
 
---------
-hdf_file
---------
-
-The hdf_file class within the hdfaccess.file module provides a high-level interface to HDF files designed for saving and loading flight data. hdf_file implements a file-like interface.
+The `hdf_file` class within the `hdfaccess.file` module provides a high-level interface to HDF files designed for saving and loading flight data. `hdf_file` implements a file-like interface.
 
 .. code-block:: python
    
@@ -108,7 +106,7 @@ The hdf_file class within the hdfaccess.file module provides a high-level interf
    flight.hdf5 13.36MB (1055 parameters)
    >>> hdf.close()
 
-hdf_file also implements a dictionary-like interface which saves and loads Parameter objects to and from the HDF file.
+`hdf_file` also implements a dictionary-like interface which saves and loads `Parameter` objects to and from the HDF file.
 
 .. code-block:: python
    
@@ -130,32 +128,32 @@ hdf_file also implements a dictionary-like interface which saves and loads Param
    >>> print hdf.keys()
    ['Altitude Radio', 'Altitude STD']
 
-The following properties are defined for an hdf_file object:
+The following properties are defined for an `hdf_file` object:
 
-* analysis_version - The version of the FlightDataAnalyzer which processed this HDF file.
-* dependency_tree - The dependency tree generated by the FlightDataAnalyzer for this HDF file.
-* duration - Duration of the flight data stored within the HDF file in seconds.
-* reliable_frame_counter - Whether or not the frame which was used to create the HDF file had a reliable Frame Counter parameter.
-* start_datetime - The start datetime of the data stored within the HDF file.
-* superframe_present - Whether or the frame which was used to create the HDF file had a superframe counter.
-* version - The version of downsampling applied to the HDF file.
+* `analysis_version` - The version of the `FlightDataAnalyzer` which processed this HDF file.
+* `dependency_tree` - The dependency tree generated by the `FlightDataAnalyzer` for this HDF file.
+* `duration` - Duration of the flight data stored within the HDF file in seconds.
+* `reliable_frame_counter` - Whether or not the frame which was used to create the HDF file had a reliable `Frame Counter` parameter.
+* `start_datetime` - The start datetime of the data stored within the HDF file.
+* `superframe_present` - Whether or the frame which was used to create the HDF file had a superframe counter.
+* `version` - The version of downsampling applied to the HDF file.
 
 A number of methods are defined for an hdf_file object:
 
-* search - Search for a parameter by partial string match.
-* get_matching - Search for parameters which match a regular expression.
-* get_or_create - Load a parameter from the HDF file. If the parameter does not exist, it will be created.
-* get_params - Loads multiple parameters specified by a list of parameter names.
-* lfl_keys - Returns a list of parameter names which came from the Logical Frame Layout.
-* derived_keys - Returns a list of parameter names which were derived by the FlightDataAnalyzer.
+* `search` - Search for a parameter by partial string match.
+* `get_matching` - Search for parameters which match a regular expression.
+* `get_or_create` - Load a parameter from the HDF file. If the parameter does not exist, it will be created.
+* `get_params` - Loads multiple parameters specified by a list of parameter names.
+* `lfl_keys` - Returns a list of parameter names which came from the logical frame layout.
+* `derived_keys` - Returns a list of parameter names which were derived by the `FlightDataAnalyzer`.
 
----------------------------
-How hdf_file is implemented
----------------------------
+-----------------------------
+How `hdf_file` is implemented
+-----------------------------
 
-This section describes how hdf_file stores flight data within an HDF file. This information is not required when using the hdf_file class as the implementation is abstracted. This section requires an understanding of the `Hierarchical Data Format <http://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and the `h5py <http://www.h5py.org/docs/>`_ library.
+This section describes how `hdf_file` stores flight data within an HDF file. This information is not required when using the `hdf_file` class as the implementation is abstracted. This section requires an understanding of the `Hierarchical Data Format <http://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and the `h5py <http://www.h5py.org/docs/>`_ library.
 
-The underlying h5py.File object can be accessed through hdf_file's hdf attribute.
+The underlying `h5py.File` object can be accessed through `hdf_file`'s hdf attribute.
 
 .. code-block:: python
    
@@ -168,7 +166,7 @@ The underlying h5py.File object can be accessed through hdf_file's hdf attribute
 Properties
 ^^^^^^^^^^
 
-Properties defined for hdf_file are stored as root level attributes within the HDF file.
+Properties defined for `hdf_file` are stored as root level attributes within the HDF file.
 
 
 .. code-block:: python
@@ -179,7 +177,7 @@ Properties defined for hdf_file are stored as root level attributes within the H
    >>> print hdf.superframe_present
    True
 
-Some properties are converted to and from Python types automatically for convenience.
+Some properties are converted to and from `Python` types automatically for convenience.
 
 .. code-block:: python
    
@@ -190,7 +188,7 @@ Some properties are converted to and from Python types automatically for conveni
    >>> print hdf.start_datetime
    datetime.datetime(2013, 2, 22, 5, 6, 10)
 
-Dictionaries are stored in JSON format. To overcome the limitation whereby the attributes of a group cannot exceed 64KB, large dictionaries such as the dependency tree are compressed and base64 encoded when saved to the file.
+Dictionaries are stored in `JSON <http://www.json.org/>`_ format. To overcome the limitation whereby the attributes of a group cannot exceed 64KB, large dictionaries such as the dependency tree are compressed and base64 encoded when saved to the file.
 
 .. code-block:: python
    
@@ -213,7 +211,7 @@ Dictionaries are stored in JSON format. To overcome the limitation whereby the a
 Parameters
 ^^^^^^^^^^
 
-Parameters are stored underneath a group named series.
+Parameters are stored underneath a group named `series`.
 
 .. code-block:: python
    
@@ -222,7 +220,7 @@ Parameters are stored underneath a group named series.
    >>> print hdf.hdf['series'].keys()
    [u'Altitude Radio', u'Altitude STD']
 
-A parameter is stored as a group containing attributes and two datasets - data, mask. A third dataset named levels is added when the file is downsampled. Datasets are stored with gzip compression level 6 which is transparently built-in to the HDF5 library.
+A parameter is stored as a group containing attributes and two datasets - `data`, `mask`. Datasets are stored with gzip compression level 6 which is transparently built-in to the HDF5 library.
 
 .. code-block:: none
    
@@ -230,9 +228,8 @@ A parameter is stored as a group containing attributes and two datasets - data, 
    |   -- /series/"Altitude Radio"
    |      -- /series/"Altitude Radio"/data
    |      -- /series/"Altitude Radio"/mask
-   |      -- /series/"Altitude Radio"/levels
 
-Example code to retrieve data and mask of the parameter.
+Example code to retrieve the `data` and `mask` of the parameter.
 
 .. code-block:: python
    
@@ -245,8 +242,7 @@ Example code to retrieve data and mask of the parameter.
    >>> print hdf.hdf['series']['Altitude Radio']['mask']
    <HDF5 dataset "mask": shape (4,), type "|b1">
 
-A MaskedArray is comprised of two arrays which are stored separately within the data and mask datasets. The data dataset stores the recorded values of the parameter, typically as an array of 64-bit floating point numbers, while 
-the mask dataset stores the boolean mask array.
+A `MaskedArray` is comprised of two arrays which are stored separately within the `data` and `mask` datasets. The `data` dataset stores the recorded values of the parameter, typically as an array of 64-bit floating point numbers, while the `mask` dataset stores the boolean mask array.
 
 .. code-block:: python
    
@@ -286,10 +282,10 @@ Information about a parameter is stored within the attributes of the parameter g
     u'supf_offset': 0.2265625,
     u'units': 'deg'}
 
-Caching within the hdf_file class
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Caching within the `hdf_file` class
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Retrieving a list of the contents of a group within h5py is much slower than native Python types, therefore this list is cached on the hdf_file object and updated when parameters are saved or deleted.
+Retrieving a list of the contents of a group within `h5py` is much slower than native Python types, therefore this list is cached on the `hdf_file` object and updated when parameters are saved or deleted.
 
 .. code-block:: python
    
@@ -305,7 +301,7 @@ Retrieving a list of the contents of a group within h5py is much slower than nat
        number=100)
    0.06666207313537598
 
-When a Parameter object is loaded from the HDF file, the entire data and mask datasets are read from the file and are combined to create the Parameter's array attribute. To speed up loading of the parameters which have already been read from the file, an optional argument cache_param_list can be provided to hdf_file's constructor defining a list of parameter names to be cached.
+When a `Parameter` object is loaded from the HDF file, the entire data and mask datasets are read from the file and are combined to create the `Parameter`'s array attribute. To speed up loading of the parameters which have already been read from the file, an optional argument `cache_param_list` can be provided to `hdf_file`'s constructor defining a list of parameter names to be cached.
 
 .. code-block:: python
    
