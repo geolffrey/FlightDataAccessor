@@ -1,5 +1,5 @@
-Flight Data Storage |release|
-=============================
+FlightDataAccessor |release|
+============================
 
 Contents:
 
@@ -11,7 +11,7 @@ Contents:
    Changes
    TODO
    Authors
-   API <modules>   
+   API <modules>
 
 Indices and tables
 ==================

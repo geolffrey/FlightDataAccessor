@@ -28,7 +28,8 @@ The MappedArray class defined within the FlightDataAccessor repository subclasse
 
 Discrete parameters record values of either 1 or 0 whereas Multi-state parameters record a variable number of states, each represented by a different integer value. The mapping of integer values to states is not consistent between different frames, engine types and aircraft. Discrete parameters may have inverted logic where 0 is True and 1 is False. By defining a consistent of list of state names for each parameter and a mapping of raw data to state for each frame, Discrete and Multi-state parameters can be accessed consistently using MappedArrays.
 ::
-    >>> MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed', 2: 'ILS Mode Fail', 3: 'Not Selected', 4: 'ILS Selected'})
+    >>> MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed',
+        2: 'ILS Mode Fail', 3: 'Not Selected', 4: 'ILS Selected'})
     masked_mapped_array(values = ['Not Installed' 'ILS Mode Fail' 'Not Selected' 'ILS Selected'],
                       data = [1 2 3 4],
                       mask = False,
@@ -49,9 +50,11 @@ A Parameter object has the following attributes:
 * units - The unit of measurement the parameter is recorded in.
 * description - A description of the parameter.
 * array - A MaskedArray or MappedArray containing the parameter's data.
-* values_mapping - Optional. This attribute will contain the same values mapping as the parameter's array if it is a MappedArray.
-::
-    >>> param = Parameter('Longitude', frequency=2, offset=0.2375, units='deg', description='The east-west position of the aircraft in decimal degrees.', array=np.ma.masked_array([59.345, 59.346, 59.347]))
+* values_mapping - Optional. This attribute will contain the same values mapping as the parameter's array if it is a MappedArray.::
+
+    >>> param = Parameter('Longitude', frequency=2, offset=0.2375, units='deg',
+        description='The east-west position of the aircraft in decimal degrees.',
+        array=np.ma.masked_array([59.345, 59.346, 59.347]))
     >>> print param
     Longitude 2.0Hz 0.24secs
     >>> print param.array
@@ -79,9 +82,8 @@ View the `h5py documentation <http://www.h5py.org/docs/>`_ for more information.
 hdf_file
 ========
 
-The hdf_file class within the hdfaccess.file module provides a high-level interface to HDF files designed for saving and loading flight data. hdf_file implements a file-like interface:
+The hdf_file class within the hdfaccess.file module provides a high-level interface to HDF files designed for saving and loading flight data. hdf_file implements a file-like interface::
 
-::
     >>> from hdfaccess.file import hdf_file
     >>> # HDF files can be opened using the with statement.
     >>> with hdf_file('flight.hdf5') as hdf:
@@ -97,7 +99,8 @@ hdf_file also implements a dictionary-like interface which saves and loads Param
 ::
     >>> print hdf.keys()
     ['Altitude Radio', 'Altitude STD']
-    >>> # Load a parameter from a file. The entire dataset is loaded from the file to avoid manipulating it inplace.
+    >>> # Load a parameter from a file.
+    >>> # The entire dataset is loaded from the file to avoid manipulating it inplace.
     >>> alt_rad = hdf['Altitude Radio']
     >>> print alt_rad
     Altitude Radio 0.5Hz 1.50secs
@@ -167,13 +170,15 @@ Some properties are converted to and from Python types automatically for conveni
 
 Dictionaries are stored in JSON format. To overcome the limitation whereby the attributes of a group cannot exceed 64KB, large dictionaries such as the dependency tree are compressed and base64 encoded when saved to the file.
 ::
-    >>> hdf.dependency_tree = [{'adjacencies': [{'data': {}, 'nodeTo': 'Event Marker'},
+    >>> hdf.dependency_tree = [{'adjacencies': [{'data': {},
+                                                 'nodeTo': 'Event Marker'},
                                {'data': {}, 'nodeTo': 'Airborne'}],
-                                'data': {'color': '#bed630', 'label': '14: Event Marker Pressed'},
+                                'data': {'color': '#bed630',
+                                         'label': '14: Event Marker Pressed'},
                                 'id': 'Event Marker Pressed',
                                 'name': '14: Event Marker Pressed'}]
     >>> print dict(hdf.hdf.attrs)
-    {u'dependency_tree': 'eJx9jrEOwjAMRH/FMmsHEIihGwMjEgNb1cGJPQSCIzkVS9R/J1lQYGA73z3deSpIfCcv6oNkHGEq\nqInllqrG80t0gQvZQwwHQKaFql/WdYCeOwVzyVS+mbm70KeYrLEbJ3zcbxsayUls3u4wQr8FV5Oc\nhbHuYODfVz5xTZWe8r9ifgPzS0c5\n'}
+    {u'dependency_tree': 'eJx9jrEOwjAMRH/FMmsHEIihGwMjEgNb1cGJPQSCIzkVS9R/...zS0c5\n'}
     >>> print hdf.dependency_tree
     [{'adjacencies': [{'data': {}, 'nodeTo': 'Event Marker'},
                       {'data': {}, 'nodeTo': 'Airborne'}],
@@ -199,7 +204,8 @@ A parameter is stored as a group containing attributes and two datasets - data, 
     |      -- /series/"Altitude Radio"/mask
     |      -- /series/"Altitude Radio"/levels
 
-::
+Example code to retrieve data and mask of the parameter::
+
     >>> print hdf.hdf['series']['Altitude Radio']
     <HDF5 group "/series/Altitude Radio" (3 members)>
     >>> print hdf.hdf['series']['Altitude Radio'].keys()
@@ -254,19 +260,26 @@ Retrieving a list of the contents of a group within h5py is much slower than nat
     >>> from timeit import timeit
     >>> print len(hdf.keys())
     1043
-    >>> timeit("hdf.hdf['series'].keys()", setup="from hdfaccess.file import hdf_file; hdf_file('flight.hdf5')", number=100)
+    >>> timeit("hdf.hdf['series'].keys()",
+               setup="from hdfaccess.file import hdf_file; hdf_file('flight.hdf5')",
+               number=100)
     7.203955888748169
-    >>> timeit("hdf.keys()", setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')", number=100)
+    >>> timeit("hdf.keys()",
+        setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')",
+        number=100)
     0.06666207313537598
 
 When a Parameter object is loaded from the HDF file, the entire data and mask datasets are read from the file and are combined to create the Parameter's array attribute. To speed up loading of the parameters which have already been read from the file, an optional argument cache_param_list can be provided to hdf_file's constructor defining a list of parameter names to be cached.
-
 ::
     >>> # Loading the parameter for the first time.
-    >>> timeit("hdf['Acceleration Normal']", setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')", number=100)
+    >>> timeit("hdf['Acceleration Normal']",
+               setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')",
+               number=100)
     1.5289490222930908
     >>> # Loading the parameter after it has been cached.
-    >>> timeit("hdf['Acceleration Normal']", setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5', cache_param_list=['Acceleration Normal']); hdf['Acceleration Normal']", number=100)
+    >>> timeit("hdf['Acceleration Normal']",
+        setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5', cache_param_list=['Acceleration Normal']); hdf['Acceleration Normal']",
+        number=100)
     0.09475302696228027
 
 

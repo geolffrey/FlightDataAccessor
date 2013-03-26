@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# HDFAccess documentation build configuration file, created by
+# FlightDataAccessor documentation build configuration file, created by
 # sphinx-quickstart on Wed Feb 22 13:45:59 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -185,7 +185,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'HDFAccess.tex', u'HDFAccess Documentation',
+  ('index', 'FlightDataAccessor.tex', u'FlightDataAccessor Documentation',
    u'Flight Data Services Ltd', 'manual'),
 ]
 
@@ -229,9 +229,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'HDFAccess', u'HDFAccess Documentation',
-   u'Flight Data Services Ltd', 'HDFAccess', 'One line description of project.',
-   'Miscellaneous'),
+  ('index', 'FlightDataAccessor', u'FlightDataAccessor Documentation',
+   u'Flight Data Services Ltd', 'FlightDataAccessor',
+   'Tools to store flight data in HDF5 format.', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
