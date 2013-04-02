@@ -51,17 +51,17 @@ MappedArrays
 Parameters
 ----------
 
-The `Parameter` class within the `hdfaccess.parameter` module represents a parameter as defined within a logical frame layout or a `DerivedParameterNode` within the `FlightDataAnalyzer`.
+The `Parameter` class within the `hdfaccess.parameter` module represents a parameter's data and associated information.
 
 A `Parameter` object has the following attributes:
 
-* name - The name of the parameter.
-* frequency - The frequency/sample rate which the parameter is recorded at.
-* offset - The offset of the parameter in seconds within a superframe.
-* units - The unit of measurement the parameter is recorded in.
-* description - A description of the parameter.
-* array - A `MaskedArray` or `MappedArray` containing the parameter's data.
-* values_mapping - Optional. This attribute will contain the same values mapping as the parameter's array if it is a `MappedArray`.
+* `name` - The name of the parameter.
+* `frequency` - The frequency/sample rate which the parameter is recorded at.
+* `offset` - The offset of the parameter in seconds within a superframe.
+* `units` - The unit of measurement the parameter is recorded in.
+* `description` - A description of the parameter.
+* `array` - A `MaskedArray` or `MappedArray` containing the parameter's data.
+* `values_mapping` - Optional. If the parameter's array is a `MappedArray`, this attribute will contain `MappedArray's` values mapping.
 
 .. code-block:: python
    
@@ -77,7 +77,7 @@ A `Parameter` object has the following attributes:
 Hierarchical Data Format (HDF)
 ------------------------------
 
-`HDF5` is the chosen format for storing flight data and associated information. The structure of an HDF file is similar to a filesystem where groups, container structures resembling directories, may contain a number of datasets and subgroups. Datasets store multi-dimensional arrays.
+`HDF5` is the chosen format for storing flight data and associated information. The structure of an HDF file is similar to a filesystem. Container structures named `groups` which resemble directories may contain a number of datasets and subgroups. Datasets store multi-dimensional arrays.
 
 .. code-block:: python
    
@@ -86,7 +86,7 @@ Hierarchical Data Format (HDF)
    >>> # Filesystem-like access.
    >>> print hdf['/series/Latitude']
    <HDF5 group "/series/Latitude" (3 members)>
-   >>> # Multi-level dictionary access.
+   >>> # Alternatively, the file can be accessed like a multi-level dictionary.
    >>> print hdf['series']['Latitude']['data']
    <HDF5 dataset "data": shape (5888,), type "<f8">
 
