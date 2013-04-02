@@ -256,7 +256,7 @@ class Parameter(object):
         :type offset: Float
         :param units: The unit of measurement the parameter is recorded in.
         :type units: str
-        :param description: Description of parameter.
+        :param description: Description of the parameter.
         :type description: str
         '''
         self.name = name
