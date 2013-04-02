@@ -31,15 +31,15 @@ View the `numpy documentation on masked arrays <http://docs.scipy.org/doc/numpy/
 MappedArrays
 ------------
 
-The `MappedArray` class defined within the `FlightDataAccessor` repository subclasses `np.ma.MaskedArray`. `MappedArrays` provide support for defining a mapping between raw data values and state names. This type of array is used to store the data of `Discrete` and `Multi-state` parameters.
+`MappedArray` is a subclass of `np.ma.MaskedArray` and implements a mapping between raw data values and state names. This type of array is used to store the data of `Discrete` and `Multi-state` parameters.
 
-`Discrete` parameters record values of either 1 or 0 whereas `Multi-state` parameters record a variable number of states, each represented by a different integer value. The mapping of integer values to states is not consistent between different frames, engine types and aircraft. `Discrete` parameters may have inverted logic where 0 is `True` and 1 is `False`. By defining a consistent of list of state names for each parameter and a mapping of raw data to state for each frame, `Discrete` and `Multi-state` parameters can be accessed consistently using MappedArrays.
+`Discrete` parameters record values of either 0 or 1 whereas `Multi-state` parameters record a variable number of states, each represented by a different integer value. The mapping of integer values to states is not consistent between different dataframes, engine types and aircraft. For instance, `Discrete` parameters may have inverted logic where 0 is `True` and 1 is `False`. By defining a consistent of list of state names for each parameter, and a mapping of raw data to state within each frame, `Discrete` and `Multi-state` parameters can be accessed consistently using MappedArrays.
 
 .. todo:: MappedArray diagram?
 
 .. code-block:: python
    
-   >>> MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed',
+   >>> MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed', \
        2: 'ILS Mode Fail', 3: 'Not Selected', 4: 'ILS Selected'})
    masked_mapped_array(values = ['Not Installed' 'ILS Mode Fail' 'Not Selected' 'ILS Selected'],
                      data = [1 2 3 4],
