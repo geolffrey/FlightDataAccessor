@@ -142,16 +142,17 @@ A number of methods are defined for an hdf_file object:
 
 * `search` - Search for a parameter by partial string match.
 * `get_matching` - Search for parameters which match a regular expression.
-* `get_or_create` - Load a parameter from the HDF file. If the parameter does not exist, it will be created.
-* `get_params` - Loads multiple parameters specified by a list of parameter names.
 * `lfl_keys` - Returns a list of parameter names which came from the logical frame layout.
 * `derived_keys` - Returns a list of parameter names which were derived by the `FlightDataAnalyzer`.
+* `get_or_create` - Load a parameter from the HDF file. If the parameter does not exist, it will be created.
+* `get_params` - Loads multiple parameters specified by a list of parameter names.
 
------------------------------
-How `hdf_file` is implemented
------------------------------
 
-This section describes how `hdf_file` stores flight data within an HDF file. This information is not required when using the `hdf_file` class as the implementation is abstracted. This section requires an understanding of the `Hierarchical Data Format <http://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and the `h5py <http://www.h5py.org/docs/>`_ library.
+-------------------------
+`hdf_file` under the hood
+-------------------------
+
+This section describes how the `hdf_file` class stores flight data within the HDF file format. This low-level information is not required when using the `hdf_file` class as the implementation is abstracted. This section requires an understanding of the `Hierarchical Data Format <http://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and the `h5py <http://www.h5py.org/docs/>`_ library.
 
 The underlying `h5py.File` object can be accessed through `hdf_file`'s hdf attribute.
 
@@ -188,9 +189,11 @@ Some properties are converted to and from `Python` types automatically for conve
    >>> print hdf.start_datetime
    datetime.datetime(2013, 2, 22, 5, 6, 10)
 
-Dictionaries are stored in `JSON <http://www.json.org/>`_ format. To overcome the limitation whereby the attributes of a group cannot exceed 64KB, large dictionaries such as the dependency tree are compressed and base64 encoded when saved to the file.
+Dictionaries are stored in `JSON <http://www.json.org/>`_ format for interoperability.
 
-.. code-block:: python
+.. Currently excluded from documentation as it's confusing. To overcome the limitation whereby the attributes of a group cannot exceed 64KB, large dictionaries such as the dependency tree are compressed and base64 encoded when saved to the file.
+   
+   code-block:: python
    
    >>> hdf.dependency_tree = [{'adjacencies': [{'data': {},
                                                 'nodeTo': 'Event Marker'},
@@ -229,7 +232,7 @@ A parameter is stored as a group containing attributes and two datasets - `data`
    |      -- /series/"Altitude Radio"/data
    |      -- /series/"Altitude Radio"/mask
 
-Example code to retrieve the `data` and `mask` of the parameter.
+Example code accessing the parameter group and its datasets.
 
 .. code-block:: python
    
@@ -246,6 +249,7 @@ A `MaskedArray` is comprised of two arrays which are stored separately within th
 
 .. code-block:: python
    
+       # Read datasets into memory.
    >>> data = hdf.hdf['series']['Altitude Radio']['data'][:]
    >>> mask = hdf.hdf['series']['Altitude Radio']['mask'][:]
    >>> data
@@ -257,7 +261,7 @@ A `MaskedArray` is comprised of two arrays which are stored separately within th
    masked_array(data = [ 120.  121.  --  123.],
                 mask = [ False  False  True  False],
          fill_value = 1e+20)
-   >>> # This process is abstracted when a Parameter object is loaded by hdf_file.
+       # This process is abstracted when a Parameter object is loaded by hdf_file.
    >>> alt_rad = hdf['Altitude Radio']
    >>> print alt_rad
    Altitude Radio 0.5Hz 1.50secs
@@ -266,7 +270,6 @@ A `MaskedArray` is comprised of two arrays which are stored separately within th
                 mask = [ False  False  True  False],
          fill_value = 1e+20)
 
-The levels dataset contains pre-computed resolutions of downsampled data as an optimization when displaying a parameter at a low resolution.
 
 Information about a parameter is stored within the attributes of the parameter group.
 
@@ -285,21 +288,8 @@ Information about a parameter is stored within the attributes of the parameter g
 Caching within the `hdf_file` class
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Retrieving a list of the contents of a group within `h5py` is much slower than native Python types, therefore this list is cached on the `hdf_file` object and updated when parameters are saved or deleted.
-
-.. code-block:: python
-   
-   >>> from timeit import timeit
-   >>> print len(hdf.keys())
-   1043
-   >>> timeit("hdf.hdf['series'].keys()",
-              setup="from hdfaccess.file import hdf_file; hdf_file('flight.hdf5')",
-              number=100)
-   7.203955888748169
-   >>> timeit("hdf.keys()",
-       setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')",
-       number=100)
-   0.06666207313537598
+Caching Parameters
+""""""""""""""""""
 
 When a `Parameter` object is loaded from the HDF file, the entire data and mask datasets are read from the file and are combined to create the `Parameter`'s array attribute. To speed up loading of the parameters which have already been read from the file, an optional argument `cache_param_list` can be provided to `hdf_file`'s constructor defining a list of parameter names to be cached.
 
@@ -316,3 +306,21 @@ When a `Parameter` object is loaded from the HDF file, the entire data and mask 
        number=100)
    0.09475302696228027
 
+Caching Parameter names
+"""""""""""""""""""""""
+
+Retrieving a list of the contents of a group within `h5py` is much slower than native Python types, therefore this list is cached on the `hdf_file` object and updated when parameters are saved or deleted.
+
+.. code-block:: python
+   
+   >>> from timeit import timeit
+   >>> print len(hdf.keys())
+   1043
+   >>> timeit("hdf.hdf['series'].keys()",
+              setup="from hdfaccess.file import hdf_file; hdf_file('flight.hdf5')",
+              number=100)
+   7.203955888748169
+   >>> timeit("hdf.keys()",
+       setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')",
+       number=100)
+   0.06666207313537598
