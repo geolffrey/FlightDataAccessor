@@ -2,15 +2,18 @@
 Overview
 ========
 
-The `FlightDataAccessor` repository provides data types for accessing and manipulating flight data both within memory and persistent storage within `Hierarchical Data Format (HDF) <http://www.hdfgroup.org/HDF5/>`_ files.
+The `FlightDataAccessor` repository provides data types for accessing and manipulating flight data within `Hierarchical Data Format (HDF) <http://www.hdfgroup.org/HDF5/>`_ files.
 
---------------
-`MaskedArrays`
---------------
+------------
+MaskedArrays
+------------
 
 `Parameter` data is stored within `numpy` `MaskedArrays`. `MaskedArrays` provide features for masking invalid sections of data.
 
-A `MaskedArray` is comprised of two `numpy` arrays. The first array stores the parameter's data, for instance as a series of floating point numbers, while the second stores the mask within a boolean array of equal size. If an index within the mask array is set to `True`, the corresponding index within the data array will be excluded from calculations.
+A `MaskedArray` is comprised of two `numpy` arrays. The first array stores the parameter's data, typically as a series of floating point numbers, while the second stores the mask within a boolean array of equal size. If an index within the mask array is set to `True`, the corresponding index within the data array will be excluded from calculations.
+
+
+.. todo:: MaskedArray diagram.
 
 .. code-block:: python
    
@@ -24,13 +27,15 @@ A `MaskedArray` is comprised of two `numpy` arrays. The first array stores the p
 
 View the `numpy documentation on masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ for more information.
 
---------------
-`MappedArrays`
---------------
+------------
+MappedArrays
+------------
 
 The `MappedArray` class defined within the `FlightDataAccessor` repository subclasses `np.ma.MaskedArray`. `MappedArrays` provide support for defining a mapping between raw data values and state names. This type of array is used to store the data of `Discrete` and `Multi-state` parameters.
 
 `Discrete` parameters record values of either 1 or 0 whereas `Multi-state` parameters record a variable number of states, each represented by a different integer value. The mapping of integer values to states is not consistent between different frames, engine types and aircraft. `Discrete` parameters may have inverted logic where 0 is `True` and 1 is `False`. By defining a consistent of list of state names for each parameter and a mapping of raw data to state for each frame, `Discrete` and `Multi-state` parameters can be accessed consistently using MappedArrays.
+
+.. todo:: MappedArray diagram?
 
 .. code-block:: python
    
@@ -68,9 +73,9 @@ A `Parameter` object has the following attributes:
    >>> print param.array
    [ 59.345  59.346  59.347]
 
--------------------------------
-`Hierarchical Data Format (HDF)`
--------------------------------
+------------------------------
+Hierarchical Data Format (HDF)
+------------------------------
 
 `HDF5` is the chosen format for storing flight data and associated information. The structure of an HDF file is similar to a filesystem where groups, container structures resembling directories, may contain a number of datasets and subgroups. Datasets store multi-dimensional arrays.
 
@@ -87,9 +92,9 @@ A `Parameter` object has the following attributes:
 
 `Groups` may also contain up to 64KB of key value attribute pairs.
 
-----------
-`hdf_file`
-----------
+--------
+hdf_file
+--------
 
 The `hdf_file` class within the `hdfaccess.file` module provides a high-level interface to HDF files designed for saving and loading flight data. `hdf_file` implements a file-like interface.
 
@@ -148,9 +153,9 @@ A number of methods are defined for an hdf_file object:
 * `get_params` - Loads multiple parameters specified by a list of parameter names.
 
 
--------------------------
-`hdf_file` under the hood
--------------------------
+-----------------------
+hdf_file under the hood
+-----------------------
 
 This section describes how the `hdf_file` class stores flight data within the HDF file format. This low-level information is not required when using the `hdf_file` class as the implementation is abstracted. This section requires an understanding of the `Hierarchical Data Format <http://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and the `h5py <http://www.h5py.org/docs/>`_ library.
 
@@ -227,6 +232,7 @@ A parameter is stored as a group containing attributes and two datasets - `data`
 
 .. code-block:: none
    
+   /
    |-- /series
    |   -- /series/"Altitude Radio"
    |      -- /series/"Altitude Radio"/data
@@ -285,8 +291,8 @@ Information about a parameter is stored within the attributes of the parameter g
     u'supf_offset': 0.2265625,
     u'units': 'deg'}
 
-Caching within the `hdf_file` class
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Caching within the hdf_file class
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Caching Parameters
 """"""""""""""""""
