@@ -15,7 +15,7 @@ A `MaskedArray` is comprised of two `numpy` arrays. The first array stores the p
 
 
 .. code-block:: python
-   
+
    >>> array = np.ma.masked_array([1, 2, 3, 4], mask=[False, False, True, False])
    >>> array
    masked_array(data = [1 2 -- 4],
@@ -37,15 +37,43 @@ MappedArrays
 `Discrete` parameters record values of either 0 or 1 whereas `Multi-state` parameters record a variable number of states, each represented by a different integer value. The mapping of integer values to states is not consistent between different dataframes, engine types and aircraft. For instance, `Discrete` parameters may have inverted logic where 0 is `True` and 1 is `False`. By defining a consistent of list of state names for each parameter, and a mapping of raw data to state within each frame, `Discrete` and `Multi-state` parameters can be accessed consistently using MappedArrays.
 
 .. code-block:: python
-   
-   >>> MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed', 2: 'ILS Mode Fail', 3: 'Not Selected', 4: 'ILS Selected'})
+
+   >>> a = MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed', 2: 'ILS Mode Fail',
+   3: 'Not Selected', 4: 'ILS Selected'})
+   >>> a
    masked_mapped_array(values = ['Not Installed' 'ILS Mode Fail' 'Not Selected' 'ILS Selected'],
                        data = [1 2 3 4],
                        mask = False,
                  fill_value = 999999,
              values_mapping = {1: 'Not Installed', 2: 'ILS Mode Fail', 3: 'Not Selected', 4: 'ILS Selected'})
 
+   >>> a.raw
+   masked_array(data = [1 2 3 4],
+             mask = False,
+       fill_value = 999999)
+
 .. image:: mapped_array.png
+
+.. code-block:: python
+
+   >>> np.ma.where(a == 'Not Installed')
+   (array([0]),)
+
+   >>> a[3] = 'Not Installed'
+   >>> a
+   masked_mapped_array(values = ['Not Installed' 'ILS Mode Fail' 'Not Selected' 'Not Installed'],
+                      data = [1 2 3 1],
+                      mask = False,
+                fill_value = 999999,
+            values_mapping = {1: 'Not Installed', 2: 'ILS Mode Fail', 3: 'Not Selected', 4: 'ILS Selected'})
+
+   >>> a.raw
+   masked_array(data = [1 2 3 1],
+             mask = False,
+       fill_value = 999999)
+
+   >>> np.ma.where(a == 'Not Installed')
+   (array([0, 3]),)
 
 ----------
 Parameters
@@ -64,7 +92,7 @@ A `Parameter` object has the following attributes:
 * `values_mapping` – Optional. If the parameter's array is a `MappedArray`, this attribute will contain `MappedArray`'s values mapping.
 
 .. code-block:: python
-   
+
    >>> param = Parameter('Longitude', frequency=2, offset=0.2375, units='deg',
        description='The east-west position of the aircraft in decimal degrees.',
        array=np.ma.masked_array([59.345, 59.346, 59.347]))
@@ -80,7 +108,7 @@ Hierarchical Data Format (HDF)
 `HDF5` is the chosen format for storing flight data and associated information. The structure of an HDF file is similar to a filesystem. Container structures named `groups` which resemble directories may contain a number of datasets and subgroups. Datasets store multi-dimensional arrays.
 
 .. code-block:: python
-   
+
    >>> import h5py
    >>> hdf = h5py.File('flight.hdf5')
    >>> # Filesystem-like access.
@@ -99,7 +127,7 @@ hdf_file
 The `hdf_file` class within the `hdfaccess.file` module provides a high-level interface to HDF files designed for saving and loading flight data. `hdf_file` implements a file-like interface.
 
 .. code-block:: python
-   
+
    >>> from hdfaccess.file import hdf_file
    >>> # HDF files can be opened using the with statement.
    >>> with hdf_file('flight.hdf5') as hdf:
@@ -114,7 +142,7 @@ The `hdf_file` class within the `hdfaccess.file` module provides a high-level in
 `hdf_file` also implements a dictionary-like interface which saves and loads `Parameter` objects to and from the HDF file.
 
 .. code-block:: python
-   
+
    >>> print hdf.keys()
    ['Altitude Radio', 'Altitude STD']
    >>> # Load a parameter from a file.
@@ -162,7 +190,7 @@ This section describes how the `hdf_file` class stores flight data within the HD
 The underlying `h5py.File` object can be accessed through `hdf_file`'s hdf attribute.
 
 .. code-block:: python
-   
+
    >>> from hdfaccess.file import hdf_file
    >>> with hdf_file('flight.hdf5') as hdf:
    >>>     print hdf.hdf
@@ -173,6 +201,8 @@ Properties
 ^^^^^^^^^^
 
 The `hdf_file` class defines a number of properties which are stored within the HDF file as root level attributes.
+
+.. image:: hdfview-02.png
 
 
 .. code-block:: python
@@ -222,7 +252,7 @@ Parameters
 Parameters are stored underneath a group named `series`.
 
 .. code-block:: python
-   
+
    >>> print hdf.hdf.keys()
    [u'series']
    >>> print hdf.hdf['series'].keys()
@@ -237,6 +267,8 @@ A parameter is stored as a group containing attributes and two datasets – `dat
    |   -- /series/"Altitude Radio"
    |      -- /series/"Altitude Radio"/data
    |      -- /series/"Altitude Radio"/mask
+
+.. image:: hdfview-01.png
 
 Example code accessing the parameter group and its datasets.
 
@@ -290,6 +322,9 @@ Information about a parameter is stored within the attributes of the parameter g
     u'name': 'Latitude',
     u'supf_offset': 0.2265625,
     u'units': 'deg'}
+
+.. image:: hdfview-03.png
+
 
 Caching within the hdf_file class
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
