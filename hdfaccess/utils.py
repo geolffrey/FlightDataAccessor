@@ -155,14 +155,18 @@ def write_segment(source, segment, dest, supf_boundary=True):
     supf_stop_secs = segment.stop
 
     if supf_boundary:
-        if segment.start:
-            supf_start_secs = (int(segment.start) / 64) * 64
-        if segment.stop:
-            supf_stop_secs = ((int(segment.stop) / 64) * 64)
-            if segment.stop % 64 != 0:
-                # Segment does not end on a superframe boundary, include the
-                # following superframe.
-                supf_stop_secs += 64
+        boundary = 64
+    else:
+        boundary = 4
+    
+    if segment.start:
+        supf_start_secs = (int(segment.start) / boundary) * boundary
+    if segment.stop:
+        supf_stop_secs = ((int(segment.stop) / boundary) * boundary)
+        if segment.stop % boundary != 0:
+            # Segment does not end on a superframe boundary, include the
+            # following superframe.
+            supf_stop_secs += boundary
 
     if supf_start_secs is None and supf_stop_secs is None:
         logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
@@ -200,32 +204,27 @@ def write_segment(source, segment, dest, supf_boundary=True):
 
             for param_name in source_hdf.keys():
                 param = source_hdf[param_name]
-                if supf_boundary:
-                    if ((param.hz * 64) % 1) != 0:
-                        raise ValueError("Parameter '%s' does not record a consistent "
-                                         "number of values every superframe. Check the "
-                                         "LFL definition." % param_name)
-                    if segment.start:
-                        supf_start_index = int(supf_start_secs * param.hz)
-                        param_start_index = int((segment.start - supf_start_secs) * param.hz)
-                    else:
-                        supf_start_index = 0
-                        param_start_index = supf_start_index
-                    if segment.stop:
-                        supf_stop_index = int(supf_stop_secs * param.hz)
-                        param_stop_index = int(segment.stop * param.hz)
-                    else:
-                        supf_stop_index = len(param.raw_array)
-                        param_stop_index = supf_stop_index
-
-                    param.array = param.raw_array[supf_start_index:supf_stop_index]
-                    # Mask data outside of split.
-                    param.array[:param_start_index] = np.ma.masked
-                    param.array[param_stop_index:] = np.ma.masked
+                if ((param.hz * 64) % 1) != 0:
+                    raise ValueError("Parameter '%s' does not record a consistent "
+                                     "number of values every superframe. Check the "
+                                     "LFL definition." % param_name)
+                if segment.start:
+                    supf_start_index = int(supf_start_secs * param.hz)
+                    param_start_index = int((segment.start - supf_start_secs) * param.hz)
                 else:
-                    start = int(segment.start * param.hz) if segment.start else 0
-                    stop = int(math.floor(segment.stop * param.hz)) + 1 if segment.stop else len(param.array)
-                    param.array = param.raw_array[start:stop]
+                    supf_start_index = 0
+                    param_start_index = supf_start_index
+                if segment.stop:
+                    supf_stop_index = int(supf_stop_secs * param.hz)
+                    param_stop_index = int(segment.stop * param.hz)
+                else:
+                    supf_stop_index = len(param.raw_array)
+                    param_stop_index = supf_stop_index
+
+                param.array = param.raw_array[supf_start_index:supf_stop_index]
+                # Mask data outside of split.
+                param.array[:param_start_index] = np.ma.masked
+                param.array[param_stop_index:] = np.ma.masked
                 # save modified parameter back to file
                 dest_hdf[param_name] = param
                 #logging.debug("Finished writing segment: %s", dest_hdf)
