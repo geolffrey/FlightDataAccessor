@@ -147,25 +147,22 @@ def write_segment(source, segment, dest, supf_boundary=True):
     with data? If so, this is already done.
     '''
     if os.path.isfile(dest):
-        logging.warning("File '%s' already exists, write_segments will delete file.",
-                        dest)
+        logging.warning(
+            "File '%s' already exists, write_segments will delete file.", dest)
         os.remove(dest)
 
     supf_start_secs = segment.start
     supf_stop_secs = segment.stop
 
-    if supf_boundary:
-        boundary = 64
-    else:
-        boundary = 4
+    boundary = 64 if supf_boundary else 4
     
     if segment.start:
         supf_start_secs = (int(segment.start) / boundary) * boundary
     if segment.stop:
-        supf_stop_secs = ((int(segment.stop) / boundary) * boundary)
+        supf_stop_secs = (int(segment.stop) / boundary) * boundary
         if segment.stop % boundary != 0:
-            # Segment does not end on a superframe boundary, include the
-            # following superframe.
+            # Segment does not end on a frame/superframe boundary, include the
+            # following frame/superframe.
             supf_stop_secs += boundary
 
     if supf_start_secs is None and supf_stop_secs is None:
@@ -205,9 +202,10 @@ def write_segment(source, segment, dest, supf_boundary=True):
             for param_name in source_hdf.keys():
                 param = source_hdf[param_name]
                 if ((param.hz * 64) % 1) != 0:
-                    raise ValueError("Parameter '%s' does not record a consistent "
-                                     "number of values every superframe. Check the "
-                                     "LFL definition." % param_name)
+                    raise ValueError(
+                        "Parameter '%s' does not record a consistent number of "
+                        "values every superframe. Check the LFL definition."
+                        % param_name)
                 if segment.start:
                     supf_start_index = int(supf_start_secs * param.hz)
                     param_start_index = int((segment.start - supf_start_secs) * param.hz)
