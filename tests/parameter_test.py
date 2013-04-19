@@ -123,6 +123,7 @@ masked_array(data = [False False  True False False],
 
         # unequal length arrays compared return False in np
         self.assertEqual(ma == ['one', 'two'], False)
+        self.assertEqual(ma != ['one', 'two'], True)
 
         # mapped values
         np.testing.assert_array_equal(ma[:2] == ['one', 'two'], [True, True])
@@ -145,6 +146,23 @@ masked_array(data = [False False  True False False],
         np.testing.assert_array_equal(ma[:2] == [np.ma.masked, 2], [True, True])
         # can't compare lists with numpy arrays
         np.testing.assert_array_equal(ma[:2] == [np.ma.masked, 'two'], [True, True])
+
+    def test_array_inequality_type_and_mask(self):
+        data = [0, 0, 0, 0, 1, 1, 0, 0, 1, 0]
+
+        array = np.ma.masked_array(data=data, mask=False)
+        array = MappedArray(array, values_mapping={0: 'Off', 1: 'On'})
+
+        expected = np.ma.array([not bool(x) for x in data])
+
+        np.testing.assert_array_equal(array != 'On', expected)
+
+        # Ensure that __ne__ is returning a boolean array!
+        np.testing.assert_array_equal(str(array != 'On'),
+            '[True True True True False False True True False True]')
+
+        array[array != 'On'] = np.ma.masked
+        np.testing.assert_array_equal(array.mask, expected)
 
 
 class TestParameter(unittest.TestCase):
