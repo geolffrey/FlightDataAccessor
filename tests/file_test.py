@@ -149,6 +149,44 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(len(params) == 1)
         param = params['TEST_PARAM10']
         self.assertEqual(param.frequency, self.param_frequency)
+  
+    def test_get_param_valid_only(self):
+        hdf = self.hdf_file
+        hdf['Valid Param'] = Parameter('Valid Param', array=np.ma.arange(10))
+        hdf['Invalid Param'] = Parameter('Invalid Param', array=np.ma.arange(10), invalid=True)
+        self.assertIn('Invalid Param', hdf)
+        # request Invalid param without filtering
+        self.assertTrue(hdf.get_param('Invalid Param', valid_only=False))
+        # filtering only valid raises keyerror
+        self.assertRaises(KeyError, hdf.get_param, 'Invalid Param', valid_only=True)
+                
+        
+    def test_get_params_valid_only(self):
+        hdf = self.hdf_file
+        hdf['Valid Param'] = Parameter('Valid Param', array=np.ma.arange(10))
+        hdf['Invalid Param'] = Parameter('Invalid Param', array=np.ma.arange(10), invalid=True)
+        self.assertIn('Invalid Param', hdf)
+        # check the params that are valid are listed correctly
+        self.assertEqual(hdf.valid_param_names(), 
+                         ['TEST_PARAM10', 'TEST_PARAM11', 'Valid Param'])
+        # request all params inc. invalid
+        all_params = hdf.get_params(valid_only=False)
+        self.assertEqual(sorted(all_params.keys()),
+                         ['Invalid Param', 'TEST_PARAM10', 'TEST_PARAM11', 'Valid Param'])
+        # request only valid params
+        valid = hdf.get_params(valid_only=True)
+        self.assertEqual(sorted(valid.keys()), 
+                         ['TEST_PARAM10', 'TEST_PARAM11', 'Valid Param'])
+        # request params by name
+        valid_few = hdf.get_params(param_names=['Valid Param'], valid_only=True)
+        self.assertEqual(valid_few.keys(), 
+                         ['Valid Param'])
+        # try to request the invalid param, but only accepting valid raises keyerror
+        self.assertRaises(KeyError, hdf.get_params, 
+                          param_names=['Invalid Param', 'Valid Param'],
+                          valid_only=True, raise_keyerror=True)
+        
+                         
 
     def test___set_item__(self):
         '''

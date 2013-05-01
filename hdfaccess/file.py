@@ -461,21 +461,29 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         return sorted(filter(lambda x: x.startswith(term), self.keys()))
 
-    def get_params(self, param_names=None, raise_keyerror=False):
+    def get_params(self, param_names=None, valid_only=False, raise_keyerror=False):
         '''
         Returns params that are available, `ignores` those that aren't.
 
-        :param param_names: Parameters to return, if None returns all parameters
+        :param param_names: Parameters to return, if None returns all parameters or all valid parameters if valid_only=True
         :type param_names: list of str or None
+        :param valid_only: Only include valid parameters, by default invalid parameters are included.
+        :type valid_only: Bool
+        :param raise_keyerror: Whether to raise exception if parameter not in keys() or in valid keys if valid_only=True.
+        :type raise_keyerror: Bool
         :returns: Param name to Param object dict
         :rtype: dict
         '''
         if param_names is None:
-            param_names = self.keys()
+            if valid_only:
+                param_names = self.valid_param_names()
+            else:
+                param_names = self.keys()
         param_name_to_obj = {}
         for name in param_names:
             try:
-                param_name_to_obj[name] = self[name]
+                param_name_to_obj[name] = self.get_param(
+                    name, valid_only=valid_only)
             except KeyError:
                 if raise_keyerror:
                     raise
@@ -483,7 +491,7 @@ class hdf_file(object):    # rare case of lower case?!
                     pass  # ignore parameters that aren't available
         return param_name_to_obj
 
-    def get_param(self, name):
+    def get_param(self, name, valid_only=False):
         '''
         name e.g. "Heading"
         Returns a masked_array. If 'mask' is stored it will be the mask of the
@@ -491,15 +499,19 @@ class hdf_file(object):    # rare case of lower case?!
 
         :param name: Name of parameter with 'series'.
         :type name: str
+        :param valid_only: Only return valid parameters, default is to include invalid params
+        :type valid_only: Bool
         :returns: Parameter object containing HDF data and attrs.
         :rtype: Parameter
         '''
-        if name in self._params_cache:
-            logging.debug("Retrieving param '%s' from HDF cache", name)
-            return deepcopy(self._params_cache[name])
-        if name not in self:
+        if valid_only and name not in self.valid_param_names():
+            raise KeyError("%s" % name)
+        elif name not in self:
             # catch exception otherwise HDF will crash and close
             raise KeyError("%s" % name)
+        elif name in self._params_cache:
+            logging.debug("Retrieving param '%s' from HDF cache", name)
+            return deepcopy(self._params_cache[name])
         param_group = self.hdf['series'][name]
         data = param_group['data']
         mask = param_group.get('mask', False)
@@ -544,7 +556,9 @@ class hdf_file(object):    # rare case of lower case?!
 
     def get(self, name, default=None):
         """
-        Dictionary like .get operator
+        Dictionary like .get operator.
+        
+        Makes no distinction on valid or invalid parameters that are requested.
         """
         try:
             return self.get_param(name)
@@ -552,6 +566,9 @@ class hdf_file(object):    # rare case of lower case?!
             return default
 
     def get_or_create(self, param_name):
+        '''
+        Return a h5py parameter group, if it does not exist then create it too.
+        '''
         # Either get or create parameter.
         if param_name in self:
             param_group = self.hdf['series'][param_name]
