@@ -36,12 +36,16 @@ def copy_file(orig_path, dest_dir=None, postfix='_copy'):
     return copy_path
 
 
-def _copy_attrs(source_group, target_group):
+def _copy_attrs(source_group, target_group, deidentify=False):
     '''
     While the library can recursively copy groups and datasets, there does
     not seem to be a simple way to copy all of a group's attributes at once.
     '''
+    
+        
     for key, value in source_group.attrs.iteritems():
+        if deidentify and key in ('aircraft_info', 'tailmark'):
+            continue
         target_group.attrs[key] = value
 
 
@@ -97,7 +101,7 @@ def concat_hdf(hdf_paths, dest=None):
         return hdf_master_path
 
 
-def strip_hdf(hdf_path, params_to_keep, dest):
+def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     '''
     Strip an HDF file of all parameters apart from those in params_to_keep. Does
     not raise an exception if any of the params_to_keep are not in the HDF file.
@@ -112,7 +116,7 @@ def strip_hdf(hdf_path, params_to_keep, dest):
     :rtype: [str]
     '''
     with hdf_file(hdf_path) as hdf, hdf_file(dest, create=True) as hdf_dest:
-        _copy_attrs(hdf.hdf, hdf_dest.hdf)  # Copy top-level attrs.
+        _copy_attrs(hdf.hdf, hdf_dest.hdf, deidentify=deidentify) # Copy top-level attrs.
         params = hdf.get_params(params_to_keep)
         for param_name, param in params.iteritems():
             hdf_dest[param_name] = param

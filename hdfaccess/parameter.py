@@ -166,7 +166,7 @@ masked_%(name)s(values = %(sdata)s,
         '''
         In MappedArrays, != is always the opposite of ==
         '''
-        return 1 - self.__eq__(other)
+        return MaskedArray.__ne__(self.raw, self.__coerce_type(other))
 
     def __gt__(self, other):
         '''
