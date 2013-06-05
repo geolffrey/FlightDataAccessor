@@ -590,10 +590,16 @@ class hdf_file(object):    # rare case of lower case?!
         HDF identifier which supports filesystem-style indexing, e.g.
         '/series/CAS'.
 
-        :param param: Parameter like object with attributes name (must not contain forward slashes), array.
-        :param array: Array containing data and potentially a mask for the data.
+        :param param: Parameter like object with attributes name (must not
+            contain forward slashes), array.
+        :param array: Array containing data and potentially a mask for the
+            data.
         :type array: np.array or np.ma.masked_array
         '''
+        if param.array.size == 0:
+            raise ValueError('Data for parameter %s is empty! '
+                             'Check the LFL (sample rate).' % param.name)
+
         # Allow both arrays and masked_arrays.
         if not hasattr(param.array, 'mask'):
             param.array = np.ma.masked_array(param.array, mask=False)
