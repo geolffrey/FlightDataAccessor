@@ -422,22 +422,6 @@ class RequirementsParser(object):
             dependency_links += data.get('e', [])
         return sorted(list(set(dependency_links)))
 
-    def early_install(self, path=''):
-        '''
-        Installs the packages listed in requirements_early.txt
-        '''
-        filename = _build_filename(path, '%s.%s', 'requirements_early', 'txt')
-        if os.path.isfile(filename):
-            try:
-                rc = subprocess.call('pip install --upgrade --requirement=' \
-                + filename, shell=True)
-                if rc:
-                    print >>sys.stderr, 'Failed to install requirements_early.txt'
-                    sys.exit(rc)
-            except OSError, e:
-                print >>sys.stderr, "Execution failed:", e
-                sys.exit(101)
-
 
 ################################################################################
 # vim:et:ft=python:nowrap:sts=4:sw=4:ts=4

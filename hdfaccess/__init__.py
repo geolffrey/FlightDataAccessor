@@ -5,7 +5,7 @@
 # See the file "LICENSE" for the full license governing this code.
 
 __packagename__ = 'HDFAccess'
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 __author__ = 'Flight Data Services Ltd'
 __author_email__ = 'developers@flightdataservices.com'
 __maintainer__ = 'Flight Data Services Ltd'
