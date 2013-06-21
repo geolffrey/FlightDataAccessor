@@ -623,10 +623,13 @@ class hdf_file(object):    # rare case of lower case?!
         # HDF file as an attribute.
         if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
             param_group.attrs['arinc_429'] = param.arinc_429
-        if hasattr(param, 'invalid') and param.invalid is not None:
-            param_group.attrs['invalid'] = param.invalid
-        if hasattr(param, 'invalidity_reason') and param.invalidity_reason is not None:
-            param_group.attrs['invalidity_reason'] = param.invalidity_reason
+            
+        # Always store the validity state and reason(overwriting previous state)
+        invalid = 1 if getattr(param, 'invalid', False) else 0
+        param_group.attrs['invalid'] = invalid
+        invalidity_reason = getattr(param, 'invalidity_reason', None) or ''
+        param_group.attrs['invalidity_reason'] = invalidity_reason
+        
         if hasattr(param, 'units') and param.units is not None:
             param_group.attrs['units'] = param.units
         if hasattr(param, 'lfl') and param.lfl is not None:
