@@ -62,12 +62,12 @@ class hdf_file(object):    # rare case of lower case?!
             self.hdf = file_path_or_obj
             if self.hdf.mode != 'r+':
                 raise ValueError("hdf_file requires mode 'r+'.")
-            self.file_path = self.hdf.filename
+            self.file_path = os.path.abspath(self.hdf.filename)
         else:
             hdf_exists = os.path.isfile(file_path_or_obj)
             if not create and not hdf_exists:
                 raise IOError('File not found: %s' % file_path_or_obj)
-            self.file_path = file_path_or_obj
+            self.file_path = os.path.abspath(file_path_or_obj)
             # Not specifying a mode, will create the file if the path does not
             # exist and open with mode 'r+'.
             self.hdf = h5py.File(self.file_path)
