@@ -546,6 +546,8 @@ class hdf_file(object):    # rare case of lower case?!
                 kwargs['units'] = description
         if 'data_type' in param_group.attrs:
             kwargs['data_type'] = param_group.attrs['data_type']
+        if 'source_name' in param_group.attrs:
+            kwargs['source_name'] = param_group.attrs['source_name']
         if 'description' in param_group.attrs:
             kwargs['description'] = param_group.attrs['description']
         p = Parameter(name, array, **kwargs)
@@ -644,6 +646,8 @@ class hdf_file(object):    # rare case of lower case?!
         if hasattr(param, 'values_mapping') and param.values_mapping:
             param_group.attrs['values_mapping'] = simplejson.dumps(
                 param.values_mapping)
+        if hasattr(param, 'source_name') and param.source_name:
+            param_group.attrs['source_name'] = param.source_name
         description = param.description if hasattr(param, 'description') else ''
         param_group.attrs['description'] = description
         # TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
