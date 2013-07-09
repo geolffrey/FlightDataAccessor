@@ -244,18 +244,31 @@ masked_%(name)s(values = %(sdata)s,
 class Parameter(object):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
                  offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
-                 units=None, data_type=None, lfl=None, description=''):
+                 units=None, data_type=None, lfl=None, source_name=None,
+                 description=''):
         '''
         :param name: Parameter name
         :type name: String
         :param array: Masked array of data for the parameter.
         :type array: np.ma.masked_array
+        :param values_mapping: Values mapping of a multi-state parameter.
+        :type values_mapping: dict or None
         :param frequency: Sample Rate / Frequency / Hz
-        :type frequency: Float
+        :type frequency: float
         :param offset: The offset of the parameter in seconds within a superframe.
-        :type offset: Float
+        :type offset: float
+        :param arinc_429: Whether or not the parameter stores ARINC 429 data.
+        :type arinc_429: bool or None
+        :param invalid: Whether or not the parameter has been marked as invalid.
+        :type invalid: bool or None
+        :param invalidity_reason: The reason why the parameter was marked as invalid.
+        :type invalidity_reason: str or None
         :param units: The unit of measurement the parameter is recorded in.
-        :type units: str
+        :type units: str or None
+        :param lfl: Whether or not the parameter is from the LFL or derived.
+        :type lfl: bool or None
+        :param source_name: The original name of the parameter.
+        :type source_name: str or None
         :param description: Description of the parameter.
         :type description: str
         '''
@@ -275,6 +288,7 @@ class Parameter(object):
         self.units = units
         self.data_type = data_type
         self.lfl = lfl
+        self.source_name = source_name
         self.description = description
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
