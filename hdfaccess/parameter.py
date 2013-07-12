@@ -228,6 +228,9 @@ masked_%(name)s(values = %(sdata)s,
                 # self[:3] = [2, 2, 2]
                 # self[:3] = ['two']
                 # self[:3] = [2]
+                if len(val) not in (1, len(self[key])):
+                    raise ValueError("Ambiguous length of values '%s' for "
+                                     "array section '%s'." % (val, self[key]))
                 mapped_val = []
                 for v in val:  # potentially slow if val is a large array!
                     if v in self.state:
