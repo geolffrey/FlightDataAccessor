@@ -348,7 +348,7 @@ class TestHdfFile(unittest.TestCase):
         with hdf_file(self.hdf_path) as hdf:
             saved = hdf['multi']
             self.assertEqual(str(saved.array[:]),
-                             '[three -- -- three ? zero ? two -- --]')
+                             "['three' -- -- 'three' '?' 'zero' '?' 'two' -- --]")
             self.assertEqual(saved.array.data.dtype, np.int)
 
     def test__delitem__(self):
