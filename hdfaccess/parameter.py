@@ -106,23 +106,27 @@ masked_%(name)s(values = %(sdata)s,
         '''
         return self.state[state]
     
-    def any_of(self, *states):
+    def any_of(self, *states, **kwargs):
         '''
         Return a boolean array containing True where the value of the 
         MappedArray equals any state in states.
         
         :param states: List of states.
         :type states: [str]
+        :param ignore_missing: If this is False, raise an exception if any of the states are not in the values mapping.
+        :type ignore_missing: bool
         :returns: Boolean array.
         :rtype: np.ma.array(bool)
         '''
+        ignore_missing = kwargs.get('ignore_missing', False)
         valid_states = self.values_mapping.values()
         array = zeros(len(self), dtype=bool_)
         for state in states:
-            if state not in valid_states:
-                raise ValueError(
-                    "State '%s' is not valid. Valid states: '%s'." %
-                    (state, valid_states))
+            if not ignore_missing:
+                if state not in valid_states:
+                    raise ValueError(
+                        "State '%s' is not valid. Valid states: '%s'." %
+                        (state, valid_states))
             array |= self == state
         return array
 
