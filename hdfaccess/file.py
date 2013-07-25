@@ -423,7 +423,7 @@ class hdf_file(object):    # rare case of lower case?!
     # HDF Accessors
     ##########################################################################
 
-    def search(self, pattern):
+    def search(self, pattern, lfl_keys_only=False):
         '''
         Searches for param names that matches with (*) or (?) expression. If
         found, the pattern is converted to a regex and matched against the
@@ -434,17 +434,22 @@ class hdf_file(object):    # rare case of lower case?!
         params are returned that contains the substring 'pattern'.
 
         :param pattern: Pattern to search for (case insensitve).
-        :param type: string
+        :type pattern: string
+        :param lfl_keys_only: Search only within LFL keys
+        :type lfl_keys_only: boolean
         :returns: list of sorted keys(params)
         :rtype: list
         '''
         result = []
-
+        if lfl_keys_only:
+            keys = self.lfl_keys()
+        else:
+            keys = self.keys()
         if '(*)' in pattern or '(?)' in pattern:
             regex = translate(pattern)
             re_obj = re.compile(regex)
 
-            for key in self.keys():
+            for key in keys:
                 matched = re_obj.match(key)
                 if matched:
                     result.append(key)
@@ -453,7 +458,7 @@ class hdf_file(object):    # rare case of lower case?!
         else:
             PATTERN = pattern.upper()
             return sorted(
-                filter(lambda k: PATTERN in k.upper(), self.keys()))
+                filter(lambda k: PATTERN in k.upper(), keys))
 
     def startswith(self, term):
         '''
