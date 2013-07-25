@@ -519,7 +519,7 @@ class hdf_file(object):    # rare case of lower case?!
             return deepcopy(self._params_cache[name])
         param_group = self.hdf['series'][name]
         data = param_group['data']
-        mask = param_group.get('mask', False)
+        mask = param_group.get('mask', False)  # FIXME: Replace False with a fully masked array
         array = np.ma.masked_array(data, mask=mask)
         kwargs = {}
         if 'values_mapping' in param_group.attrs:
@@ -607,13 +607,13 @@ class hdf_file(object):    # rare case of lower case?!
             raise ValueError('Data for parameter %s is empty! '
                              'Check the LFL (sample rate).' % param.name)
 
-        # Allow both arrays and masked_arrays.
-        if not hasattr(param.array, 'mask'):
+        # Allow both arrays and masked_arrays but ensure that we always have a fully expanded masked array.
+        if not hasattr(param.array, 'mask'):  # FIXME: or param.mask == False:
             param.array = np.ma.masked_array(param.array, mask=False)
 
         if param.name in self.cache_param_list:
             logging.debug("Storing parameter '%s' in HDF cache", param.name)
-            self._params_cache[param.name] = param
+            self._params_cache[param.name] = param  # FIXME is above?: Ensure that .mask is populated with np.ma.getmaskarray(param.array) to ensure we always have a full mask?
 
         param_group = self.get_or_create(param.name)
         if save_data:
