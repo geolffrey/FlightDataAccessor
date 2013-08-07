@@ -547,8 +547,8 @@ class hdf_file(object):    # rare case of lower case?!
             kwargs['arinc_429'] = param_group.attrs['arinc_429']
         if 'invalid' in param_group.attrs:
             kwargs['invalid'] = param_group.attrs['invalid']
-        if 'invalidity_reason' in param_group.attrs:
-            kwargs['invalidity_reason'] = param_group.attrs['invalidity_reason']
+            if kwargs['invalid'] and 'invalidity_reason' in param_group.attrs:
+                kwargs['invalidity_reason'] = param_group.attrs['invalidity_reason']
         # Units
         if 'units' in param_group.attrs:
             kwargs['units'] = param_group.attrs['units']
