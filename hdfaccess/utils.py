@@ -162,6 +162,8 @@ def write_segment(source, segment, dest, supf_boundary=True):
     
     if segment.start:
         supf_start_secs = (int(segment.start) / boundary) * boundary
+    else:
+        supf_start_secs = 0
     if segment.stop:
         supf_stop_secs = (int(segment.stop) / boundary) * boundary
         if segment.stop % boundary != 0:
@@ -169,18 +171,16 @@ def write_segment(source, segment, dest, supf_boundary=True):
             # following frame/superframe.
             supf_stop_secs += boundary
 
-    if supf_start_secs is None and supf_stop_secs is None:
+    if supf_start_secs == 0 and supf_stop_secs is None:
         logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
         shutil.copy(source, dest)
         return dest
 
     with hdf_file(source) as source_hdf:
-        if supf_start_secs is None:
-            segment_duration = supf_stop_secs
-        elif supf_stop_secs is None:
-            segment_duration = source_hdf.duration - supf_start_secs
-        else:
-            segment_duration = supf_stop_secs - supf_start_secs
+        if supf_stop_secs is None:
+            supf_stop_secs = source_hdf.duration
+        
+        segment_duration = supf_stop_secs - supf_start_secs
 
         if source_hdf.duration == segment_duration:
             logging.debug("Write Segment: Segment duration is equal to whole "
@@ -204,7 +204,8 @@ def write_segment(source, segment, dest, supf_boundary=True):
             dest_hdf.duration = segment_duration  # Overwrite duration.
 
             for param_name in source_hdf.keys():
-                param = source_hdf[param_name]
+                param = source_hdf.get_param(
+                    param_name, _slice=slice(supf_start_secs, supf_stop_secs))
                 if ((param.hz * 64) % 1) != 0:
                     raise ValueError(
                         "Parameter '%s' does not record a consistent number of "
@@ -223,7 +224,7 @@ def write_segment(source, segment, dest, supf_boundary=True):
                     supf_stop_index = len(param.raw_array)
                     param_stop_index = supf_stop_index
 
-                param.array = param.raw_array[supf_start_index:supf_stop_index]
+                param.array = param.raw_array
                 # Mask data outside of split.
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked

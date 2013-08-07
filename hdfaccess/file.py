@@ -496,7 +496,7 @@ class hdf_file(object):    # rare case of lower case?!
                     pass  # ignore parameters that aren't available
         return param_name_to_obj
 
-    def get_param(self, name, valid_only=False):
+    def get_param(self, name, valid_only=False, _slice=None):
         '''
         name e.g. "Heading"
         Returns a masked_array. If 'mask' is stored it will be the mask of the
@@ -505,7 +505,9 @@ class hdf_file(object):    # rare case of lower case?!
         :param name: Name of parameter with 'series'.
         :type name: str
         :param valid_only: Only return valid parameters, default is to include invalid params
-        :type valid_only: Bool
+        :type valid_only: bool
+        :param _slice: Only read a slice of the parameter's data. The slice indices are 1Hz.
+        :type _slice: slice
         :returns: Parameter object containing HDF data and attrs.
         :rtype: Parameter
         '''
@@ -520,13 +522,24 @@ class hdf_file(object):    # rare case of lower case?!
         param_group = self.hdf['series'][name]
         data = param_group['data']
         mask = param_group.get('mask', False)  # FIXME: Replace False with a fully masked array
-        array = np.ma.masked_array(data, mask=mask)
+        
         kwargs = {}
+        if 'frequency' in param_group.attrs:
+            frequency = param_group.attrs['frequency']
+            if _slice:
+                # TODO: Step.
+                _slice = slice(int((_slice.start or 0) * frequency),
+                               int((_slice.stop or len(data)) * frequency))
+            kwargs['frequency'] = frequency
+        if _slice:
+            data = data[_slice]
+            if mask:
+                mask = mask[_slice]
+        array = np.ma.masked_array(data, mask=mask)
+        
         if 'values_mapping' in param_group.attrs:
             mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
             kwargs['values_mapping'] = mapping
-        if 'frequency' in param_group.attrs:
-            kwargs['frequency'] = param_group.attrs['frequency']
         # Backwards compatibility. Q: When can this be removed?
         if 'supf_offset' in param_group.attrs:
             kwargs['offset'] = param_group.attrs['supf_offset']
