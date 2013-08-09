@@ -281,8 +281,7 @@ class Parameter(object):
         '''
         self.name = name
         if values_mapping is not None:
-            self.values_mapping = {int(k): v for k, v
-                                   in values_mapping.items()}
+            self.values_mapping = values_mapping
             self.array = MappedArray(array, values_mapping=self.values_mapping)
         else:
             self.values_mapping = None
