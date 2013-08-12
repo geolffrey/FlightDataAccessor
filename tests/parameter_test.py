@@ -206,6 +206,20 @@ class TestParameter(unittest.TestCase):
         # Get a value not in the mapping
         self.assertEqual(p.array[2], '?')
         self.assertEqual(p.raw_array[2], 3)
+    
+    def test_multivalue_parameter_float_values(self):
+        values = [17.5, 10.5, 9]
+        mask = [False, True, False]
+        array = np.ma.MaskedArray(values, mask)
+        mapping = {'17.5': 'One', 10.5: 'Two', 5: 'Three'}
+        p = Parameter('param', array=array, values_mapping=mapping)
+        self.assertEqual(p.array[0], 'One')
+        self.assertEqual(p.raw_array[0], 17.5)
+        self.assertTrue(p.array[1] is np.ma.masked)
+        self.assertTrue(p.raw_array[1] is np.ma.masked)
+        # Get a value not in the mapping
+        self.assertEqual(p.array[2], '?')
+        self.assertEqual(p.raw_array[2], 9)
 
 
 if __name__ == '__main__':
