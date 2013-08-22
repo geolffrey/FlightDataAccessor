@@ -11,9 +11,9 @@ import simplejson
 import zlib
 
 from copy import deepcopy
-from fnmatch import translate
 
 from flightdatautilities.filesystem_tools import pretty_size
+from flightdatautilities.patterns import wildcard_match
 
 from hdfaccess.parameter import Parameter
 
@@ -440,21 +440,12 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: list of sorted keys(params)
         :rtype: list
         '''
-        result = []
         if lfl_keys_only:
             keys = self.lfl_keys()
         else:
             keys = self.keys()
         if '(*)' in pattern or '(?)' in pattern:
-            regex = translate(pattern)
-            re_obj = re.compile(regex)
-
-            for key in keys:
-                matched = re_obj.match(key)
-                if matched:
-                    result.append(key)
-            return sorted(result)
-
+            return wildcard_match(pattern, keys)
         else:
             PATTERN = pattern.upper()
             return sorted(
