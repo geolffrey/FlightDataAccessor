@@ -329,7 +329,8 @@ class TestHdfFile(unittest.TestCase):
 
         search_key_star = 'ILS Localizer (*)'
 
-        expected_output_star = ['ILS Localizer (L)', 'ILS Localizer (R)']
+        expected_output_star = ['ILS Localizer', 'ILS Localizer (L)',
+                                'ILS Localizer (R)']
         res = self.hdf_file.search(search_key_star)
         self.assertEqual(res, expected_output_star)
 
