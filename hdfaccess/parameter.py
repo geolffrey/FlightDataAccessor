@@ -235,16 +235,22 @@ masked_%(name)s(values = %(sdata)s,
                 if len(val) not in (1, len(self[key])):
                     raise ValueError("Ambiguous length of values '%s' for "
                                      "array section '%s'." % (val, self[key]))
-                mapped_val = []
-                for v in val:  # potentially slow if val is a large array!
-                    if v in self.state:
-                        # v is a string
-                        mapped_val.append(self.state[v])
-                    elif v in self.values_mapping or v is masked:
-                        # v is an int
-                        mapped_val.append(v)
-                    else:
-                        raise KeyError("Value '%s' not in values mapping" % v)
+                if isinstance(val, MaskedArray) and val.dtype.kind in ('i', 'f'):
+                    mapped_val = val
+                else:
+                    mapped_val = zeros(len(val))
+                    for i, v in enumerate(val):  # potentially slow if val is a large array!
+                        if v in self.state:
+                            # v is a string
+                            mapped_val[i] = self.state[v]
+                        elif v in self.values_mapping:
+                            # v is an int
+                            mapped_val[i] = v
+                        elif v is masked:
+                            mapped_val.data[i] = v
+                            mapped_val[i] = masked
+                        else:
+                            raise KeyError("Value '%s' not in values mapping" % v)
                 return super(MappedArray, self).__setitem__(key, mapped_val)
 
 

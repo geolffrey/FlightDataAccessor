@@ -122,6 +122,42 @@ masked_array(data = [False False  True False False],
 
         # boolean returned where: array == 'state'
         self.assertEqual(list(ma[ma <= 1]), ['one', '?'])  # last two elements in ma are <= 1
+    
+    
+    def test_set_item(self):
+        values_mapping = {1: 'one', 2: 'two', 3: 'three', 4: 'four'}
+        ma = MappedArray(np.ma.arange(1, 5), values_mapping=values_mapping)
+        # Set single item.
+        ma[0] = 'four'
+        self.assertEqual(ma[0], 'four')
+        ma[1] = 3
+        self.assertEqual(ma[1], 'three')
+        # Set multiple items with a list.
+        ma[2:] = ['one', 'two']
+        self.assertEqual(ma[2], 'one')
+        self.assertEqual(ma[3], 'two')
+        ma[2:] = [3, 4]
+        self.assertEqual(ma[2], 'three')
+        self.assertEqual(ma[3], 'four')
+        # Set multiple items with a MaskedArray.
+        ma[2:] = np.ma.MaskedArray([2, 3])
+        self.assertEqual(ma[2], 'two')
+        self.assertEqual(ma[3], 'three')
+        ma[2:] = np.ma.MaskedArray([1.0, 2.0])
+        self.assertEqual(ma[2], 'one')
+        self.assertEqual(ma[3], 'two')
+        ma[2:] = np.ma.MaskedArray([2, 3], mask=[True, False])
+        self.assertTrue(ma[2] is np.ma.masked)
+        self.assertEqual(ma[3], 'three')
+        ma[np.array([True, False, True, True])] = np.ma.MaskedArray([4, 2, 3], mask=[False, False, True])
+        self.assertEqual(ma[0], 'four')
+        self.assertEqual(ma[2], 'two')
+        self.assertTrue(ma[3] is np.ma.masked)
+        # Set multiple items with a MappedArray.
+        ma[:3] = MappedArray([1,2,3], values_mapping=values_mapping)
+        self.assertEqual(ma[0], 'one')
+        self.assertEqual(ma[1], 'two')
+        self.assertEqual(ma[2], 'three')
 
     def test_array_equality(self):
         ma = MappedArray(np.ma.arange(1, 4), values_mapping={1: 'one', 2: 'two'})
