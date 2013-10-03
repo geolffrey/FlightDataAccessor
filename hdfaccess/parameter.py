@@ -145,7 +145,7 @@ masked_%(name)s(values = %(sdata)s,
         e.g. 'one' -> 1, ['one', 'two'] -> [1, 2]
         '''
         try:
-            if other in self.state:
+            if hasattr(self, 'state') and other in self.state:
                 other = self.state[other]
         except TypeError:  # unhashable type: 'list'
             if getattr(other, 'dtype', None) == int:
