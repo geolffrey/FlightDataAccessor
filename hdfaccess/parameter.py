@@ -109,15 +109,16 @@ masked_%(name)s(values = %(sdata)s,
         Return raw value for given state.
         '''
         return self.state[state]
-    
+
     def any_of(self, *states, **kwargs):
         '''
-        Return a boolean array containing True where the value of the 
+        Return a boolean array containing True where the value of the
         MappedArray equals any state in states.
-        
+
         :param states: List of states.
         :type states: [str]
-        :param ignore_missing: If this is False, raise an exception if any of the states are not in the values mapping.
+        :param ignore_missing: If this is False, raise an exception if any of
+            the states are not in the values mapping.
         :type ignore_missing: bool
         :returns: Boolean array.
         :rtype: np.ma.array(bool)
@@ -225,7 +226,8 @@ masked_%(name)s(values = %(sdata)s,
 
     def __setitem__(self, key, val):
         '''
-        Raises KeyError if mapping does not exist for val (unless val is masked)
+        Raises KeyError if mapping does not exist for val (unless val is
+        masked)
         '''
         if val is masked or \
            isinstance(val, int) or \
@@ -238,7 +240,8 @@ masked_%(name)s(values = %(sdata)s,
         else:
             if isinstance(val, basestring):
                 # expecting self[:3] = 'one'
-                return super(MappedArray, self).__setitem__(key, self.state[val])
+                return super(MappedArray, self).__setitem__(
+                    key, self.state[val])
             else:
                 # expecting the following options (all the same):
                 # self[:3] = ['two', 'two', 'two']
@@ -248,11 +251,13 @@ masked_%(name)s(values = %(sdata)s,
                 if len(val) not in (1, len(self[key])):
                     raise ValueError("Ambiguous length of values '%s' for "
                                      "array section '%s'." % (val, self[key]))
-                if isinstance(val, MaskedArray) and val.dtype.kind in ('i', 'f'):
+                if isinstance(val, MaskedArray) and val.dtype.kind in (
+                        'i', 'f'):
                     mapped_val = val
                 else:
                     mapped_val = zeros(len(val))
-                    for i, v in enumerate(val):  # potentially slow if val is a large array!
+                    # potentially slow if val is a large array!
+                    for i, v in enumerate(val):
                         if v in self.state:
                             # v is a string
                             mapped_val[i] = self.state[v]
@@ -263,15 +268,16 @@ masked_%(name)s(values = %(sdata)s,
                             mapped_val.data[i] = v
                             mapped_val[i] = masked
                         else:
-                            raise KeyError("Value '%s' not in values mapping" % v)
+                            raise KeyError(
+                                "Value '%s' not in values mapping" % v)
                 return super(MappedArray, self).__setitem__(key, mapped_val)
 
 
 class Parameter(object):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
-                 offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
-                 units=None, data_type=None, lfl=None, source_name=None,
-                 description=''):
+                 offset=0, arinc_429=None, invalid=None,
+                 invalidity_reason=None, units=None, data_type=None, lfl=None,
+                 source_name=None, description=''):
         '''
         :param name: Parameter name
         :type name: String
@@ -281,13 +287,16 @@ class Parameter(object):
         :type values_mapping: dict or None
         :param frequency: Sample Rate / Frequency / Hz
         :type frequency: float
-        :param offset: The offset of the parameter in seconds within a superframe.
+        :param offset: The offset of the parameter in seconds within a
+            superframe.
         :type offset: float
         :param arinc_429: Whether or not the parameter stores ARINC 429 data.
         :type arinc_429: bool or None
-        :param invalid: Whether or not the parameter has been marked as invalid.
+        :param invalid: Whether or not the parameter has been marked as
+            invalid.
         :type invalid: bool or None
-        :param invalidity_reason: The reason why the parameter was marked as invalid.
+        :param invalidity_reason: The reason why the parameter was marked as
+            invalid.
         :type invalidity_reason: str or None
         :param units: The unit of measurement the parameter is recorded in.
         :type units: str or None
