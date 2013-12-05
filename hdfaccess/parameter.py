@@ -5,6 +5,10 @@
 Parameter container class.
 '''
 
+import inspect
+import logging
+import traceback
+
 from numpy import bool_
 from numpy.ma import MaskedArray, masked, zeros
 
@@ -147,6 +151,15 @@ masked_%(name)s(values = %(sdata)s,
         try:
             if hasattr(self, 'state') and other in self.state:
                 other = self.state[other]
+            elif hasattr(self, 'values_mapping') \
+                    and other not in self.values_mapping:
+                # the caller is 2 frames down on the stack
+                frame = inspect.stack()[2][0]
+                tb = ''.join(traceback.format_list(
+                    traceback.extract_stack(frame, 3)))
+                logging.error(
+                    tb + 'Trying to coerce value `%s` which is not a valid '
+                    'state name for this mapped array', other)
         except TypeError:  # unhashable type: 'list'
             if getattr(other, 'dtype', None) == int:
                 # comparable to raw array, skip past
