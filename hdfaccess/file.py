@@ -535,6 +535,9 @@ class hdf_file(object):    # rare case of lower case?!
             data = data[_slice]
             if mask:
                 mask = mask[_slice]
+            for submask_name, submask_array in kwargs['submasks'].items():
+                kwargs['submasks'][submask_name] = submask_array[_slice]
+
         array = np.ma.masked_array(data, mask=mask)
 
         if 'values_mapping' in param_group.attrs:
@@ -660,7 +663,8 @@ class hdf_file(object):    # rare case of lower case?!
                 submask_map[submask_name] = index
                 submask_arrays.append(submask_array)
 
-            param_group.create_dataset('submasks', data=submask_arrays,
+            param_group.create_dataset('submasks',
+                                       data=np.array(submask_arrays),
                                        **self.DATASET_KWARGS)
             param_group.attrs['submasks'] = simplejson.dumps(submask_map)
 
