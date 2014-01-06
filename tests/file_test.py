@@ -1,9 +1,10 @@
+import calendar
 import h5py
 import mock
 import numpy as np
 import os
 import random
-import calendar
+import simplejson
 import unittest
 
 from datetime import datetime
@@ -41,6 +42,14 @@ class TestHdfFile(unittest.TestCase):
         self.param_mask = [bool(random.randint(0, 1)) for x in range(len(self.param_data))]
         masked_param_group.create_dataset('data', data=self.param_data)
         masked_param_group.create_dataset('mask', data=self.param_mask)
+        self.masked_param_submask_arrays = np.array([[False, True, False],
+                                                     [True, False, False]])
+        self.masked_param_submask_map = {'mask1': 0, 'mask2': 1}
+        masked_param_group.attrs['submasks'] = \
+            simplejson.dumps(self.masked_param_submask_map)
+        masked_param_group.create_dataset(
+            'submasks', data=self.masked_param_submask_arrays)
+
         hdf.close()
         self.hdf_file = hdf_file(self.hdf_path)
 
@@ -149,7 +158,7 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(len(params) == 1)
         param = params['TEST_PARAM10']
         self.assertEqual(param.frequency, self.param_frequency)
-  
+
     def test_get_param_valid_only(self):
         hdf = self.hdf_file
         hdf['Valid Param'] = Parameter('Valid Param', array=np.ma.arange(10))
@@ -159,15 +168,15 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(hdf.get_param('Invalid Param', valid_only=False))
         # filtering only valid raises keyerror
         self.assertRaises(KeyError, hdf.get_param, 'Invalid Param', valid_only=True)
-                
-        
+
+
     def test_get_params_valid_only(self):
         hdf = self.hdf_file
         hdf['Valid Param'] = Parameter('Valid Param', array=np.ma.arange(10))
         hdf['Invalid Param'] = Parameter('Invalid Param', array=np.ma.arange(10), invalid=True)
         self.assertIn('Invalid Param', hdf)
         # check the params that are valid are listed correctly
-        self.assertEqual(hdf.valid_param_names(), 
+        self.assertEqual(hdf.valid_param_names(),
                          ['TEST_PARAM10', 'TEST_PARAM11', 'Valid Param'])
         # request all params inc. invalid
         all_params = hdf.get_params(valid_only=False)
@@ -175,18 +184,16 @@ class TestHdfFile(unittest.TestCase):
                          ['Invalid Param', 'TEST_PARAM10', 'TEST_PARAM11', 'Valid Param'])
         # request only valid params
         valid = hdf.get_params(valid_only=True)
-        self.assertEqual(sorted(valid.keys()), 
+        self.assertEqual(sorted(valid.keys()),
                          ['TEST_PARAM10', 'TEST_PARAM11', 'Valid Param'])
         # request params by name
         valid_few = hdf.get_params(param_names=['Valid Param'], valid_only=True)
-        self.assertEqual(valid_few.keys(), 
+        self.assertEqual(valid_few.keys(),
                          ['Valid Param'])
         # try to request the invalid param, but only accepting valid raises keyerror
-        self.assertRaises(KeyError, hdf.get_params, 
+        self.assertRaises(KeyError, hdf.get_params,
                           param_names=['Invalid Param', 'Valid Param'],
                           valid_only=True, raise_keyerror=True)
-        
-                         
 
     def test___set_item__(self):
         '''
@@ -230,6 +237,17 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(np.all(series[name1]['data'].value == array))
         self.assertTrue(np.all(series[name1]['mask'].value == mask))
 
+        # Save submasks.
+        submasks = {'mask1': np.array([False, True, False]),
+                    'mask2': np.array([True, False, False])}
+        set_param_data(name1, Parameter(name1, masked_array, submasks=submasks))
+        submask_map = simplejson.loads(series[name1].attrs['submasks'])
+        submask_arrays = series[name1]['submasks'][:]
+        self.assertEqual(submasks['mask1'].tolist(),
+                         submask_arrays[submask_map['mask1']].tolist())
+        self.assertEqual(submasks['mask2'].tolist(),
+                         submask_arrays[submask_map['mask2']].tolist())
+
     def test_update_param_mask(self):
         # setup original array
         name1 = 'Airspeed Minus Vref'
@@ -260,7 +278,7 @@ class TestHdfFile(unittest.TestCase):
     def test_update_param_attributes(self):
         # save initial Parameter to file
         self.hdf_file.set_param(Parameter('Blah', np.ma.arange(1)))
-        #Update the invalidity flag only
+        # Update the invalidity flag only
         self.hdf_file.set_param(Parameter('Blah', np.ma.arange(1), invalid=1),
                                 save_data=False, save_mask=False)
         self.assertEqual(self.hdf_file['Blah'].invalid, 1)
@@ -287,6 +305,12 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(np.all(self.param_mask == param.array.mask))
         self.assertEqual(self.masked_param_frequency, param.frequency)
         self.assertEqual(self.masked_param_supf_offset, param.offset)
+        self.assertEqual(self.masked_param_submask_map.keys(),
+                         param.submasks.keys())
+        self.assertEqual(self.masked_param_submask_arrays[self.masked_param_submask_map['mask1']].tolist(),
+                         param.submasks['mask1'].tolist())
+        self.assertEqual(self.masked_param_submask_arrays[self.masked_param_submask_map['mask2']].tolist(),
+                         param.submasks['mask2'].tolist())
 
     def test_len(self):
         '''

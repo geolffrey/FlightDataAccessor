@@ -277,7 +277,7 @@ class Parameter(object):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
                  offset=0, arinc_429=None, invalid=None,
                  invalidity_reason=None, units=None, data_type=None, lfl=None,
-                 source_name=None, description=''):
+                 source_name=None, description='', submasks={}):
         '''
         :param name: Parameter name
         :type name: String
@@ -332,6 +332,7 @@ class Parameter(object):
         self.description = description
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
+        self.submasks = submasks
 
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)

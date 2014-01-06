@@ -229,7 +229,7 @@ class hdf_file(object):    # rare case of lower case?!
         Mutator for the root-level 'dependency_tree' attribute. If
         dependency_tree is None the 'dependency_tree' attribute will be deleted.
         The attribute is bz2 compressed due to the 64KB attribute size
-        limit of the HDF file and encoded with base64 to avoid 'ValueError: 
+        limit of the HDF file and encoded with base64 to avoid 'ValueError:
         VLEN strings do not support embedded NULLs' when compressed data
         includes null characters.
 
@@ -301,10 +301,10 @@ class hdf_file(object):    # rare case of lower case?!
     def start_datetime(self):
         '''
         The start datetime of the data stored within the HDF file.
-        
+
         Converts the root-level 'start_timestamp' attribute from a timestamp to
         a datetime.
-        
+
         :returns: Start datetime if 'start_timestamp' is set, otherwise None.
         :rtype: datetime or None
         '''
@@ -337,7 +337,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         Whether or the frame which was used to create the HDF file had a
         superframe counter.
-        
+
         Accessor for the root-level 'superframe_present' attribute.
 
         :rtype: bool or None
@@ -513,8 +513,17 @@ class hdf_file(object):    # rare case of lower case?!
         param_group = self.hdf['series'][name]
         data = param_group['data']
         mask = param_group.get('mask', False)  # FIXME: Replace False with a fully masked array
-        
+
         kwargs = {}
+
+        # submasks
+        kwargs['submasks'] = {}
+        if 'submasks' in param_group.attrs and 'submasks' in param_group.keys():
+            submask_arrays = param_group['submasks'][:]
+            submask_map = simplejson.loads(param_group.attrs['submasks'])
+            for submask_name, array_index in submask_map.items():
+                kwargs['submasks'][submask_name] = submask_arrays[array_index]
+
         if 'frequency' in param_group.attrs:
             frequency = param_group.attrs['frequency']
             if _slice:
@@ -527,7 +536,7 @@ class hdf_file(object):    # rare case of lower case?!
             if mask:
                 mask = mask[_slice]
         array = np.ma.masked_array(data, mask=mask)
-        
+
         if 'values_mapping' in param_group.attrs:
             mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
             kwargs['values_mapping'] = mapping
@@ -568,7 +577,7 @@ class hdf_file(object):    # rare case of lower case?!
     def get(self, name, default=None):
         """
         Dictionary like .get operator.
-        
+
         Makes no distinction on valid or invalid parameters that are requested.
         """
         try:
@@ -589,7 +598,8 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['name'] = str(param_name)  # Fails to set unicode attribute.
         return param_group
 
-    def set_param(self, param, save_data=True, save_mask=True):
+    def set_param(self, param, save_data=True, save_mask=True,
+                  save_submasks=True):
         '''
         Store parameter and associated attributes on the HDF file.
 
@@ -606,6 +616,12 @@ class hdf_file(object):    # rare case of lower case?!
         :param array: Array containing data and potentially a mask for the
             data.
         :type array: np.array or np.ma.masked_array
+        :param save_data: Whether or not to save the 'data' dataset.
+        :type save_data: bool
+        :param save_mask: Whether or not to save the 'mask' dataset.
+        :type save_mask: bool
+        :param save_submasks: Whether or not to save the 'submasks' dataset and 'submasks' attribute.
+        :type save_submasks: bool
         '''
         if param.array.size == 0:
             raise ValueError('Data for parameter %s is empty! '
@@ -633,6 +649,21 @@ class hdf_file(object):    # rare case of lower case?!
             mask = np.ma.getmaskarray(param.array)
             param_group.create_dataset('mask', data=mask,
                                        **self.DATASET_KWARGS)
+
+        if save_submasks and hasattr(param, 'submasks') and param.submasks:
+            if 'submasks' in param_group:
+                del param_group['submasks']
+            submask_map = {}
+            submask_arrays = []
+            for index, (submask_name,
+                        submask_array) in enumerate(param.submasks.items()):
+                submask_map[submask_name] = index
+                submask_arrays.append(submask_array)
+
+            param_group.create_dataset('submasks', data=submask_arrays,
+                                       **self.DATASET_KWARGS)
+            param_group.attrs['submasks'] = simplejson.dumps(submask_map)
+
         # Set parameter attributes
         param_group.attrs['supf_offset'] = param.offset
         param_group.attrs['frequency'] = param.frequency
@@ -640,7 +671,7 @@ class hdf_file(object):    # rare case of lower case?!
         # HDF file as an attribute.
         if hasattr(param, 'arinc_429') and param.arinc_429 is not None:
             param_group.attrs['arinc_429'] = param.arinc_429
-            
+
         # Always store the validity state and reason(overwriting previous state)
         invalid = 1 if getattr(param, 'invalid', False) else 0
         param_group.attrs['invalid'] = invalid
