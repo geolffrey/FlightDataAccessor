@@ -656,11 +656,24 @@ class hdf_file(object):    # rare case of lower case?!
         if save_submasks and hasattr(param, 'submasks') and param.submasks:
             if 'submasks' in param_group:
                 del param_group['submasks']
+
+            # Get array length for expanding booleans.
+            submask_length = 0
+            for submask_array in param.submasks.values():
+                if type(submask_array) in (bool, np.bool8):
+                    continue
+                submask_length = max(submask_length, len(submask_array))
+
             submask_map = {}
             submask_arrays = []
             for index, (submask_name,
                         submask_array) in enumerate(param.submasks.items()):
                 submask_map[submask_name] = index
+
+                # Expand booleans to be arrays.
+                if type(submask_array) in (bool, np.bool8):
+                    function = np.ones if submask_array else np.zeros
+                    submask_array = function(submask_length, dtype=np.bool8)
                 submask_arrays.append(submask_array)
 
             param_group.create_dataset('submasks',
