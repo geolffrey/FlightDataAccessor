@@ -336,3 +336,14 @@ class Parameter(object):
 
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
+
+    def get_array(self, submask=None):
+        '''
+        :param submask: Name of submask to return with the array.
+        :type submask: str or None
+        '''
+        if not submask:
+            return self.array
+        if submask not in self.submasks:
+            return None
+        return MaskedArray(self.array.data, mask=self.submasks[submask])

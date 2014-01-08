@@ -1,6 +1,5 @@
 import base64
 import calendar
-from datetime import datetime
 import logging
 import h5py
 import numpy as np
@@ -11,6 +10,7 @@ import simplejson
 import zlib
 
 from copy import deepcopy
+from datetime import datetime
 
 from flightdatautilities.filesystem_tools import pretty_size
 from flightdatautilities.patterns import wildcard_match
@@ -660,7 +660,7 @@ class hdf_file(object):    # rare case of lower case?!
             # Get array length for expanding booleans.
             submask_length = 0
             for submask_array in param.submasks.values():
-                if type(submask_array) in (bool, np.bool8):
+                if type(submask_array) in (bool, np.bool8, None):
                     continue
                 submask_length = max(submask_length, len(submask_array))
 
@@ -668,6 +668,10 @@ class hdf_file(object):    # rare case of lower case?!
             submask_arrays = []
             for index, (submask_name,
                         submask_array) in enumerate(param.submasks.items()):
+
+                if submask_array is None:
+                    continue
+
                 submask_map[submask_name] = index
 
                 # Expand booleans to be arrays.
