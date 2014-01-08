@@ -660,7 +660,8 @@ class hdf_file(object):    # rare case of lower case?!
             # Get array length for expanding booleans.
             submask_length = 0
             for submask_array in param.submasks.values():
-                if type(submask_array) in (bool, np.bool8, None):
+                if (submask_array is None or
+                    type(submask_array) in (bool, np.bool8)):
                     continue
                 submask_length = max(submask_length, len(submask_array))
 
