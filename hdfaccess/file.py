@@ -667,11 +667,8 @@ class hdf_file(object):    # rare case of lower case?!
 
             submask_map = {}
             submask_arrays = []
-            for index, (submask_name,
-                        submask_array) in enumerate(param.submasks.items()):
-
-                if submask_array is None:
-                    continue
+            not_empty = (x for x in param.submasks.items() if x[1] is not None)
+            for index, (submask_name, submask_array) in enumerate(not_empty):
 
                 submask_map[submask_name] = index
 
