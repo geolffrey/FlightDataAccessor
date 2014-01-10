@@ -13,7 +13,6 @@ MaskedArrays
 A `MaskedArray` is comprised of two `numpy` arrays. The first array stores the parameter's data, typically as a series of floating point numbers, while the second stores the mask within a boolean array of equal size. If an index within the mask array is set to `True`, the corresponding index within the data array will be excluded from calculations.
 
 
-
 .. code-block:: python
 
    >>> array = np.ma.masked_array([1, 2, 3, 4], mask=[False, False, True, False])
@@ -75,6 +74,12 @@ MappedArrays
    >>> np.ma.where(a == 'Not Installed')
    (array([0, 3]),)
 
+   >>> a.any_of('ILS Mode Fail', 'ILS Selected')
+   masked_array(data = [False  True False  True],
+             mask = False,
+       fill_value = True)
+
+
 ----------
 Parameters
 ----------
@@ -84,12 +89,16 @@ The `Parameter` class within the `hdfaccess.parameter` module represents a param
 A `Parameter` object has the following attributes:
 
 * `name` – The name of the parameter.
+* `source_name` – The source name of the parameter from the manufacturer's documentation.
 * `frequency` – The frequency/sample rate which the parameter is recorded at.
 * `offset` – The offset of the parameter in seconds within a superframe.
 * `units` – The unit of measurement the parameter is recorded in.
+* `data_type` – The data type of the parameter.
+* `lfl` – Whether the parameter is defined within a logical frame layout or derived by the FlightDataAnalyser.
 * `description` – A description of the parameter.
 * `array` – A `MaskedArray` or `MappedArray` containing the parameter's data.
 * `values_mapping` – Optional. If the parameter's array is a `MappedArray`, this attribute will contain `MappedArray`'s values mapping.
+* `submasks` – A dictionary of named parameter masks. This allows the separation of masks resulting from different processes.
 
 .. code-block:: python
 
@@ -100,6 +109,9 @@ A `Parameter` object has the following attributes:
    Longitude 2.0Hz 0.24secs
    >>> print param.array
    [ 59.345  59.346  59.347]
+   >>> print param.submasks
+   {'mask1': array([False, False, False, ..., False, False, False], dtype=bool),
+    'mask2': array([False, False, False, ..., False, False, False], dtype=bool)}
 
 ------------------------------
 Hierarchical Data Format (HDF)
@@ -174,11 +186,16 @@ The following properties are defined for an `hdf_file` object:
 A number of methods are defined for an hdf_file object:
 
 * `search` – Search for a parameter by partial string match.
-* `get_matching` – Search for parameters which match a regular expression.
+* `get_matching` – Load parameters from the HDF file which match a regular expression.
 * `lfl_keys` – Returns a list of parameter names which came from the logical frame layout.
 * `derived_keys` – Returns a list of parameter names which were derived by the `FlightDataAnalyzer`.
 * `get_or_create` – Load a parameter from the HDF file. If the parameter does not exist, it will be created.
-* `get_params` – Loads multiple parameters specified by a list of parameter names.
+* `get_param` – Loads a single parameter from the HDF file. Supports reading a subsection of the parameter's data.
+* `set_param` – Saves a single parameter to the HDF file. Saving the `data`, `mask` and `submasks` is optional.
+* `get_params` – Loads multiple parameters from the HDF file specified by a list of parameter names.
+* `delete_params` – Deletes multiple parameters in the HDF file specified by a list of parameter names.
+* `get_attr` – Get an attribute stored in the root level of the HDF file.
+* `set_attr` – Set an attribute stored in the root level of the HDF file.
 
 
 -----------------------
