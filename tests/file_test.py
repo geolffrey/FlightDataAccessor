@@ -42,8 +42,9 @@ class TestHdfFile(unittest.TestCase):
         self.param_mask = [bool(random.randint(0, 1)) for x in range(len(self.param_data))]
         masked_param_group.create_dataset('data', data=self.param_data)
         masked_param_group.create_dataset('mask', data=self.param_mask)
-        self.masked_param_submask_arrays = np.array([[False, True, False],
-                                                     [True, False, False]])
+        self.masked_param_submask_arrays = np.array([[False, True],
+                                                     [True, False],
+                                                     [False, False]])
         self.masked_param_submask_map = {'mask1': 0, 'mask2': 1}
         masked_param_group.attrs['submasks'] = \
             simplejson.dumps(self.masked_param_submask_map)
@@ -244,9 +245,9 @@ class TestHdfFile(unittest.TestCase):
         submask_map = simplejson.loads(series[name1].attrs['submasks'])
         submask_arrays = series[name1]['submasks'][:]
         self.assertEqual(submasks['mask1'].tolist(),
-                         submask_arrays[submask_map['mask1']].tolist())
+                         submask_arrays[:,submask_map['mask1']].tolist())
         self.assertEqual(submasks['mask2'].tolist(),
-                         submask_arrays[submask_map['mask2']].tolist())
+                         submask_arrays[:,submask_map['mask2']].tolist())
 
     def test_update_param_mask(self):
         # setup original array
@@ -307,9 +308,9 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(self.masked_param_supf_offset, param.offset)
         self.assertEqual(self.masked_param_submask_map.keys(),
                          param.submasks.keys())
-        self.assertEqual(self.masked_param_submask_arrays[self.masked_param_submask_map['mask1']].tolist(),
+        self.assertEqual(self.masked_param_submask_arrays[:,self.masked_param_submask_map['mask1']].tolist(),
                          param.submasks['mask1'].tolist())
-        self.assertEqual(self.masked_param_submask_arrays[self.masked_param_submask_map['mask2']].tolist(),
+        self.assertEqual(self.masked_param_submask_arrays[:,self.masked_param_submask_map['mask2']].tolist(),
                          param.submasks['mask2'].tolist())
 
     def test_len(self):

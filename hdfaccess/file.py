@@ -517,12 +517,14 @@ class hdf_file(object):    # rare case of lower case?!
         kwargs = {}
 
         # submasks
+        # TODO: Read only the _slice of the submask from the file to speed up
+        # segment splitting.
         kwargs['submasks'] = {}
         if 'submasks' in param_group.attrs and 'submasks' in param_group.keys():
             submask_arrays = param_group['submasks'][:]
             submask_map = simplejson.loads(param_group.attrs['submasks'])
             for submask_name, array_index in submask_map.items():
-                kwargs['submasks'][submask_name] = submask_arrays[array_index]
+                kwargs['submasks'][submask_name] = submask_arrays[:,array_index]
 
         if 'frequency' in param_group.attrs:
             frequency = param_group.attrs['frequency']
@@ -679,7 +681,7 @@ class hdf_file(object):    # rare case of lower case?!
                 submask_arrays.append(submask_array)
 
             param_group.create_dataset('submasks',
-                                       data=np.array(submask_arrays),
+                                       data=np.column_stack(submask_arrays),
                                        **self.DATASET_KWARGS)
             param_group.attrs['submasks'] = simplejson.dumps(submask_map)
 
