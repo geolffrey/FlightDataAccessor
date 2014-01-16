@@ -457,7 +457,8 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         return sorted(filter(lambda x: x.startswith(term), self.keys()))
 
-    def get_params(self, param_names=None, valid_only=False, raise_keyerror=False):
+    def get_params(self, param_names=None, valid_only=False,
+                   raise_keyerror=False, _slice=None):
         '''
         Returns params that are available, `ignores` those that aren't.
 
@@ -467,6 +468,8 @@ class hdf_file(object):    # rare case of lower case?!
         :type valid_only: Bool
         :param raise_keyerror: Whether to raise exception if parameter not in keys() or in valid keys if valid_only=True.
         :type raise_keyerror: Bool
+        :param _slice: Only read a slice of the parameters' data. The slice indices are 1Hz.
+        :type _slice: slice
         :returns: Param name to Param object dict
         :rtype: dict
         '''
@@ -479,7 +482,7 @@ class hdf_file(object):    # rare case of lower case?!
         for name in param_names:
             try:
                 param_name_to_obj[name] = self.get_param(
-                    name, valid_only=valid_only)
+                    name, valid_only=valid_only, _slice=_slice)
             except KeyError:
                 if raise_keyerror:
                     raise
@@ -516,29 +519,31 @@ class hdf_file(object):    # rare case of lower case?!
 
         kwargs = {}
 
+        frequency = param_group.attrs.get('frequency', 1)
+        kwargs['frequency'] = frequency
+        
+        if _slice and _slice.start is not None:
+            slice_start = int(_slice.start * frequency)
+        else:
+            slice_start = 0
+        if _slice and _slice.stop is not None:
+            slice_stop = int(_slice.stop * frequency)
+        else:
+            slice_stop = len(data)
+        
+        data = data[slice_start:slice_stop]
+        if mask:
+            mask = mask[slice_start:slice_stop]
+        
         # submasks
         # TODO: Read only the _slice of the submask from the file to speed up
         # segment splitting.
         kwargs['submasks'] = {}
         if 'submasks' in param_group.attrs and 'submasks' in param_group.keys():
-            submask_arrays = param_group['submasks'][:]
             submask_map = simplejson.loads(param_group.attrs['submasks'])
             for submask_name, array_index in submask_map.items():
-                kwargs['submasks'][submask_name] = submask_arrays[:,array_index]
-
-        if 'frequency' in param_group.attrs:
-            frequency = param_group.attrs['frequency']
-            if _slice:
-                # TODO: Step.
-                _slice = slice(int((_slice.start or 0) * frequency),
-                               int((_slice.stop or len(data)) * frequency))
-            kwargs['frequency'] = frequency
-        if _slice:
-            data = data[_slice]
-            if mask:
-                mask = mask[_slice]
-            for submask_name, submask_array in kwargs['submasks'].items():
-                kwargs['submasks'][submask_name] = submask_array[_slice]
+                kwargs['submasks'][submask_name] = \
+                    param_group['submasks'][slice_start:slice_stop,array_index]
 
         array = np.ma.masked_array(data, mask=mask)
 
