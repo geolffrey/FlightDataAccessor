@@ -15,6 +15,7 @@ A `MaskedArray` is comprised of two `numpy` arrays. The first array stores the p
 
 .. code-block:: python
 
+   >>> import numpy as np
    >>> array = np.ma.masked_array([1, 2, 3, 4], mask=[False, False, True, False])
    >>> array
    masked_array(data = [1 2 -- 4],
@@ -37,6 +38,8 @@ MappedArrays
 
 .. code-block:: python
 
+   >>> import numpy as np
+   >>> from hdfaccess.parameter import MappedArray
    >>> a = MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed', 2: 'ILS Mode Fail',
    3: 'Not Selected', 4: 'ILS Selected'})
    >>> a
@@ -102,6 +105,8 @@ A `Parameter` object has the following attributes:
 
 .. code-block:: python
 
+   >>> import numpy as np
+   >>> from hdfaccess.parameter import Parameter
    >>> param = Parameter('Longitude', frequency=2, offset=0.2375, units='deg',
        description='The east-west position of the aircraft in decimal degrees.',
        array=np.ma.masked_array([59.345, 59.346, 59.347]))
@@ -109,9 +114,11 @@ A `Parameter` object has the following attributes:
    Longitude 2.0Hz 0.24secs
    >>> print param.array
    [ 59.345  59.346  59.347]
+   >>> param.submasks['mask1'] = np.array([True, False, False])
+   >>> param.submasks['mask2'] = np.array([False, True, False])
    >>> print param.submasks
-   {'mask1': array([False, False, False, ..., False, False, False], dtype=bool),
-    'mask2': array([False, False, False, ..., False, False, False], dtype=bool)}
+   {'mask1': array([True, False, False], dtype=bool),
+    'mask2': array([False, True, False], dtype=bool)}
 
 ------------------------------
 Hierarchical Data Format (HDF)
@@ -144,7 +151,7 @@ The `hdf_file` class within the `hdfaccess.file` module provides a high-level in
    >>> # HDF files can be opened using the with statement.
    >>> with hdf_file('flight.hdf5') as hdf:
    >>>     print hdf
-   flight.hdf5 13.36MB (1055 parameters)
+   flight.hdf 5 13.36MB (1055 parameters)
    >>> # HDF files can also be opened and closed manually.
    >>> hdf = hdf_file('flight.hdf5')
    >>> print hdf
