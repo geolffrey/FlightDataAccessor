@@ -540,16 +540,21 @@ class hdf_file(object):    # rare case of lower case?!
         # segment splitting.
         kwargs['submasks'] = {}
         if 'submasks' in param_group.attrs and 'submasks' in param_group.keys():
-            submask_map = simplejson.loads(param_group.attrs['submasks'])
-            for submask_name, array_index in submask_map.items():
-                kwargs['submasks'][submask_name] = \
-                    param_group['submasks'][slice_start:slice_stop,array_index]
+            submask_map = param_group.attrs['submasks']
+            if submask_map.strip():
+                submask_map = simplejson.loads(submask_map)
+                for submask_name, array_index in submask_map.items():
+                    
+                    kwargs['submasks'][submask_name] = \
+                        param_group['submasks'][slice_start:slice_stop,array_index]
 
         array = np.ma.masked_array(data, mask=mask)
 
         if 'values_mapping' in param_group.attrs:
-            mapping = simplejson.loads(param_group.attrs.get('values_mapping'))
-            kwargs['values_mapping'] = mapping
+            values_mapping = param_group.attrs['values_mapping']
+            if values_mapping.strip():
+                mapping = simplejson.loads(values_mapping)
+                kwargs['values_mapping'] = mapping
         # Backwards compatibility. Q: When can this be removed?
         if 'supf_offset' in param_group.attrs:
             kwargs['offset'] = param_group.attrs['supf_offset']
