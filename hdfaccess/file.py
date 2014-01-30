@@ -50,8 +50,8 @@ class hdf_file(object):    # rare case of lower case?!
         Opens an HDF file (or accepts and already open h5py.File object) - will
         create if does not exist if create=True!
 
-        :param cache_param_list: Names of parameters to cache where accessed
-        :type cache_param_list: list of str
+        :param cache_param_list: Names of parameters to cache where accessed. A value of True will result in all parameters to be cached.
+        :type cache_param_list: [str] or bool
         :param file_path_or_obj: Can be either the path to an HDF file or an already opened HDF file object.
         :type file_path_or_obj: str or h5py.File
         :param create: ill allow creation of file if it does not exist.
@@ -88,10 +88,16 @@ class hdf_file(object):    # rare case of lower case?!
             self.hdf.create_group('series')
         # cache keys as accessing __iter__ on hdf groups is v.slow
         self._keys_cache = None
+        self._lfl_keys_cache = None
+        self._derived_keys_cache = None
         self._valid_param_names_cache = None
         # cache parameters that are used often
         self._params_cache = {}
         # this is the list of parameters to cache
+        if cache_param_list is True:
+            cache_param_list = self.keys()
+        elif cache_param_list is False:
+            cache_param_list = []
         self.cache_param_list = cache_param_list
 
     def __enter__(self):
@@ -156,11 +162,13 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: List of LFL parameter names.
         :rtype: list of str
         '''
-        lfl_keys = []
-        for param_name in self.keys():
-            if self.hdf['series'][param_name].attrs.get('lfl'):
-                lfl_keys.append(param_name)
-        return lfl_keys
+        if not self._lfl_keys_cache:
+            lfl_keys = []
+            for param_name in self.keys():
+                if self.hdf['series'][param_name].attrs.get('lfl'):
+                    lfl_keys.append(param_name)
+            self._lfl_keys_cache = sorted(lfl_keys)
+        return self._lfl_keys_cache
 
     def derived_keys(self):
         '''
@@ -170,11 +178,13 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: List of derived parameter names.
         :rtype: list of str
         '''
-        derived_keys = []
-        for param_name in self.keys():
-            if not self.hdf['series'][param_name].attrs.get('lfl'):
-                derived_keys.append(param_name)
-        return derived_keys
+        if not self._derived_keys_cache:
+            derived_keys = []
+            for param_name in self.keys():
+                if not self.hdf['series'][param_name].attrs.get('lfl'):
+                    derived_keys.append(param_name)
+            self._derived_keys_cache = derived_keys
+        return self._derived_keys_cache
 
     def close(self):
         self.hdf.flush()  # Q: required?
@@ -725,6 +735,8 @@ class hdf_file(object):    # rare case of lower case?!
         # TODO: Possible to store validity percentage upon name.attrs
         # TODO: Update valid param names cache rather than clearing it.
         self._valid_param_names_cache = None
+        self._lfl_keys_cache = None
+        self._derived_keys_cache = None
 
     def __delitem__(self, param_name):
         '''
@@ -738,6 +750,11 @@ class hdf_file(object):    # rare case of lower case?!
         if param_name in self:
             del self.hdf['series'][param_name]
             self._keys_cache.remove(param_name)
+            if self._lfl_keys_cache and param_name in self._lfl_keys_cache:
+                self._lfl_keys_cache.remove(param_name)
+            if (self._derived_keys_cache and
+                param_name in self._derived_keys_cache):
+                self._derived_keys_cache.remove(param_name)
         else:
             raise KeyError("%s" % param_name)
 
@@ -805,6 +822,23 @@ class hdf_file(object):    # rare case of lower case?!
             raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
         return simplejson.loads(limits) if limits else default
+    
+    def get_param_arinc_429(self, name):
+        '''
+        Returns a parameter's ARINC 429 flag.
+
+        :param name: Parameter name
+        :type name: str
+        :returns: Parameter ARINC 429 flag.
+        :rtype: bool
+        :raises KeyError: If parameter name does not exist within the HDF file.
+        '''
+        if name not in self:
+            # Do not try to retrieve a non-existing group within the HDF
+            # otherwise h5py.File object will crash and close.
+            raise KeyError("%s" % name)
+        arinc_429 = bool(self.hdf['series'][name].attrs.get('arinc_429'))
+        return arinc_429
 
     def get_matching(self, regex_str):
         '''

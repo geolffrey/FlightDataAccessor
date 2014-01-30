@@ -31,6 +31,7 @@ class TestHdfFile(unittest.TestCase):
         param_group.attrs['frequency'] = self.param_frequency
         param_group.attrs['supf_offset'] = self.param_supf_offset
         param_group.attrs['arinc_429'] = self.param_arinc_429
+        param_group.attrs['lfl'] = 1
         self.param_data = np.arange(100)
         param_group.create_dataset('data', data=self.param_data)
         self.masked_param_name = 'TEST_PARAM11'
@@ -325,6 +326,20 @@ class TestHdfFile(unittest.TestCase):
         '''
         self.assertEqual(sorted(self.hdf_file.keys()),
                          sorted([self.param_name, self.masked_param_name]))
+    
+    def test_lfl_keys(self):
+        '''
+        Depends upon HDF creation in self.setUp().
+        '''
+        self.assertEqual(sorted(self.hdf_file.lfl_keys()),
+                         sorted([u'TEST_PARAM10']))
+    
+    def test_derived_keys(self):
+        '''
+        Depends upon HDF creation in self.setUp().
+        '''
+        self.assertEqual(sorted(self.hdf_file.derived_keys()),
+                         sorted([u'TEST_PARAM11']))
 
     def test_startswith(self):
         params = ('Airspeed Two', 'Airspeed One', 'blah')
