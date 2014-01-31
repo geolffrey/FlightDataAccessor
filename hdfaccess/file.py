@@ -558,7 +558,7 @@ class hdf_file(object):    # rare case of lower case?!
                     kwargs['submasks'][submask_name] = \
                         param_group['submasks'][slice_start:slice_stop,array_index]
 
-        array = np.ma.masked_array(data, mask=mask, dtype=np.float_)
+        array = np.ma.masked_array(data, mask=mask)
 
         if 'values_mapping' in param_group.attrs:
             values_mapping = param_group.attrs['values_mapping']
