@@ -558,13 +558,18 @@ class hdf_file(object):    # rare case of lower case?!
                     kwargs['submasks'][submask_name] = \
                         param_group['submasks'][slice_start:slice_stop,array_index]
 
-        array = np.ma.masked_array(data, mask=mask)
+        array = np.ma.masked_array(data, mask=mask, dtype=np.float_)
 
         if 'values_mapping' in param_group.attrs:
             values_mapping = param_group.attrs['values_mapping']
             if values_mapping.strip():
                 mapping = simplejson.loads(values_mapping)
                 kwargs['values_mapping'] = mapping
+        
+        if 'values_mapping' not in kwargs and data.dtype == np.int_:
+            # Force float for non-values_mapped types.
+            array = array.astype(np.float_)
+        
         # Backwards compatibility. Q: When can this be removed?
         if 'supf_offset' in param_group.attrs:
             kwargs['offset'] = param_group.attrs['supf_offset']
