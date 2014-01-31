@@ -9,7 +9,7 @@ import re
 import simplejson
 import zlib
 
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 
 from flightdatautilities.filesystem_tools import pretty_size
@@ -147,11 +147,11 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: List of parameter names.
         :rtype: list of str
         '''
-        if not self._keys_cache:
+        if self._keys_cache is None:
             series = self.hdf['series']
             keys = series.keys()
             self._keys_cache = sorted(keys)
-        return self._keys_cache
+        return copy(self._keys_cache)
     get_param_list = keys
 
     def lfl_keys(self):
@@ -162,13 +162,13 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: List of LFL parameter names.
         :rtype: list of str
         '''
-        if not self._lfl_keys_cache:
+        if self._lfl_keys_cache is None:
             lfl_keys = []
             for param_name in self.keys():
                 if self.hdf['series'][param_name].attrs.get('lfl'):
                     lfl_keys.append(param_name)
             self._lfl_keys_cache = sorted(lfl_keys)
-        return self._lfl_keys_cache
+        return copy(self._lfl_keys_cache)
 
     def derived_keys(self):
         '''
@@ -178,13 +178,13 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: List of derived parameter names.
         :rtype: list of str
         '''
-        if not self._derived_keys_cache:
+        if self._derived_keys_cache is None:
             derived_keys = []
             for param_name in self.keys():
                 if not self.hdf['series'][param_name].attrs.get('lfl'):
                     derived_keys.append(param_name)
             self._derived_keys_cache = derived_keys
-        return self._derived_keys_cache
+        return copy(self._derived_keys_cache)
 
     def close(self):
         self.hdf.flush()  # Q: required?
@@ -791,7 +791,7 @@ class hdf_file(object):    # rare case of lower case?!
                 else:
                     valid_params.append(param)
             self._valid_param_names_cache = valid_params
-        return self._valid_param_names_cache
+        return copy(self._valid_param_names_cache)
 
     def set_param_limits(self, name, limits):
         '''
