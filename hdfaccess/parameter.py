@@ -12,6 +12,8 @@ import traceback
 from numpy import bool_
 from numpy.ma import MaskedArray, masked, zeros
 
+from flightdatautilities.array_operations import merge_masks
+
 # The value used to fill in MappedArrays for keys not within values_mapping
 NO_MAPPING = '?'  # only when getting values, setting raises ValueError
 
@@ -306,6 +308,7 @@ class Parameter(object):
         :type source_name: str or None
         :param description: Description of the parameter.
         :type description: str
+        :param submasks: Default value is None to avoid kwarg default being mutable.
         '''
         self.name = name
         if values_mapping is not None:
@@ -332,13 +335,16 @@ class Parameter(object):
         self.description = description
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
-        self.submasks = submasks
+        self.submasks = submasks or {}
 
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
 
     def get_array(self, submask=None):
         '''
+        Get the Parameter's array with an optional submask substituted for the
+        mask.
+        
         :param submask: Name of submask to return with the array.
         :type submask: str or None
         '''
@@ -347,3 +353,15 @@ class Parameter(object):
         if submask not in self.submasks:
             return None
         return MaskedArray(self.array.data, mask=self.submasks[submask])
+    
+    def combine_submasks(self):
+        '''
+        Combine submasks into a single OR'd mask.
+        
+        :returns: Combined submask.
+        :rtype: np.array
+        '''
+        if self.submasks:
+            return merge_masks(self.submasks.values())
+        else:
+            return self.array.mask
