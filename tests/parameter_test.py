@@ -256,6 +256,16 @@ class TestParameter(unittest.TestCase):
         # Get a value not in the mapping
         self.assertEqual(p.array[2], '?')
         self.assertEqual(p.raw_array[2], 9)
+    
+    def test_get_array(self):
+        array = np.ma.array([10, 20, 30], mask=[0,1,1])
+        p = Parameter('Submasks', array=array, submasks={
+            'mask1': np.array([1,0,0], dtype=np.bool_),
+            'mask2': np.array([1,1,0], dtype=np.bool_),
+        })
+        self.assertEqual(p.get_array().tolist(), [10,None,None])
+        self.assertEqual(p.get_array('mask1').tolist(), [None,20,30])
+        self.assertEqual(p.get_array('mask2').tolist(), [None,None,30])
 
 
 if __name__ == '__main__':
