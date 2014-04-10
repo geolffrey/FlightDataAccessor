@@ -352,7 +352,7 @@ class Parameter(object):
             return self.array
         if submask not in self.submasks:
             return None
-        return MaskedArray(self.array.data, mask=self.submasks[submask])
+        return MaskedArray(self.array.data, mask=self.submasks[submask].copy())
     
     def combine_submasks(self):
         '''
