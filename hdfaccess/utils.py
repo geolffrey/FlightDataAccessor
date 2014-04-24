@@ -160,12 +160,11 @@ def write_segment(source, segment, dest, supf_boundary=True):
     
     if segment.start:
         supf_start_secs = (int(segment.start) / boundary) * boundary
-        if segment.start % boundary != 0:
-            # Segment does not start on a frame/superframe boundary, round up
-            # to next boundary to exclude the previous frame/superframe.
-            supf_start_secs += boundary
+        array_start_secs = segment.start % boundary
     else:
         supf_start_secs = 0
+        array_start_secs = 0
+    
     if segment.stop:
         # Always round up to next boundary
         supf_stop_secs = (int(segment.stop) / boundary) * boundary
@@ -174,6 +173,10 @@ def write_segment(source, segment, dest, supf_boundary=True):
             # Segment does not end on a frame/superframe boundary, include the
             # following frame/superframe.
             supf_stop_secs += boundary
+        
+        array_stop_secs = boundary - (segment.stop % boundary)
+    else:
+        array_stop_secs = 0
 
     if supf_start_secs == 0 and supf_stop_secs is None:
         logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
@@ -219,20 +222,13 @@ def write_segment(source, segment, dest, supf_boundary=True):
                         "Parameter '%s' does not record a consistent number of "
                         "values every superframe. Check the LFL definition."
                         % param_name)
-                if segment.start:
-                    supf_start_index = int(supf_start_secs * param.hz) #Not used?
-                    param_start_index = int((segment.start - supf_start_secs) * param.hz)
-                else:
-                    supf_start_index = 0
-                    param_start_index = supf_start_index
-                if segment.stop:
-                    supf_stop_index = int(supf_stop_secs * param.hz) #Not used?
-                    param_stop_index = int(segment.stop * param.hz)
-                else:
-                    supf_stop_index = len(param.raw_array)
-                    param_stop_index = supf_stop_index
-
+                
                 param.array = param.raw_array
+                
+                param_start_index = int(array_start_secs * param.hz)
+                param_stop_index = int((len(param.array) - array_stop_secs)
+                                       * param.hz)
+                
                 # Mask data outside of split.
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked
