@@ -195,7 +195,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                              supf_boundary=False)
         self.assertEqual(dest, self.out_path)
         
-        frame_boundary_segment = slice(8, 20)
+        frame_boundary_segment = slice(12, 20)
 
         with h5py.File(dest, 'r') as hdf_file:
             # 'IVV' - 1Hz parameter.
@@ -224,8 +224,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             dme_group = hdf_file['series']['DME']
             self.assertEqual(dme_group.attrs['frequency'],
                              self.dme_frequency)
-            dme_result = dme_group['data'][:]  # array([ 2.,  3.,  4.])
-            dme_expected_result = np.arange(2, 5, dtype=np.dtype(np.float))
+            dme_result = dme_group['data'][:]  # array([ 3.,  4.])
+            dme_expected_result = np.arange(3, 5, dtype=np.dtype(np.float))
             self.assertEqual(list(dme_result), list(dme_expected_result))
             self.assertEqual(
                 hdf_file.attrs['duration'],
@@ -273,11 +273,11 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         Slice has a start and stop.
         '''
         segment = slice(50, None)
+        frame_start = 52  # 52 is nearest frame boundary rounded up        
         dest = write_segment(self.hdf_path, segment, self.out_path,
                              supf_boundary=False)
         self.assertEqual(dest, self.out_path)
         
-        frame_boundary_segment = slice(48, None)
         
         with h5py.File(dest, 'r') as hdf_file:
             # 'IVV' - 1Hz parameter.
@@ -288,9 +288,11 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                              self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(
-                frame_boundary_segment.start * self.ivv_frequency,
+                frame_start * self.ivv_frequency,
                 self.data_secs * self.ivv_frequency,
                 dtype=np.dtype(np.float))
+            print ivv_result
+            print ivv_expected_result
             self.assertTrue(all(ivv_result == ivv_expected_result))
             # 'WOW' - 4Hz parameter.
             wow_group = hdf_file['series']['WOW']
@@ -298,7 +300,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                              self.wow_frequency)
             wow_result = wow_group['data'][:]
             wow_expected_result = np.arange(
-                frame_boundary_segment.start * self.wow_frequency,
+                frame_start * self.wow_frequency,
                 self.data_secs * self.wow_frequency,
                 dtype=np.dtype(np.float))
             self.assertTrue(all(wow_result == wow_expected_result))
@@ -307,9 +309,9 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             self.assertEqual(dme_group.attrs['frequency'],
                              self.dme_frequency)
             dme_result = dme_group['data'][:]
-            dme_expected_result = np.arange(12, 32, dtype=np.dtype(np.float))
+            dme_expected_result = np.arange(13, 32, dtype=np.dtype(np.float))
             self.assertTrue(all(dme_result == dme_expected_result))
-            self.assertEqual(hdf_file.attrs['duration'], 80)
+            self.assertEqual(hdf_file.attrs['duration'], 76)
 
     def test_write_segment__stop_only(self):
         '''

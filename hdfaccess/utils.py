@@ -1,11 +1,11 @@
 import argparse
 import logging
-import math
 import numpy as np
 import os
 import shutil
 
 from hdfaccess.file import hdf_file
+
 
 #FIXME: Reinstate import after fixed dependency on utilities
 ##from utilities.filesystem_tools import copy_file
@@ -41,8 +41,6 @@ def _copy_attrs(source_group, target_group, deidentify=False):
     While the library can recursively copy groups and datasets, there does
     not seem to be a simple way to copy all of a group's attributes at once.
     '''
-    
-        
     for key, value in source_group.attrs.iteritems():
         if deidentify and key in ('aircraft_info', 'tailmark'):
             continue
@@ -103,8 +101,9 @@ def concat_hdf(hdf_paths, dest=None):
 
 def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     '''
-    Strip an HDF file of all parameters apart from those in params_to_keep. Does
-    not raise an exception if any of the params_to_keep are not in the HDF file.
+    Strip an HDF file of all parameters apart from those in params_to_keep.
+    Does not raise an exception if any of the params_to_keep are not in the
+    HDF file.
 
     :param hdf_path: file path of hdf file.
     :type hdf_path: str
@@ -116,7 +115,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     :rtype: [str]
     '''
     with hdf_file(hdf_path) as hdf, hdf_file(dest, create=True) as hdf_dest:
-        _copy_attrs(hdf.hdf, hdf_dest.hdf, deidentify=deidentify) # Copy top-level attrs.
+        _copy_attrs(hdf.hdf, hdf_dest.hdf, deidentify=deidentify)  # Copy top-level attrs.
         params = hdf.get_params(params_to_keep)
         for param_name, param in params.iteritems():
             hdf_dest[param_name] = param
@@ -155,17 +154,22 @@ def write_segment(source, segment, dest, supf_boundary=True):
             "File '%s' already exists, write_segments will delete file.", dest)
         os.remove(dest)
 
-    supf_start_secs = segment.start
     supf_stop_secs = segment.stop
 
     boundary = 64 if supf_boundary else 4
     
     if segment.start:
         supf_start_secs = (int(segment.start) / boundary) * boundary
+        if segment.start % boundary != 0:
+            # Segment does not start on a frame/superframe boundary, round up
+            # to next boundary to exclude the previous frame/superframe.
+            supf_start_secs += boundary
     else:
         supf_start_secs = 0
     if segment.stop:
+        # Always round up to next boundary
         supf_stop_secs = (int(segment.stop) / boundary) * boundary
+        
         if segment.stop % boundary != 0:
             # Segment does not end on a frame/superframe boundary, include the
             # following frame/superframe.
@@ -201,9 +205,13 @@ def write_segment(source, segment, dest, supf_boundary=True):
 
             _copy_attrs(source_hdf.hdf, dest_hdf.hdf)  # Copy top-level attrs.
 
+            #Q: Could this be too short if we change the start and stop a bit further down???
             dest_hdf.duration = segment_duration  # Overwrite duration.
 
             for param_name in source_hdf.keys():
+
+                #Q: Why not always pad masked values to the next superframe
+                
                 param = source_hdf.get_param(
                     param_name, _slice=slice(supf_start_secs, supf_stop_secs))
                 if ((param.hz * 64) % 1) != 0:
@@ -212,13 +220,13 @@ def write_segment(source, segment, dest, supf_boundary=True):
                         "values every superframe. Check the LFL definition."
                         % param_name)
                 if segment.start:
-                    supf_start_index = int(supf_start_secs * param.hz)
+                    supf_start_index = int(supf_start_secs * param.hz) #Not used?
                     param_start_index = int((segment.start - supf_start_secs) * param.hz)
                 else:
                     supf_start_index = 0
                     param_start_index = supf_start_index
                 if segment.stop:
-                    supf_stop_index = int(supf_stop_secs * param.hz)
+                    supf_stop_index = int(supf_stop_secs * param.hz) #Not used?
                     param_stop_index = int(segment.stop * param.hz)
                 else:
                     supf_stop_index = len(param.raw_array)
