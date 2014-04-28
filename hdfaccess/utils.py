@@ -211,13 +211,14 @@ def write_segment(source, segment, dest, supf_boundary=True):
             #Q: Could this be too short if we change the start and stop a bit further down???
             dest_hdf.duration = segment_duration  # Overwrite duration.
 
-
+            supf_slice = slice(supf_start_secs, supf_stop_secs)
+            
             for param_name in source_hdf.keys():
 
                 #Q: Why not always pad masked values to the next superframe
                 
                 param = source_hdf.get_param(
-                    param_name, _slice=slice(supf_start_secs, supf_stop_secs))
+                    param_name, _slice=supf_slice, load_submasks=True)
                 if ((param.hz * 64) % 1) != 0:
                     raise ValueError(
                         "Parameter '%s' does not record a consistent number of "
