@@ -211,6 +211,7 @@ def write_segment(source, segment, dest, supf_boundary=True):
             #Q: Could this be too short if we change the start and stop a bit further down???
             dest_hdf.duration = segment_duration  # Overwrite duration.
 
+
             for param_name in source_hdf.keys():
 
                 #Q: Why not always pad masked values to the next superframe
@@ -226,8 +227,8 @@ def write_segment(source, segment, dest, supf_boundary=True):
                 param.array = param.raw_array
                 
                 param_start_index = int(array_start_secs * param.hz)
-                param_stop_index = int((len(param.array) - array_stop_secs)
-                                       * param.hz)
+                param_stop_index = int(len(param.array) -
+                                       (array_stop_secs * param.hz))
                 
                 # Mask data outside of split.
                 param.array[:param_start_index] = np.ma.masked
