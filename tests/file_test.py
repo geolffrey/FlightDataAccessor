@@ -287,6 +287,14 @@ class TestHdfFile(unittest.TestCase):
 
     def test_get_param_data(self):
         self.__test_get_param_data(self.hdf_file.get_param)
+        param = self.hdf_file.get_param(self.masked_param_name,
+                                        load_submasks=True)
+        self.assertEqual(self.masked_param_submask_map.keys(),
+                         param.submasks.keys())
+        self.assertEqual(self.masked_param_submask_arrays[:,self.masked_param_submask_map['mask1']].tolist(),
+                         param.submasks['mask1'].tolist())
+        self.assertEqual(self.masked_param_submask_arrays[:,self.masked_param_submask_map['mask2']].tolist(),
+                         param.submasks['mask2'].tolist())
 
     def test___get_item__(self):
         self.__test_get_param_data(self.hdf_file.__getitem__)
@@ -307,12 +315,8 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(np.all(self.param_mask == param.array.mask))
         self.assertEqual(self.masked_param_frequency, param.frequency)
         self.assertEqual(self.masked_param_supf_offset, param.offset)
-        self.assertEqual(self.masked_param_submask_map.keys(),
-                         param.submasks.keys())
-        self.assertEqual(self.masked_param_submask_arrays[:,self.masked_param_submask_map['mask1']].tolist(),
-                         param.submasks['mask1'].tolist())
-        self.assertEqual(self.masked_param_submask_arrays[:,self.masked_param_submask_map['mask2']].tolist(),
-                         param.submasks['mask2'].tolist())
+        self.assertEqual({}, param.submasks)
+        
 
     def test_len(self):
         '''

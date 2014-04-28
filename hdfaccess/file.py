@@ -501,7 +501,8 @@ class hdf_file(object):    # rare case of lower case?!
                     pass  # ignore parameters that aren't available
         return param_name_to_obj
 
-    def get_param(self, name, valid_only=False, _slice=None):
+    def get_param(self, name, valid_only=False, _slice=None,
+                  load_submasks=False):
         '''
         name e.g. "Heading"
         Returns a masked_array. If 'mask' is stored it will be the mask of the
@@ -513,6 +514,8 @@ class hdf_file(object):    # rare case of lower case?!
         :type valid_only: bool
         :param _slice: Only read a slice of the parameter's data. The slice indices are 1Hz.
         :type _slice: slice
+        :param load_submasks: Load parameter submasks into a submasks dictionary.
+        :type load_submasks: bool
         :returns: Parameter object containing HDF data and attrs.
         :rtype: Parameter
         '''
@@ -547,15 +550,18 @@ class hdf_file(object):    # rare case of lower case?!
             mask = mask[slice_start:slice_stop]
         
         # submasks
-        kwargs['submasks'] = {}
-        if 'submasks' in param_group.attrs and 'submasks' in param_group.keys():
-            submask_map = param_group.attrs['submasks']
-            if submask_map.strip():
-                submask_map = simplejson.loads(submask_map)
-                for submask_name, array_index in submask_map.items():
-                    
-                    kwargs['submasks'][submask_name] = \
-                        param_group['submasks'][slice_start:slice_stop,array_index]
+        if load_submasks:
+            param_has_submasks = ('submasks' in param_group.attrs and
+                                  'submasks' in param_group.keys())
+            if param_has_submasks:
+                kwargs['submasks'] = {}
+                submask_map = param_group.attrs['submasks']
+                if submask_map.strip():
+                    submask_map = simplejson.loads(submask_map)
+                    for submask_name, array_index in submask_map.items():
+                        
+                        kwargs['submasks'][submask_name] = \
+                            param_group['submasks'][slice_start:slice_stop,array_index]
 
         array = np.ma.masked_array(data, mask=mask)
 
