@@ -603,14 +603,15 @@ class hdf_file(object):    # rare case of lower case?!
             self._params_cache[name] = p
         return p
 
-    def get(self, name, default=None):
+    def get(self, name, default=None, **kwargs):
         """
-        Dictionary like .get operator.
+        Dictionary like .get operator. Additional kwargs are passed into the
+        get_param method.
 
         Makes no distinction on valid or invalid parameters that are requested.
         """
         try:
-            return self.get_param(name)
+            return self.get_param(name, **kwargs)
         except KeyError:
             return default
 
