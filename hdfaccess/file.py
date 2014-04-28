@@ -547,8 +547,6 @@ class hdf_file(object):    # rare case of lower case?!
             mask = mask[slice_start:slice_stop]
         
         # submasks
-        # TODO: Read only the _slice of the submask from the file to speed up
-        # segment splitting.
         kwargs['submasks'] = {}
         if 'submasks' in param_group.attrs and 'submasks' in param_group.keys():
             submask_map = param_group.attrs['submasks']
