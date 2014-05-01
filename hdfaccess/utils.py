@@ -241,19 +241,41 @@ def write_segment(source, segment, dest, supf_boundary=True):
     return dest
 
 
+def revert_masks(hdf_path, params=None):
+    with hdf_file(hdf_path) as hdf:
+        if not params:
+            params = hdf.lfl_keys()
+        
+        for param_name in params:
+            param = hdf.get_param(param_name, load_submasks=True)
+            
+            if 'padding' not in param.submasks:
+                continue
+            
+            param.array = param.get_array(submask='padding')
+            param.submasks = {'padding': param.submasks['padding']}
+            hdf[param_name] = param
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest='command',
-                                      description="Utility command, currently "
-                                      "only 'strip' is supported",
+                                      description="Utility command, either "
+                                      "'strip' or 'revert'",
                                       help='Additional help')
-    strip_parser = subparser.add_parser('strip')
+    strip_parser = subparser.add_parser('strip', help='Strip a file to a '
+                                        'subset of parameters.')
     strip_parser.add_argument('input_file_path', help='Input hdf filename.')
     strip_parser.add_argument('output_file_path', help='Output hdf filename.')
     strip_parser.add_argument('parameters', nargs='+',
                               help='Store this list of parameters into the '
                               'output hdf file. All other parameters will be '
                               'stripped.')
+    revert_parser = subparser.add_parser('revert',
+                                         help='Revert masks of parameters')
+    revert_parser.add_argument('file_path', help='File path.')
+    revert_parser.add_argument('-p', '--parameters', nargs='+', default=None,
+                               help='Parameter names to revert.')
     args = parser.parse_args()
     if args.command == 'strip':
         if not os.path.isfile(args.input_file_path):
@@ -270,3 +292,5 @@ if __name__ == '__main__':
                 print ' * %s' % name
         else:
             print 'No matching parameters were found in the hdf file.'
+    elif args.command == 'revert':
+        revert_masks(args.file_path, params=args.parameters)
