@@ -1,3 +1,5 @@
 Changes
 =======
 
+ - Loading parameter submasks from HDF is now optional and will only be enabled where required.
+ - Splitting algorithm improved to include the remainder of the superframes at the beginning and end of the flight while masking out any data occurring on the previous or next flight. 
