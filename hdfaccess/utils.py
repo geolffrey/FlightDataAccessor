@@ -241,19 +241,31 @@ def write_segment(source, segment, dest, supf_boundary=True):
     return dest
 
 
-def revert_masks(hdf_path, params=None):
+def revert_masks(hdf_path, params=None, delete_derived=False):
+    '''
+    :type hdf_path: str
+    :type params: params to revert or delete.
+    :type params: [str] or None
+    :type delete_derived: bool
+    '''
     with hdf_file(hdf_path) as hdf:
         if not params:
-            params = hdf.lfl_keys()
+            params = hdf.keys() if delete_derived else hdf.lfl_keys()
         
         for param_name in params:
             param = hdf.get_param(param_name, load_submasks=True)
+            
+            if not param.lfl:
+                if delete_derived:
+                    del hdf[param_name]
+                continue
             
             if 'padding' not in param.submasks:
                 continue
             
             param.array = param.get_array(submask='padding')
             param.submasks = {'padding': param.submasks['padding']}
+            param.invalid = False
             hdf[param_name] = param
 
 
@@ -276,6 +288,8 @@ if __name__ == '__main__':
     revert_parser.add_argument('file_path', help='File path.')
     revert_parser.add_argument('-p', '--parameters', nargs='+', default=None,
                                help='Parameter names to revert.')
+    revert_parser.add_argument('-d', '--delete-derived', action='store_true',
+                               help='Delete derived parameters.')
     args = parser.parse_args()
     if args.command == 'strip':
         if not os.path.isfile(args.input_file_path):
@@ -293,4 +307,5 @@ if __name__ == '__main__':
         else:
             print 'No matching parameters were found in the hdf file.'
     elif args.command == 'revert':
-        revert_masks(args.file_path, params=args.parameters)
+        revert_masks(args.file_path, params=args.parameters,
+                     delete_derived=args.delete_derived)
