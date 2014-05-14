@@ -437,3 +437,13 @@ class TestHdfFile(unittest.TestCase):
                                                 default='default'), 'default')
         # ensure that HDF is still working after keyerror raised!
         self.assertTrue('start_datetime' in self.hdf_file.hdf.attrs)
+
+    def test___init__imutable_cache_param_list(self):
+        temp = 'temp_new_file.hdf5'
+        if os.path.exists(temp):
+            os.remove(temp)
+        hdf_a = hdf_file(temp, create=True)
+        hdf_a.cache_param_list.append('test')
+        hdf_b = hdf_file(temp, create=True)
+        self.assertEqual(hdf_b.cache_param_list, [])
+        self.assertNotEqual(id(hdf_a.cache_param_list), id(hdf_b.cache_param_list)) 

@@ -46,7 +46,7 @@ class hdf_file(object):    # rare case of lower case?!
     def __str__(self):
         return self.__repr__().lstrip('<').rstrip('>')
 
-    def __init__(self, file_path_or_obj, cache_param_list=[], create=False):
+    def __init__(self, file_path_or_obj, cache_param_list=False, create=False):
         '''
         Opens an HDF file (or accepts and already open h5py.File object) - will
         create if does not exist if create=True!
