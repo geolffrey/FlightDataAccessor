@@ -234,6 +234,10 @@ def write_segment(source, segment, dest, supf_boundary=True):
                 # Mask data outside of split.
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked
+                for sub_name, submask in param.submasks.items():
+                    submask[:param_start_index] = True
+                    submask[param_stop_index:] = True
+
                 # save modified parameter back to file
                 dest_hdf[param_name] = param
                 #logging.debug("Finished writing segment: %s", dest_hdf)
