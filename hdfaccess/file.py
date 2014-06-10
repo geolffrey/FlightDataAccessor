@@ -8,6 +8,7 @@ import pickle
 import re
 import simplejson
 import zlib
+import pytz
 
 from copy import copy, deepcopy
 from datetime import datetime
@@ -320,7 +321,10 @@ class hdf_file(object):    # rare case of lower case?!
         :rtype: datetime or None
         '''
         timestamp = self.hdf.attrs.get('start_timestamp')
-        return datetime.utcfromtimestamp(timestamp) if timestamp else None
+        if timestamp:
+            return datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.utc)
+        else:
+            return None
 
     @start_datetime.setter
     def start_datetime(self, start_datetime):
@@ -338,7 +342,8 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['start_timestamp']
         else:
             if isinstance(start_datetime, datetime):
-                timestamp = calendar.timegm(start_datetime.utctimetuple())
+                epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+                timestamp = (start_datetime - epoch).total_seconds()
             else:
                 timestamp = start_datetime
             self.hdf.attrs['start_timestamp'] = timestamp
