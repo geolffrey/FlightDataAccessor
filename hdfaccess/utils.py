@@ -164,7 +164,8 @@ def write_segment(source, segment, dest, supf_boundary=True):
     else:
         supf_start_secs = 0
         array_start_secs = 0
-    
+
+    array_stop_secs = 0
     if segment.stop:
         # Always round up to next boundary
         supf_stop_secs = (int(segment.stop) / boundary) * boundary
@@ -173,10 +174,8 @@ def write_segment(source, segment, dest, supf_boundary=True):
             # Segment does not end on a frame/superframe boundary, include the
             # following frame/superframe.
             supf_stop_secs += boundary
-        
-        array_stop_secs = boundary - (segment.stop % boundary)
-    else:
-        array_stop_secs = 0
+            array_stop_secs = boundary - (segment.stop % boundary)
+
 
     if supf_start_secs == 0 and supf_stop_secs is None:
         logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
