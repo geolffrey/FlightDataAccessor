@@ -122,7 +122,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     return params.keys()
 
 
-def write_segment(source, segment, dest, supf_boundary=True):
+def write_segment(source, segment, dest, boundary):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by
     segments, a slice in seconds. Expects the HDF file to contain whole
@@ -156,8 +156,6 @@ def write_segment(source, segment, dest, supf_boundary=True):
 
     supf_stop_secs = segment.stop
 
-    boundary = 64 if supf_boundary else 4
-    
     if segment.start:
         supf_start_secs = (int(segment.start) / boundary) * boundary
         array_start_secs = segment.start % boundary
@@ -273,8 +271,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest='command',
                                       description="Utility command, either "
-                                      "'strip' or 'revert'",
-                                      help='Additional help')
+                                      "'strip' or 'revert'")
     strip_parser = subparser.add_parser('strip', help='Strip a file to a '
                                         'subset of parameters.')
     strip_parser.add_argument('input_file_path', help='Input hdf filename.')
