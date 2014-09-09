@@ -6,14 +6,8 @@
 
 import os
 
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    from distribute_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages
-
 import hdfaccess as pkg
+from setuptools import setup, find_packages
 from requirements import RequirementsParser
 requirements = RequirementsParser()
 

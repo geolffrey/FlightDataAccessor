@@ -162,7 +162,8 @@ def write_segment(source, segment, dest, boundary):
     else:
         supf_start_secs = 0
         array_start_secs = 0
-    
+
+    array_stop_secs = 0
     if segment.stop:
         # Always round up to next boundary
         supf_stop_secs = (int(segment.stop) / boundary) * boundary
@@ -171,10 +172,8 @@ def write_segment(source, segment, dest, boundary):
             # Segment does not end on a frame/superframe boundary, include the
             # following frame/superframe.
             supf_stop_secs += boundary
-        
-        array_stop_secs = boundary - (segment.stop % boundary)
-    else:
-        array_stop_secs = 0
+            array_stop_secs = boundary - (segment.stop % boundary)
+
 
     if supf_start_secs == 0 and supf_stop_secs is None:
         logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
@@ -232,6 +231,10 @@ def write_segment(source, segment, dest, boundary):
                 # Mask data outside of split.
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked
+                for sub_name, submask in param.submasks.items():
+                    submask[:param_start_index] = True
+                    submask[param_stop_index:] = True
+
                 # save modified parameter back to file
                 dest_hdf[param_name] = param
                 #logging.debug("Finished writing segment: %s", dest_hdf)

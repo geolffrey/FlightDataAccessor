@@ -3,6 +3,7 @@ import h5py
 import mock
 import numpy as np
 import os
+import pytz
 import random
 import simplejson
 import unittest
@@ -77,16 +78,18 @@ class TestHdfFile(unittest.TestCase):
 
     def test_start_datetime(self):
         self.assertEqual(self.hdf_file.start_datetime, None)
-        datetime_1 = datetime.now()
+        datetime_1 = datetime.utcnow().replace(tzinfo=pytz.utc)
         timestamp = calendar.timegm(datetime_1.utctimetuple())
+        epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+        timestamp = (datetime_1 - epoch).total_seconds()
+        # assign a timestamp
         self.hdf_file.start_datetime = timestamp
-        # Microsecond accuracy is lost.
-        self.assertEqual(self.hdf_file.start_datetime,
-                         datetime_1.replace(microsecond=0))
-        datetime_2 = datetime.now()
+        self.assertEqual(self.hdf_file.start_datetime, datetime_1)
+
+        datetime_2 = datetime.utcnow().replace(tzinfo=pytz.utc)
+        # assign a datetime object
         self.hdf_file.start_datetime = datetime_2
-        self.assertEqual(self.hdf_file.start_datetime,
-                         datetime_2.replace(microsecond=0))
+        self.assertEqual(self.hdf_file.start_datetime, datetime_2)
         self.hdf_file.start_datetime = None
         self.assertEqual(self.hdf_file.start_datetime, None)
 
@@ -437,3 +440,13 @@ class TestHdfFile(unittest.TestCase):
                                                 default='default'), 'default')
         # ensure that HDF is still working after keyerror raised!
         self.assertTrue('start_datetime' in self.hdf_file.hdf.attrs)
+
+    def test___init__imutable_cache_param_list(self):
+        temp = 'temp_new_file.hdf5'
+        if os.path.exists(temp):
+            os.remove(temp)
+        hdf_a = hdf_file(temp, create=True)
+        hdf_a.cache_param_list.append('test')
+        hdf_b = hdf_file(temp, create=True)
+        self.assertEqual(hdf_b.cache_param_list, [])
+        self.assertNotEqual(id(hdf_a.cache_param_list), id(hdf_b.cache_param_list)) 

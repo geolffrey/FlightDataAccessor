@@ -271,6 +271,18 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.get_array('mask1').tolist(), [None,20,30])
         self.assertEqual(p.get_array('mask2').tolist(), [None,None,30])
 
+    def test_get_array__mapped(self):
+        array = np.ma.array([1, 2, 3], mask=[0,1,1])
+        values_mapping = {1: 'One', 2: 'Two', 3:'Three'}
+        p = Parameter('Submasks', array=array, submasks={
+            'mask1': np.array([1,0,0], dtype=np.bool_),
+            'mask2': np.array([1,1,0], dtype=np.bool_),
+        }, values_mapping=values_mapping)
+        self.assertEqual(p.get_array().tolist(), [1,None,None])
+        self.assertEqual(p.get_array('mask1').tolist(), [None,2,3])
+        self.assertEqual(p.get_array('mask2').tolist(), [None,None,3])
+        self.assertTrue(isinstance(p.get_array('mask1'), MappedArray))
+
 
 if __name__ == '__main__':
     unittest.main()
