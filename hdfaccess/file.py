@@ -197,7 +197,7 @@ class hdf_file(object):    # rare case of lower case?!
     @property
     def analysis_version(self):
         '''
-        Accessor for the root-level 'version' attribute.
+        Accessor for the root-level 'analysis_version' attribute.
 
         :returns: Version of the FlightDataAnalyzer which processed this HDF file.
         :rtype: str or None
@@ -207,7 +207,7 @@ class hdf_file(object):    # rare case of lower case?!
     @analysis_version.setter
     def analysis_version(self, analysis_version):
         '''
-        Mutator for the root-level 'version' attribute. If version is None the
+        Mutator for the root-level 'analysis_version' attribute. If version is None the
         'version' attribute will be deleted.
 
         :param version: FlightDataAnalyser version.
@@ -219,6 +219,34 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['analysis_version']
         else:
             self.hdf.attrs['analysis_version'] = analysis_version
+    
+    @property
+    def arinc(self):
+        '''
+        Accessor for the root-level 'arinc' attribute.
+    
+        :returns: ARINC flight data standard - either '717' or '767'.
+        :rtype: str or None
+        '''
+        return self.hdf.attrs.get('arinc')
+
+    @arinc.setter
+    def arinc(self, arinc):
+        '''
+        Mutator for the root-level 'version' attribute. If version is None the
+        'version' attribute will be deleted.
+    
+        :param arinc: ARINC flight data standard - either '717' or '767'.
+        :type arinc: str
+        :rtype: None
+        '''
+        if arinc is None:  # Cannot store None as an HDF attribute.
+            if 'arinc' in self.hdf.attrs:
+                del self.hdf.attrs['arinc']
+        else:
+            if arinc not in ('717', '767'):
+                raise ValueError("Unknown ARINC standard '%s'." % arinc)
+            self.hdf.attrs['arinc'] = arinc
 
     @property
     def dependency_tree(self):
@@ -280,6 +308,32 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['duration']
         else:
             self.hdf.attrs['duration'] = duration
+    
+    @property
+    def frequencies(self):
+        '''
+        Accessor for the root-level 'frequencies' attribute.
+    
+        :returns: Parameter frequencies stored within the file.
+        :rtype: str or None
+        '''
+        return self.hdf.attrs.get('frequencies')
+
+    @frequencies.setter
+    def frequencies(self, frequencies):
+        '''
+        Mutator for the root-level 'version' attribute. If version is None the
+        'version' attribute will be deleted.
+    
+        :param arinc: ARINC flight data standard - either '717' or '767'.
+        :type arinc: str
+        :rtype: None
+        '''
+        if frequencies is None:  # Cannot store None as an HDF attribute.
+            if 'frequencies' in self.hdf.attrs:
+                del self.hdf.attrs['frequencies']
+        else:
+            self.hdf.attrs['frequencies'] = frequencies
 
     @property
     def reliable_frame_counter(self):
