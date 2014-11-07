@@ -1,5 +1,4 @@
 import base64
-import calendar
 import logging
 import h5py
 import numpy as np
@@ -220,12 +219,12 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['analysis_version']
         else:
             self.hdf.attrs['analysis_version'] = analysis_version
-    
+
     @property
     def arinc(self):
         '''
         Accessor for the root-level 'arinc' attribute.
-    
+
         :returns: ARINC flight data standard - either '717' or '767'.
         :rtype: str or None
         '''
@@ -236,7 +235,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         Mutator for the root-level 'version' attribute. If version is None the
         'version' attribute will be deleted.
-    
+
         :param arinc: ARINC flight data standard - either '717' or '767'.
         :type arinc: str
         :rtype: None
@@ -309,12 +308,12 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['duration']
         else:
             self.hdf.attrs['duration'] = duration
-    
+
     @property
     def frequencies(self):
         '''
         Accessor for the root-level 'frequencies' attribute.
-    
+
         :returns: Parameter frequencies stored within the file.
         :rtype: str or None
         '''
@@ -325,7 +324,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         Mutator for the root-level 'version' attribute. If version is None the
         'version' attribute will be deleted.
-    
+
         :param arinc: ARINC flight data standard - either '717' or '767'.
         :type arinc: str
         :rtype: None
@@ -629,11 +628,11 @@ class hdf_file(object):    # rare case of lower case?!
             if values_mapping.strip():
                 mapping = simplejson.loads(values_mapping)
                 kwargs['values_mapping'] = mapping
-        
+
         if 'values_mapping' not in kwargs and data.dtype == np.int_:
             # Force float for non-values_mapped types.
             array = array.astype(np.float_)
-        
+
         # Backwards compatibility. Q: When can this be removed?
         if 'supf_offset' in param_group.attrs:
             kwargs['offset'] = param_group.attrs['supf_offset']
@@ -733,7 +732,7 @@ class hdf_file(object):    # rare case of lower case?!
         param_group = self.get_or_create(param.name)
         if save_data:
             if 'data' in param_group:
-                 # Dataset must be deleted before recreation.
+                # Dataset must be deleted before recreation.
                 del param_group['data']
             param_group.create_dataset('data', data=param.array.data,
                                        **self.DATASET_KWARGS)
@@ -753,7 +752,7 @@ class hdf_file(object):    # rare case of lower case?!
             submask_length = 0
             for submask_array in param.submasks.values():
                 if (submask_array is None or
-                    type(submask_array) in (bool, np.bool8)):
+                        type(submask_array) in (bool, np.bool8)):
                     continue
                 submask_length = max(submask_length, len(submask_array))
 
@@ -892,7 +891,7 @@ class hdf_file(object):    # rare case of lower case?!
             raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
         return simplejson.loads(limits) if limits else default
-    
+
     def get_param_arinc_429(self, name):
         '''
         Returns a parameter's ARINC 429 flag.
