@@ -548,8 +548,7 @@ class hdf_file(object):    # rare case of lower case?!
                     pass  # ignore parameters that aren't available
         return param_name_to_obj
 
-    def get_param(self, name, valid_only=False, _slice=None,
-                  load_submasks=False):
+    def get_param(self, name, valid_only=False, _slice=None, load_submasks=False, copy_param=True):
         '''
         name e.g. "Heading"
         Returns a masked_array. If 'mask' is stored it will be the mask of the
@@ -563,55 +562,68 @@ class hdf_file(object):    # rare case of lower case?!
         :type _slice: slice
         :param load_submasks: Load parameter submasks into a submasks dictionary.
         :type load_submasks: bool
+        :param copy_param: Return a copy of the parameter if found in cache.
+        :type copy_param: bool
         :returns: Parameter object containing HDF data and attrs.
         :rtype: Parameter
+
+        Warning: caching in this method does not work with slicing. If you
+        want to slice the data and use parameter cache at the same time, don't
+        pass _slice to the method (will cause the cache to be skipped), use
+        copy_param=False and slice the array in your procedure instead. The
+        overhead of using deepcopy on huge arrays is substantial and the tests
+        of generalised slicing of the cached arrays in this method proved less
+        effective than specialised slicing of the returned cached data.
+
+        The other problem is loading of submasks: this feature is off by
+        default but the parameter will be cached with the submasks if that's
+        what the user requested on first fetch. If the requested submasks are
+        missing in the cache, the parameter will be refetched from the disk and
+        stored in the cache with the submasks. This bit can be optimised but we
+        need to consider what are the use cases of submasks caching.
         '''
         if name not in self.keys(valid_only):
             # Exception should be caught otherwise HDF will crash and close!
             raise KeyError("%s" % name)
         elif name in self._params_cache:
-            logging.debug("Retrieving param '%s' from HDF cache", name)
-            return deepcopy(self._params_cache[name])
-        param_group = self.hdf['series'][name]
-        data = param_group['data']
-        mask = param_group.get('mask', False)  # FIXME: Replace False with a fully masked array
+            if not _slice:
+                logging.debug("Retrieving param '%s' from HDF cache", name)
+                # XXX: Caching breaks later loading of submasks!
+                parameter = self._params_cache[name]
+                if parameter.submasks or not load_submasks:
+                    return deepcopy(parameter) if copy_param else parameter
+            logging.debug(
+                'Skipping returning parameter `%s` from cache as slice of '
+                'data was requested.', name)
+        group = self.hdf['series'][name]
+        attrs = group.attrs
+        data = group['data']
+        mask = group.get('mask', False)
 
         kwargs = {}
 
-        frequency = param_group.attrs.get('frequency', 1)
+        frequency = attrs.get('frequency', 1)
         kwargs['frequency'] = frequency
-        
-        if _slice and _slice.start is not None:
-            slice_start = int(_slice.start * frequency)
-        else:
-            slice_start = 0
-        if _slice and _slice.stop is not None:
-            slice_stop = int(_slice.stop * frequency)
-        else:
-            slice_stop = len(data)
-        
-        data = data[slice_start:slice_stop]
-        if mask:
-            mask = mask[slice_start:slice_stop]
-        
-        # submasks
-        if load_submasks:
-            param_has_submasks = ('submasks' in param_group.attrs and
-                                  'submasks' in param_group.keys())
-            if param_has_submasks:
-                kwargs['submasks'] = {}
-                submask_map = param_group.attrs['submasks']
-                if submask_map.strip():
-                    submask_map = simplejson.loads(submask_map)
-                    for submask_name, array_index in submask_map.items():
-                        
-                        kwargs['submasks'][submask_name] = \
-                            param_group['submasks'][slice_start:slice_stop,array_index]
+
+        if _slice:
+            slice_start = int((_slice.start or 0) * frequency)
+            slice_stop = int((_slice.stop or len(data)) * frequency)
+            _slice = slice(slice_start, slice_stop)
+            data = data[_slice]
+            mask = mask[_slice] if mask else mask
+
+        if load_submasks and 'submasks' in attrs and 'submasks' in group.keys():
+            kwargs['submasks'] = {}
+            submask_map = attrs['submasks']
+            if submask_map.strip():
+                submask_map = simplejson.loads(submask_map)
+                for sub_name, index in submask_map.items():
+                    kwargs['submasks'][sub_name] = group['submasks'][_slice or slice(None), index]
 
         array = np.ma.masked_array(data, mask=mask)
 
-        if 'values_mapping' in param_group.attrs:
-            values_mapping = param_group.attrs['values_mapping']
+        if 'values_mapping' in attrs:
+            values_mapping = attrs['values_mapping']
             if values_mapping.strip():
                 mapping = simplejson.loads(values_mapping)
                 kwargs['values_mapping'] = mapping
@@ -621,38 +633,43 @@ class hdf_file(object):    # rare case of lower case?!
             array = array.astype(np.float_)
 
         # Backwards compatibility. Q: When can this be removed?
-        if 'supf_offset' in param_group.attrs:
-            kwargs['offset'] = param_group.attrs['supf_offset']
-        if 'arinc_429' in param_group.attrs:
-            kwargs['arinc_429'] = param_group.attrs['arinc_429']
-        if 'invalid' in param_group.attrs:
-            kwargs['invalid'] = param_group.attrs['invalid']
-            if kwargs['invalid'] and 'invalidity_reason' in param_group.attrs:
-                kwargs['invalidity_reason'] = param_group.attrs['invalidity_reason']
+        if 'supf_offset' in attrs:
+            kwargs['offset'] = attrs['supf_offset']
+        if 'arinc_429' in attrs:
+            kwargs['arinc_429'] = attrs['arinc_429']
+        if 'invalid' in attrs:
+            kwargs['invalid'] = attrs['invalid']
+            if kwargs['invalid'] and 'invalidity_reason' in attrs:
+                kwargs['invalidity_reason'] = attrs['invalidity_reason']
         # Units
-        if 'units' in param_group.attrs:
-            kwargs['units'] = param_group.attrs['units']
-        if 'lfl' in param_group.attrs:
-            kwargs['lfl'] = param_group.attrs['lfl']
-        elif 'description' in param_group.attrs:
+        if 'units' in attrs:
+            kwargs['units'] = attrs['units']
+        if 'lfl' in attrs:
+            kwargs['lfl'] = attrs['lfl']
+        elif 'description' in attrs:
             # Backwards compatibility for HDF files converted from AGS where
             # the units are stored in the description. Units will be invalid if
             # parameters from a FlightDataAnalyser HDF do not have 'units'
             # attributes.
-            description = param_group.attrs['description']
+            description = attrs['description']
             if description:
                 kwargs['units'] = description
-        if 'data_type' in param_group.attrs:
-            kwargs['data_type'] = param_group.attrs['data_type']
-        if 'source_name' in param_group.attrs:
-            kwargs['source_name'] = param_group.attrs['source_name']
-        if 'description' in param_group.attrs:
-            kwargs['description'] = param_group.attrs['description']
-        p = Parameter(name, array, **kwargs)
+        if 'data_type' in attrs:
+            kwargs['data_type'] = attrs['data_type']
+        if 'source_name' in attrs:
+            kwargs['source_name'] = attrs['source_name']
+        if 'description' in attrs:
+            kwargs['description'] = attrs['description']
+        parameter = Parameter(name, array, **kwargs)
         # add to cache if required
         if name in self.cache_param_list:
-            self._params_cache[name] = p
-        return p
+            if not _slice:
+                self._params_cache[name] = parameter
+            else:
+                logging.debug('Skipping saving parameter `%s` to cache as '
+                              'slice of data was requested.', name)
+
+        return parameter
 
     def get(self, name, default=None, **kwargs):
         """
@@ -666,18 +683,18 @@ class hdf_file(object):    # rare case of lower case?!
         except KeyError:
             return default
 
-    def get_or_create(self, param_name):
+    def get_or_create(self, name):
         '''
         Return a h5py parameter group, if it does not exist then create it too.
         '''
         # Either get or create parameter.
-        if param_name in self:
-            param_group = self.hdf['series'][param_name]
+        if name in self.keys():
+            group = self.hdf['series'][name]
         else:
-            self._keys_cache.append(param_name)  # Update cache.
-            param_group = self.hdf['series'].create_group(param_name)
-            param_group.attrs['name'] = str(param_name)  # Fails to set unicode attribute.
-        return param_group
+            self._cache['names'].add(name)  # Update cache.
+            group = self.hdf['series'].create_group(name)
+            group.attrs['name'] = str(name)  # Fails to set unicode attribute.
+        return group
 
     def set_param(self, param, save_data=True, save_mask=True,
                   save_submasks=True):
@@ -711,10 +728,6 @@ class hdf_file(object):    # rare case of lower case?!
         # Allow both arrays and masked_arrays but ensure that we always have a fully expanded masked array.
         if not hasattr(param.array, 'mask'):  # FIXME: or param.mask == False:
             param.array = np.ma.masked_array(param.array, mask=False)
-
-        if param.name in self.cache_param_list:
-            logging.debug("Storing parameter '%s' in HDF cache", param.name)
-            self._params_cache[param.name] = param  # FIXME is above?: Ensure that .mask is populated with np.ma.getmaskarray(param.array) to ensure we always have a full mask?
 
         param_group = self.get_or_create(param.name)
         if save_data:
@@ -797,9 +810,12 @@ class hdf_file(object):    # rare case of lower case?!
                 continue  # don't add to the cache if it is empty.
             if param.lfl and 'derived' in key or not param.lfl and 'lfl' in key:
                 continue
-            if param.invalid and key.startswith('valid'):
+            if getattr(param, 'invalid', False) and key.startswith('valid'):
                 continue
             self._cache[key].add(param.name)
+
+        # Invalidate the parameter cache
+        self._params_cache.pop(param.name, None)
 
     def __delitem__(self, name):
         '''
