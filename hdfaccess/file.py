@@ -9,8 +9,11 @@ import simplejson
 import zlib
 import pytz
 
-from copy import copy, deepcopy
+from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
+
+from sortedcontainers import SortedSet
 
 from flightdatautilities.filesystem_tools import pretty_size
 from flightdatautilities.patterns import wildcard_match
@@ -88,10 +91,7 @@ class hdf_file(object):    # rare case of lower case?!
             # The 'series' group is required for storing parameters.
             self.hdf.create_group('series')
         # cache keys as accessing __iter__ on hdf groups is v.slow
-        self._keys_cache = None
-        self._lfl_keys_cache = None
-        self._derived_keys_cache = None
-        self._valid_param_names_cache = None
+        self._cache = defaultdict(SortedSet)
         # cache parameters that are used often
         self._params_cache = {}
         # this is the list of parameters to cache
@@ -141,51 +141,43 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         return len(self.hdf['series'])
 
-    def keys(self):
+    def keys(self, valid_only=False, subset=None):
         '''
         Parameter group names within the series group.
 
-        :returns: List of parameter names.
+        :param subset: name of a subset of parameter names to lookup.
+        :type subset: str or None
+        :param valid_only: whether to only lookup names of valid parameters.
+        :type valid_only: bool
+        :returns: sorted list of parameter names.
         :rtype: list of str
         '''
-        if self._keys_cache is None:
+        if subset and subset not in ('lfl', 'derived'):
+            raise ValueError('Unknown parameter subset: %s.' % subset)
+        key = subset + '_names' if subset else 'names'
+        key = 'valid_' + key if valid_only else key
+        if not self._cache[key]:
             series = self.hdf['series']
-            keys = series.keys()
-            self._keys_cache = sorted(keys)
-        return copy(self._keys_cache)
-    get_param_list = keys
+            if subset is None and not valid_only:
+                self._cache[key].update(series.keys())
+            else:
+                for name in self.keys():  # (populates top-level name cache.)
+                    attrs = series[name].attrs
+                    lfl = bool(attrs.get('lfl'))
+                    append = not any((
+                        valid_only and bool(attrs.get('invalid')),
+                        not lfl and subset == 'lfl',
+                        lfl and subset == 'derived',
+                    ))
+                    if append:
+                        self._cache[key].add(name)
+        return list(self._cache[key])
 
-    def lfl_keys(self):
-        '''
-        Parameter group names within the series group which came from the
-        Logical Frame Layout.
-
-        :returns: List of LFL parameter names.
-        :rtype: list of str
-        '''
-        if self._lfl_keys_cache is None:
-            lfl_keys = []
-            for param_name in self.keys():
-                if self.hdf['series'][param_name].attrs.get('lfl'):
-                    lfl_keys.append(param_name)
-            self._lfl_keys_cache = sorted(lfl_keys)
-        return copy(self._lfl_keys_cache)
-
-    def derived_keys(self):
-        '''
-        Parameter group names within the series group which are derived
-        parameters.
-
-        :returns: List of derived parameter names.
-        :rtype: list of str
-        '''
-        if self._derived_keys_cache is None:
-            derived_keys = []
-            for param_name in self.keys():
-                if not self.hdf['series'][param_name].attrs.get('lfl'):
-                    derived_keys.append(param_name)
-            self._derived_keys_cache = derived_keys
-        return copy(self._derived_keys_cache)
+    # TODO: These are deprecated and should be removed!
+    get_param_list = lambda self: self.keys()
+    valid_param_names = lambda self: self.keys(valid_only=True)
+    lfl_keys = lambda self: self.keys(subset='lfl')
+    derived_keys = lambda self: self.keys(subset='derived')
 
     def close(self):
         self.hdf.flush()  # Q: required?
@@ -543,10 +535,7 @@ class hdf_file(object):    # rare case of lower case?!
         :rtype: dict
         '''
         if param_names is None:
-            if valid_only:
-                param_names = self.valid_param_names()
-            else:
-                param_names = self.keys()
+            param_names = self.keys(valid_only)
         param_name_to_obj = {}
         for name in param_names:
             try:
@@ -577,10 +566,8 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Parameter object containing HDF data and attrs.
         :rtype: Parameter
         '''
-        if valid_only and name not in self.valid_param_names():
-            raise KeyError("%s" % name)
-        elif name not in self:
-            # catch exception otherwise HDF will crash and close
+        if name not in self.keys(valid_only):
+            # Exception should be caught otherwise HDF will crash and close!
             raise KeyError("%s" % name)
         elif name in self._params_cache:
             logging.debug("Retrieving param '%s' from HDF cache", name)
@@ -802,12 +789,19 @@ class hdf_file(object):    # rare case of lower case?!
         param_group.attrs['description'] = description
         # TODO: param_group.attrs['available_dependencies'] = param.available_dependencies
         # TODO: Possible to store validity percentage upon name.attrs
-        # TODO: Update valid param names cache rather than clearing it.
-        self._valid_param_names_cache = None
-        self._lfl_keys_cache = None
-        self._derived_keys_cache = None
 
-    def __delitem__(self, param_name):
+        # Update all parameter name caches with updates:
+        for key, cache in self._cache.iteritems():
+            cache.discard(param.name)
+            if not cache:
+                continue  # don't add to the cache if it is empty.
+            if param.lfl and 'derived' in key or not param.lfl and 'lfl' in key:
+                continue
+            if param.invalid and key.startswith('valid'):
+                continue
+            self._cache[key].add(param.name)
+
+    def __delitem__(self, name):
         '''
         Delete a parameter (and associated information) from the HDF.
 
@@ -816,16 +810,12 @@ class hdf_file(object):    # rare case of lower case?!
         :param param_name: Parameter name to be deleted
         :type param_name: String
         '''
-        if param_name in self:
-            del self.hdf['series'][param_name]
-            self._keys_cache.remove(param_name)
-            if self._lfl_keys_cache and param_name in self._lfl_keys_cache:
-                self._lfl_keys_cache.remove(param_name)
-            if (self._derived_keys_cache and
-                param_name in self._derived_keys_cache):
-                self._derived_keys_cache.remove(param_name)
-        else:
-            raise KeyError("%s" % param_name)
+        if name not in self.keys():
+            raise KeyError('%s' % name)
+        del self.hdf['series'][name]
+        for cache in self._cache.itervalues():
+            if name in cache:
+                cache.remove(name)
 
     def delete_params(self, param_names, raise_keyerror=False):
         '''
@@ -846,21 +836,6 @@ class hdf_file(object):    # rare case of lower case?!
                     raise
                 else:
                     pass  # ignore parameters that aren't available
-
-    def valid_param_names(self):
-        '''
-        :returns: Only the names of valid parameters.
-        :rtype: [str]
-        '''
-        if self._valid_param_names_cache is None:
-            valid_params = []
-            for param in self.keys():
-                if self.hdf['series'][param].attrs.get('invalid') == 1:
-                    continue
-                else:
-                    valid_params.append(param)
-            self._valid_param_names_cache = valid_params
-        return copy(self._valid_param_names_cache)
 
     def set_param_limits(self, name, limits):
         '''
