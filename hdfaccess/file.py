@@ -348,11 +348,36 @@ class hdf_file(object):    # rare case of lower case?!
         :type reliable_frame_counter: bool
         :rtype: None
         '''
-        if reliable_frame_counter is None:  # Cannot store None as an HDF attribute.
-            if 'reliable_frame_counter' in self.hdf.attrs:
-                del self.hdf.attrs['reliable_frame_counter']
+        if reliable_frame_counter is None and 'reliable_frame_counter' in self.hdf.attrs:
+            del self.hdf.attrs['reliable_frame_counter']
         else:
             self.hdf.attrs['reliable_frame_counter'] = 1 if reliable_frame_counter else 0
+
+    @property
+    def reliable_subframe_counter(self):
+        '''
+        Accessor for the root-level 'reliable_subframe_counter' attribute.
+
+        :rtype: bool or None
+        '''
+        reliable_subframe_counter = self.hdf.attrs.get('reliable_subframe_counter')
+        return bool(reliable_subframe_counter) if reliable_subframe_counter is not None else None
+
+    @reliable_subframe_counter.setter
+    def reliable_subframe_counter(self, reliable_subframe_counter):
+        '''
+        Mutator for the root-level 'reliable_subframe_counter' attribute.
+        If reliable_subframe_counter is None the 'reliable_subframe_counter' attribute
+        will be deleted.
+
+        :param reliable_subframe_counter: Flag indicating whether frame counter is reliable
+        :type reliable_subframe_counter: bool
+        :rtype: None
+        '''
+        if reliable_subframe_counter is None and 'reliable_subframe_counter' in self.hdf.attrs:
+            del self.hdf.attrs['reliable_subframe_counter']
+        else:
+            self.hdf.attrs['reliable_subframe_counter'] = 1 if reliable_subframe_counter else 0
 
     @property
     def start_datetime(self):
