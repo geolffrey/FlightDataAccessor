@@ -737,6 +737,17 @@ class hdf_file(object):    # rare case of lower case?!
         Parameter.name canot contain forward slashes as they are used as an
         HDF identifier which supports filesystem-style indexing, e.g.
         '/series/CAS'.
+        
+        The following attributes are stored on the parameter:
+         - arinc_429: Whether or not this parameter is recorded using the Digital Information Transfer System (DITS) self-clocking, self-synchronizing data bus protocol.
+         - data_type: The data type of the parameter as defined within the Logical Frame Layout.
+         - description: Optional description of the parameter.
+         - frequency: Frequency/sample rate of the parameter's data.
+         - lfl: Whether this parameter was defined in the Logical Frame Layout or derived within the Flight Data Analyser.
+         - source_name: The name of this parameter within the original frame documentation.
+         - submasks: The storage configuration of array masks which correspond to this parameter stored in JSON in the format {"submask_name": array_index_within_submasks_dataset}, e.g. {"padding": 0}.
+         - supf_offset: The offset of this parameter in seconds within the frame or superframe.
+         - units: The unit this parameter is measured in.
 
         :param param: Parameter like object with attributes name (must not
             contain forward slashes), array.
