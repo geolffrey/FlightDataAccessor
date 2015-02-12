@@ -15,6 +15,7 @@ from datetime import datetime
 
 from sortedcontainers import SortedSet
 
+from flightdatautilities.compression import CompressedFile
 from flightdatautilities.filesystem_tools import pretty_size
 from flightdatautilities.patterns import wildcard_match
 
@@ -74,7 +75,9 @@ class hdf_file(object):    # rare case of lower case?!
             self.file_path = os.path.abspath(file_path_or_obj)
             # Not specifying a mode, will create the file if the path does not
             # exist and open with mode 'r+'.
-            self.hdf = h5py.File(self.file_path)
+            self.compressor = CompressedFile(self.file_path)
+            uncompressed_path = self.compressor.load()
+            self.hdf = h5py.File(uncompressed_path)
 
         self.hdfaccess_version = self.hdf.attrs.get('hdfaccess_version', 1)
         if hdf_exists:
@@ -182,6 +185,7 @@ class hdf_file(object):    # rare case of lower case?!
     def close(self):
         self.hdf.flush()  # Q: required?
         self.hdf.close()
+        self.compressor.save()
 
     # HDF Attribute properties
     ############################################################################
