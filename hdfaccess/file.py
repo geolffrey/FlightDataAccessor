@@ -15,7 +15,7 @@ from datetime import datetime
 
 from sortedcontainers import SortedSet
 
-from flightdatautilities.compression import CompressedFile
+from flightdatautilities.compression import CompressedFile, ReadOnlyCompressedFile
 from flightdatautilities.filesystem_tools import pretty_size
 from flightdatautilities.patterns import wildcard_match
 
@@ -50,7 +50,8 @@ class hdf_file(object):    # rare case of lower case?!
     def __str__(self):
         return self.__repr__().lstrip('<').rstrip('>')
 
-    def __init__(self, file_path_or_obj, cache_param_list=False, create=False):
+    def __init__(self, file_path_or_obj, cache_param_list=False, create=False,
+                 read_only=False):
         '''
         Opens an HDF file (or accepts and already open h5py.File object) - will
         create if does not exist if create=True!
@@ -73,11 +74,14 @@ class hdf_file(object):    # rare case of lower case?!
             if not create and not hdf_exists:
                 raise IOError('File not found: %s' % file_path_or_obj)
             self.file_path = os.path.abspath(file_path_or_obj)
-            # Not specifying a mode, will create the file if the path does not
-            # exist and open with mode 'r+'.
-            self.compressor = CompressedFile(self.file_path)
+            if read_only:
+                self.compressor = ReadOnlyCompressedFile(self.file_path)
+                mode = 'r'
+            else:
+                self.compressor = CompressedFile(self.file_path)
+                mode = 'a'
             uncompressed_path = self.compressor.load()
-            self.hdf = h5py.File(uncompressed_path)
+            self.hdf = h5py.File(uncompressed_path, mode=mode)
 
         self.hdfaccess_version = self.hdf.attrs.get('hdfaccess_version', 1)
         if hdf_exists:
