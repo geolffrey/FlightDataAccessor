@@ -91,9 +91,6 @@ class hdf_file(object):    # rare case of lower case?!
             # just created this file, add the current version
             self.hdf.attrs['hdfaccess_version'] = HDFACCESS_VERSION
 
-        rfc = self.hdf.attrs.get('reliable_frame_counter', 0)
-        self.reliable_frame_counter = rfc == 1
-
         if 'series' not in self.hdf.keys():
             # The 'series' group is required for storing parameters.
             self.hdf.create_group('series')
