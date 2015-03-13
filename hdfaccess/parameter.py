@@ -136,6 +136,18 @@ masked_%(name)s(values = %(sdata)s,
                         (state, valid_states))
             array |= self == state
         return array
+    
+    def tolist(self):
+        '''
+        Returns the array converted into a list of states.
+        
+        :returns: A list of states.
+        :rtype: list
+        '''
+        # OPT: values_mapping in local scope and map masked values (4x speedup)
+        values_mapping = self.values_mapping.copy()
+        values_mapping[None] = None
+        return [values_mapping[x] for x in super(MappedArray, self).tolist()]
 
     @property
     def raw(self):

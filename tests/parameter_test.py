@@ -123,6 +123,11 @@ masked_array(data = [False False  True False False],
         # boolean returned where: array == 'state'
         self.assertEqual(list(ma[ma <= 1]), ['one', '?'])  # last two elements in ma are <= 1
     
+    def test_to_list(self):
+        array = MappedArray([0] * 5 + [1] * 5, values_mapping={0: '-', 1: 'Warning'})
+        self.assertEqual(array.tolist(), ['-'] * 5 + ['Warning'] * 5)
+        array[2] = np.ma.masked
+        self.assertEqual(array.tolist(), ['-'] * 2 + [None] + ['-'] * 2 + ['Warning'] * 5)
     
     def test_set_item(self):
         values_mapping = {1: 'one', 2: 'two', 3: 'three', 4: 'four'}
