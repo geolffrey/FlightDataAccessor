@@ -180,6 +180,7 @@ class hdf_file(object):    # rare case of lower case?!
     # TODO: These are deprecated and should be removed!
     get_param_list = lambda self: self.keys()
     valid_param_names = lambda self: self.keys(valid_only=True)
+    valid_lfl_param_names = lambda self: self.keys(valid_only=True, subset='lfl')
     lfl_keys = lambda self: self.keys(subset='lfl')
     derived_keys = lambda self: self.keys(subset='derived')
 
