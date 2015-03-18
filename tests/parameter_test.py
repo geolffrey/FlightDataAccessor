@@ -123,7 +123,7 @@ masked_array(data = [False False  True False False],
         # boolean returned where: array == 'state'
         self.assertEqual(list(ma[ma <= 1]), ['one', '?'])  # last two elements in ma are <= 1
     
-    def test_to_list(self):
+    def test_tolist(self):
         array = MappedArray([0] * 5 + [1] * 5, values_mapping={0: '-', 1: 'Warning'})
         self.assertEqual(array.tolist(), ['-'] * 5 + ['Warning'] * 5)
         array[2] = np.ma.masked
@@ -283,9 +283,9 @@ class TestParameter(unittest.TestCase):
             'mask1': np.array([1,0,0], dtype=np.bool_),
             'mask2': np.array([1,1,0], dtype=np.bool_),
         }, values_mapping=values_mapping)
-        self.assertEqual(p.get_array().tolist(), [1,None,None])
-        self.assertEqual(p.get_array('mask1').tolist(), [None,2,3])
-        self.assertEqual(p.get_array('mask2').tolist(), [None,None,3])
+        self.assertEqual(p.get_array().raw.tolist(), [1,None,None])
+        self.assertEqual(p.get_array('mask1').raw.tolist(), [None,2,3])
+        self.assertEqual(p.get_array('mask2').raw.tolist(), [None,None,3])
         self.assertTrue(isinstance(p.get_array('mask1'), MappedArray))
 
 
