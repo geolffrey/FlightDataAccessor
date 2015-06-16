@@ -1,5 +1,5 @@
-numpy
+flightdatautilities
 h5py>=2.0.1
+numpy
 simplejson
-FlightDataUtilities
 sortedcontainers
