@@ -452,8 +452,15 @@ class TestHdfFile(unittest.TestCase):
         self.assertNotEqual(id(hdf_a.cache_param_list), id(hdf_b.cache_param_list))
     
     def test_set_invalid(self):
-        self.hdf_file.set_invalid('TEST_PARAM11')
-        p = self.hdf_file['TEST_PARAM11']
+        name = 'TEST_PARAM11'
+        self.hdf_file.set_invalid(name)
+        p = self.hdf_file[name]
         self.assertTrue(p.invalid)
+        self.assertEqual(p.invalidity_reason, '')
+        self.assertTrue(p.array.mask.all())
+        self.hdf_file.set_invalid(name, 'Unplugged')
+        p = self.hdf_file[name]
+        self.assertTrue(p.invalid)
+        self.assertEqual(p.invalidity_reason, 'Unplugged')
         self.assertTrue(p.array.mask.all())
         self.assertRaises(KeyError, self.hdf_file.set_invalid, 'WRONG_NAME')

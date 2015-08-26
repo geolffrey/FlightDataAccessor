@@ -864,12 +864,14 @@ class hdf_file(object):    # rare case of lower case?!
         # Invalidate the parameter cache
         self._params_cache.pop(param.name, None)
     
-    def set_invalid(self, name):
+    def set_invalid(self, name, reason=''):
         '''
         Set a parameter to be invalid and fully masked.
 
         :param name: Parameter name to be set invalid
         :type name: str
+        :param reason: Optional invalidity reason.
+        :type reason: str
         :raises KeyError: If parameter does not exist.
         :rtype: None
         '''
@@ -877,6 +879,7 @@ class hdf_file(object):    # rare case of lower case?!
             raise KeyError('%s' % name)
         param_group = self.hdf['series'][name]
         param_group.attrs['invalid'] = 1
+        param_group.attrs['invalidity_reason'] = reason
         param_group['mask'][:] = True
 
     def __delitem__(self, name):
