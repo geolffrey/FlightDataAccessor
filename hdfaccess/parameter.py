@@ -129,8 +129,12 @@ masked_%(name)s(values = %(sdata)s,
         valid_states = self.values_mapping.values()
         array = zeros(len(self), dtype=bool_)
         for state in states:
-            if not ignore_missing:
-                if state not in valid_states:
+            if state not in valid_states:
+                if ignore_missing:
+                    # do not check array as invalid states cause
+                    # exception level log messages.
+                    continue
+                else:
                     raise ValueError(
                         "State '%s' is not valid. Valid states: '%s'." %
                         (state, valid_states))
