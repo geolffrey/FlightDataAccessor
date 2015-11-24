@@ -276,15 +276,14 @@ masked_%(name)s(values = %(sdata)s,
                     mapped_val = zeros(len(val))
                     # potentially slow if val is a large array!
                     for i, v in enumerate(val):
-                        if v in self.state:
+                        if v is masked:
+                            mapped_val[i] = v
+                        elif v in self.state:
                             # v is a string
                             mapped_val[i] = self.state[v]
                         elif v in self.values_mapping:
                             # v is an int
                             mapped_val[i] = v
-                        elif v is masked:
-                            mapped_val.data[i] = v
-                            mapped_val[i] = masked
                         else:
                             raise KeyError(
                                 "Value '%s' not in values mapping" % v)
