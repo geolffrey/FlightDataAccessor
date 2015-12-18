@@ -140,11 +140,11 @@ masked_%(name)s(values = %(sdata)s,
                         (state, valid_states))
             array |= self == state
         return array
-    
+
     def tolist(self):
         '''
         Returns the array converted into a list of states.
-        
+
         :returns: A list of states.
         :rtype: list
         '''
@@ -340,7 +340,7 @@ class Parameter(object):
             self.array = array
         self.raw_array = array
         # ensure frequency is stored as a float
-        self.frequency = self.sample_rate = self.hz = float(frequency)
+        self.frequency = float(frequency)
         self.offset = offset
         self.arinc_429 = arinc_429
         self.units = units
@@ -355,11 +355,27 @@ class Parameter(object):
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
 
+    @property
+    def sample_rate(self):
+        return self.frequency
+
+    @sample_rate.setter
+    def sample_rate(self, v):
+        self.frequency = v
+
+    @property
+    def hz(self):
+        return self.frequency
+
+    @hz.setter
+    def hz(self, v):
+        self.frequency = v
+
     def get_array(self, submask=None):
         '''
         Get the Parameter's array with an optional submask substituted for the
         mask.
-        
+
         :param submask: Name of submask to return with the array.
         :type submask: str or None
         '''
@@ -372,11 +388,11 @@ class Parameter(object):
                                values_mapping=self.array.values_mapping)
         else:
             return MaskedArray(self.array.data, mask=self.submasks[submask].copy())
-    
+
     def combine_submasks(self):
         '''
         Combine submasks into a single OR'd mask.
-        
+
         :returns: Combined submask.
         :rtype: np.array
         '''
