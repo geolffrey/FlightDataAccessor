@@ -29,7 +29,7 @@ class MappedArray(MaskedArray):
 
     Note: first argument is a MaskedArray object.
 
-    For detils about numpy array subclassing see
+    For details about numpy array subclassing see
     http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
     '''
     def __new__(subtype, *args, **kwargs):
