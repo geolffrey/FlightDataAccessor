@@ -52,7 +52,10 @@ class MappedArray(MaskedArray):
         Finalise the newly created object.
         '''
         super(MappedArray, self).__array_finalize__(obj)
-        ##self.values_mapping = getattr(obj, 'values_mapping', {})
+        if not hasattr(self, 'values_mapping'):
+            master_values_mapping = getattr(obj, 'values_mapping', None)
+            if master_values_mapping:
+                self.values_mapping = master_values_mapping
 
     def __array_wrap__(self, out_arr, context=None):
         '''
