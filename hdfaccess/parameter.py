@@ -186,8 +186,10 @@ masked_%(name)s(values = %(sdata)s,
             elif hasattr(other, '__iter__'):
                 # A list of possibly mixed types is provided, convert string
                 # states where possible.
-                other = [self.state.get(el, None if isinstance(el, basestring)
-                                        else el) for el in other]
+                other = [
+                    masked if el is masked else
+                    self.state.get(el, None if isinstance(el, basestring) else el)
+                    for el in other]
             else:
                 pass  # allow equality by MaskedArray
         return other
