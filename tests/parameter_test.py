@@ -6,7 +6,7 @@ from hdfaccess.parameter import MappedArray, Parameter
 
 class TestMappedArray(unittest.TestCase):
     mapping = {1: 'one', 2: 'two', 3: 'three'}
-    
+
     def test_any_of(self):
         values = [1, 2, 3, 2, 1, 2, 3, 2, 1]
         a = MappedArray(values, mask=[True] + [False] * 8,
@@ -21,7 +21,7 @@ class TestMappedArray(unittest.TestCase):
             result.tolist(),
             [None, False, False, False, True, False, False, False, True],
         )
-    
+
     def test_create_from_list(self):
         values = [1, 2, 3]
         mask = [False, True, False]
@@ -53,7 +53,6 @@ class TestMappedArray(unittest.TestCase):
 
     def test_set_slice(self):
         values = [1, 2, 3, 3]
-        mapping = {1: 'one', 2: 'two', 3: 'three'}
         mask = [False, True, False, True]
         arr = np.ma.MaskedArray(values, mask)
         a = MappedArray(arr, values_mapping=self.mapping)
@@ -122,13 +121,13 @@ masked_array(data = [False False  True False False],
 
         # boolean returned where: array == 'state'
         self.assertEqual(list(ma[ma <= 1]), ['one', '?'])  # last two elements in ma are <= 1
-    
+
     def test_tolist(self):
         array = MappedArray([0] * 5 + [1] * 5, values_mapping={0: '-', 1: 'Warning'})
         self.assertEqual(array.tolist(), ['-'] * 5 + ['Warning'] * 5)
         array[2] = np.ma.masked
         self.assertEqual(array.tolist(), ['-'] * 2 + [None] + ['-'] * 2 + ['Warning'] * 5)
-    
+
     def test_set_item(self):
         values_mapping = {1: 'one', 2: 'two', 3: 'three', 4: 'four'}
         ma = MappedArray(np.ma.arange(1, 5), values_mapping=values_mapping)
@@ -159,7 +158,7 @@ masked_array(data = [False False  True False False],
         self.assertEqual(ma[2], 'two')
         self.assertTrue(ma[3] is np.ma.masked)
         # Set multiple items with a MappedArray.
-        ma[:3] = MappedArray([1,2,3], values_mapping=values_mapping)
+        ma[:3] = MappedArray([1, 2, 3], values_mapping=values_mapping)
         self.assertEqual(ma[0], 'one')
         self.assertEqual(ma[1], 'two')
         self.assertEqual(ma[2], 'three')
@@ -204,7 +203,8 @@ masked_array(data = [False False  True False False],
         np.testing.assert_array_equal(array != 'On', expected)
 
         # Ensure that __ne__ is returning a boolean array!
-        np.testing.assert_array_equal(str(array != 'On'),
+        np.testing.assert_array_equal(
+            str(array != 'On'),
             '[True True True True False False True True False True]')
 
         array[array != 'On'] = np.ma.masked
@@ -244,7 +244,7 @@ class TestParameter(unittest.TestCase):
         # Get a value not in the mapping
         self.assertEqual(p.array[2], '?')
         self.assertEqual(p.raw_array[2], 3)
-    
+
     def test_multivalue_parameter_float_values(self):
         values = [17.5, 10.5, 9]
         mask = [False, True, False]
@@ -258,34 +258,34 @@ class TestParameter(unittest.TestCase):
         # Get a value not in the mapping
         self.assertEqual(p.array[2], '?')
         self.assertEqual(p.raw_array[2], 9)
-    
+
     def test_combine_submasks(self):
         p = Parameter('Submasks', submasks={
-            'mask1': np.array([1,0,0], dtype=np.bool_),
-            'mask2': np.array([1,1,0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool_),
+            'mask2': np.array([1, 1, 0], dtype=np.bool_),
         })
-        self.assertEqual(p.combine_submasks().tolist(), [1,1,0])
-    
+        self.assertEqual(p.combine_submasks().tolist(), [1, 1, 0])
+
     def test_get_array(self):
-        array = np.ma.array([10, 20, 30], mask=[0,1,1])
+        array = np.ma.array([10, 20, 30], mask=[0, 1, 1])
         p = Parameter('Submasks', array=array, submasks={
-            'mask1': np.array([1,0,0], dtype=np.bool_),
-            'mask2': np.array([1,1,0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool_),
+            'mask2': np.array([1, 1, 0], dtype=np.bool_),
         })
-        self.assertEqual(p.get_array().tolist(), [10,None,None])
-        self.assertEqual(p.get_array('mask1').tolist(), [None,20,30])
-        self.assertEqual(p.get_array('mask2').tolist(), [None,None,30])
+        self.assertEqual(p.get_array().tolist(), [10, None, None])
+        self.assertEqual(p.get_array('mask1').tolist(), [None, 20, 30])
+        self.assertEqual(p.get_array('mask2').tolist(), [None, None, 30])
 
     def test_get_array__mapped(self):
-        array = np.ma.array([1, 2, 3], mask=[0,1,1])
-        values_mapping = {1: 'One', 2: 'Two', 3:'Three'}
+        array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
+        values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
-            'mask1': np.array([1,0,0], dtype=np.bool_),
-            'mask2': np.array([1,1,0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool_),
+            'mask2': np.array([1, 1, 0], dtype=np.bool_),
         }, values_mapping=values_mapping)
-        self.assertEqual(p.get_array().raw.tolist(), [1,None,None])
-        self.assertEqual(p.get_array('mask1').raw.tolist(), [None,2,3])
-        self.assertEqual(p.get_array('mask2').raw.tolist(), [None,None,3])
+        self.assertEqual(p.get_array().raw.tolist(), [1, None, None])
+        self.assertEqual(p.get_array('mask1').raw.tolist(), [None, 2, 3])
+        self.assertEqual(p.get_array('mask2').raw.tolist(), [None, None, 3])
         self.assertTrue(isinstance(p.get_array('mask1'), MappedArray))
 
 
