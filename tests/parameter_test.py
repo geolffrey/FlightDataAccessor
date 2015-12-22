@@ -210,6 +210,26 @@ masked_array(data = [False False  True False False],
         array[array != 'On'] = np.ma.masked
         np.testing.assert_array_equal(array.mask, expected)
 
+    def test_array_finalize(self):
+        """
+        Numpy in some cases creates an array derived from the arguments instead
+        of modifying the original object in place.
+
+        In those cases new_array.__array_finalize__() is called to apply all
+        specific initialisations.
+
+        In case of MappedArray it should copy values_mapping from the master
+        object.
+        """
+        data = [0, 0, 0, 0, 1, 1, 0, 0, 1, 0]
+
+        array = np.ma.masked_array(data=data, mask=False)
+        array = MappedArray(array, values_mapping={0: 'Off', 1: 'On'})
+        # if the __array_finalize__ wasn't called this would raise exception:
+        # AttributeError: 'MappedArray' object has no attribute 'values_mapping'
+        result = np.ma.masked_less(array, 1.0)
+        self.assertEquals(array.values_mapping, result.values_mapping)
+
 
 class TestParameter(unittest.TestCase):
     def test_parameter(self):
