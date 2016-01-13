@@ -14,7 +14,7 @@ def copy_file(orig_path, dest_dir=None, postfix='_copy'):
     Creates a copy of the file with the postfix inserted between the filename
     and the extension. Can create copy into a different path (will create
     folders as required)
-    
+
     :param orig_path: Path to original file
     :type orig_path: path
     :param dest_dir: Put copy of file into a different directory, e.g. 'temp/'
@@ -167,13 +167,12 @@ def write_segment(source, segment, dest, boundary):
     if segment.stop:
         # Always round up to next boundary
         supf_stop_secs = (int(segment.stop) / boundary) * boundary
-        
+
         if segment.stop % boundary != 0:
             # Segment does not end on a frame/superframe boundary, include the
             # following frame/superframe.
             supf_stop_secs += boundary
             array_stop_secs = boundary - (segment.stop % boundary)
-
 
     if supf_start_secs == 0 and supf_stop_secs is None:
         logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
@@ -183,7 +182,7 @@ def write_segment(source, segment, dest, boundary):
     with hdf_file(source) as source_hdf:
         if supf_stop_secs is None:
             supf_stop_secs = source_hdf.duration
-        
+
         segment_duration = supf_stop_secs - supf_start_secs
 
         if source_hdf.duration == segment_duration:
@@ -209,11 +208,11 @@ def write_segment(source, segment, dest, boundary):
             dest_hdf.duration = segment_duration  # Overwrite duration.
 
             supf_slice = slice(supf_start_secs, supf_stop_secs)
-            
+
             for param_name in source_hdf.keys():
 
                 #Q: Why not always pad masked values to the next superframe
-                
+
                 param = source_hdf.get_param(
                     param_name, _slice=supf_slice, load_submasks=True)
                 if ((param.hz * 64) % 1) != 0:
@@ -221,13 +220,13 @@ def write_segment(source, segment, dest, boundary):
                         "Parameter '%s' does not record a consistent number of "
                         "values every superframe. Check the LFL definition."
                         % param_name)
-                
+
                 param.array = param.raw_array
-                
+
                 param_start_index = int(array_start_secs * param.hz)
                 param_stop_index = int(len(param.array) -
                                        (array_stop_secs * param.hz))
-                
+
                 # Mask data outside of split.
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked
@@ -252,18 +251,18 @@ def revert_masks(hdf_path, params=None, delete_derived=False):
     with hdf_file(hdf_path) as hdf:
         if not params:
             params = hdf.keys() if delete_derived else hdf.lfl_keys()
-        
+
         for param_name in params:
             param = hdf.get_param(param_name, load_submasks=True)
-            
+
             if not param.lfl:
                 if delete_derived:
                     del hdf[param_name]
                 continue
-            
+
             if 'padding' not in param.submasks:
                 continue
-            
+
             param.array = param.get_array(submask='padding')
             param.submasks = {'padding': param.submasks['padding']}
             param.invalid = False
