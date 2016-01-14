@@ -230,6 +230,23 @@ def write_segment(source, segment, dest, boundary):
                 # Mask data outside of split.
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked
+
+                array_size = int(segment_duration * param.hz)
+                if param.array.size < array_size:
+                    # There's not enough data in the input
+                    # The input data was not aligned to 4s or 64s
+                    # we need to pad the arrays to have the expected number of
+                    # samples
+                    padding_size = array_size - param.array.size
+                    param.array = np.ma.concatenate((
+                        param.array,
+                        np.ma.zeros(padding_size, dtype=param.array.dtype)))
+
+                    for sub_name, submask in param.submasks.items():
+                        param.submasks[sub_name] = np.ma.concatenate((
+                            submask,
+                            np.ma.ones(padding_size, dtype=submask.dtype)))
+
                 for sub_name, submask in param.submasks.items():
                     submask[:param_start_index] = True
                     submask[param_stop_index:] = True
