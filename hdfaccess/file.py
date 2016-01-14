@@ -250,12 +250,12 @@ class hdf_file(object):    # rare case of lower case?!
     def dependency_tree(self):
         '''
         Accessor for the root-level 'dependency_tree' attribute.
-        
+
         Load into a networkx graph like this:
-        
+
         from networkx.readwrite import json_graph
         gr_st = json_graph.loads(self.dependency_tree)
-        
+
         :rtype: list or None
         '''
         dependency_tree = self.hdf.attrs.get('dependency_tree')
@@ -744,7 +744,7 @@ class hdf_file(object):    # rare case of lower case?!
         Parameter.name canot contain forward slashes as they are used as an
         HDF identifier which supports filesystem-style indexing, e.g.
         '/series/CAS'.
-        
+
         The following attributes are stored on the parameter:
          - arinc_429: Whether or not this parameter is recorded using the Digital Information Transfer System (DITS) self-clocking, self-synchronizing data bus protocol.
          - data_type: The data type of the parameter as defined within the Logical Frame Layout.
@@ -863,7 +863,7 @@ class hdf_file(object):    # rare case of lower case?!
 
         # Invalidate the parameter cache
         self._params_cache.pop(param.name, None)
-    
+
     def set_invalid(self, name, reason=''):
         '''
         Set a parameter to be invalid and fully masked.
