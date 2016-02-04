@@ -154,7 +154,7 @@ masked_%(name)s(values = %(sdata)s,
         # OPT: values_mapping in local scope and map masked values (4x speedup)
         values_mapping = self.values_mapping.copy()
         values_mapping[None] = None
-        return [values_mapping[x] for x in super(MappedArray, self).tolist()]
+        return [values_mapping.get(x, x) for x in super(MappedArray, self).tolist()]
 
     @property
     def raw(self):
