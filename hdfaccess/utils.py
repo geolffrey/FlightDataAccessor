@@ -4,36 +4,9 @@ import numpy as np
 import os
 import shutil
 
+from flightdatautilities.filesystem_tools import copy_file
+
 from hdfaccess.file import hdf_file
-
-
-#FIXME: Reinstate import after fixed dependency on utilities
-##from utilities.filesystem_tools import copy_file
-def copy_file(orig_path, dest_dir=None, postfix='_copy'):
-    '''
-    Creates a copy of the file with the postfix inserted between the filename
-    and the extension. Can create copy into a different path (will create
-    folders as required)
-
-    :param orig_path: Path to original file
-    :type orig_path: path
-    :param dest_dir: Put copy of file into a different directory, e.g. 'temp/'
-    :type dest_dir: path
-    :param postfix: Rename copy of file with postfix before file extension
-    :type postfix: string
-    '''
-    assert dest_dir or postfix, "Must define either dest_dir or postfix"
-    path_minus_ext, ext = os.path.splitext(orig_path)
-    if dest_dir:
-        filename = os.path.basename(path_minus_ext)
-        path_minus_ext = os.path.join(dest_dir, filename)
-        if not os.path.isdir(dest_dir):
-            os.makedirs(dest_dir)
-    copy_path = path_minus_ext + postfix + ext
-    if os.path.isfile(copy_path):
-        os.remove(copy_path)
-    shutil.copy(orig_path, copy_path)
-    return copy_path
 
 
 def _copy_attrs(source_group, target_group, deidentify=False):
