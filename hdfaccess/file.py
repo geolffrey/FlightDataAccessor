@@ -253,8 +253,7 @@ class hdf_file(object):    # rare case of lower case?!
 
         Load into a networkx graph like this:
 
-        from networkx.readwrite import json_graph
-        gr_st = json_graph.loads(self.dependency_tree)
+        gr_st = json.loads(self.dependency_tree)
 
         :rtype: list or None
         '''
