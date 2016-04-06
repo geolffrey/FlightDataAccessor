@@ -200,10 +200,6 @@ def write_segment(source, segment, dest, boundary):
                 param_stop_index = int(len(param.array) -
                                        (array_stop_secs * param.hz))
 
-                # Mask data outside of split.
-                param.array[:param_start_index] = np.ma.masked
-                param.array[param_stop_index:] = np.ma.masked
-
                 array_size = int(segment_duration * param.hz)
                 if param.array.size < array_size:
                     # There's not enough data in the input
@@ -219,6 +215,10 @@ def write_segment(source, segment, dest, boundary):
                         param.submasks[sub_name] = np.ma.concatenate((
                             submask,
                             np.ma.ones(padding_size, dtype=submask.dtype)))
+
+                # Mask data outside of split.
+                param.array[:param_start_index] = np.ma.masked
+                param.array[param_stop_index:] = np.ma.masked
 
                 for sub_name, submask in param.submasks.items():
                     submask[:param_start_index] = True
