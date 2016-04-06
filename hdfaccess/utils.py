@@ -206,7 +206,8 @@ def write_segment(source, segment, dest, boundary):
                     # The input data was not aligned to 4s or 64s
                     # we need to pad the arrays to have the expected number of
                     # samples
-                    padding_size = array_size - param.array.size
+                    param_stop_index = param.array.size
+                    padding_size = array_size - param_stop_index
                     param.array = np.ma.concatenate((
                         param.array,
                         np.ma.zeros(padding_size, dtype=param.array.dtype)))
