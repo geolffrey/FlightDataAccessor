@@ -9,8 +9,9 @@ import inspect
 import logging
 import traceback
 
+from collections import defaultdict
 from numpy import bool_
-from numpy.ma import MaskedArray, masked, zeros
+from numpy.ma import in1d, MaskedArray, masked, zeros
 
 from flightdatautilities.array_operations import merge_masks
 
@@ -72,7 +73,9 @@ class MappedArray(MaskedArray):
         '''
         # Update the reverse mappings in self.state
         if key == 'values_mapping':
-            self.state = {v: k for k, v in value.iteritems()}
+            self.state = defaultdict(list)
+            for k, v in value.iteritems():
+                self.state[v].append(k)
         super(MappedArray, self).__setattr__(key, value)
 
     def __repr__(self):
@@ -129,10 +132,9 @@ masked_%(name)s(values = %(sdata)s,
         :rtype: np.ma.array(bool)
         '''
         ignore_missing = kwargs.get('ignore_missing', False)
-        valid_states = self.values_mapping.values()
-        array = zeros(len(self), dtype=bool_)
+        raw_values = []
         for state in states:
-            if state not in valid_states:
+            if state not in self.state:
                 if ignore_missing:
                     # do not check array as invalid states cause
                     # exception level log messages.
@@ -140,9 +142,9 @@ masked_%(name)s(values = %(sdata)s,
                 else:
                     raise ValueError(
                         "State '%s' is not valid. Valid states: '%s'." %
-                        (state, valid_states))
-            array |= self == state
-        return array
+                        (state, self.state.keys()))
+            raw_values.extend(self.state[state])
+        return MaskedArray(in1d(self.raw.data, raw_values), mask=self.mask)
 
     def tolist(self):
         '''
@@ -171,11 +173,8 @@ masked_%(name)s(values = %(sdata)s,
         e.g. 'one' -> 1, ['one', 'two'] -> [1, 2]
         '''
         try:
-            if hasattr(self, 'state') and other in self.state:
-                other = self.state[other]
-            elif hasattr(self, 'values_mapping') \
-                    and other not in self.values_mapping:
-                # the caller is 2 frames down on the stack
+            if hasattr(self, 'values_mapping') and other not in self.values_mapping:
+                # the caller is 2 frames statedown on the stack
                 frame = inspect.stack()[2][0]
                 tb = ''.join(traceback.format_list(
                     traceback.extract_stack(frame, 3)))
@@ -189,9 +188,11 @@ masked_%(name)s(values = %(sdata)s,
             elif hasattr(other, '__iter__'):
                 # A list of possibly mixed types is provided, convert string
                 # states where possible.
+                # XXX: This is only guaranteed to work if there is a single
+                # state per raw value.
                 other = [
                     masked if el is masked else
-                    self.state.get(el, None if isinstance(el, basestring) else el)
+                    self.state[el][0] if el in self.state else None if isinstance(el, basestring) else el
                     for el in other]
             else:
                 pass  # allow equality by MaskedArray
@@ -201,28 +202,52 @@ masked_%(name)s(values = %(sdata)s,
         '''
         Allow comparison with Strings such as array == 'state'
         '''
-        return MaskedArray.__eq__(self.raw, self.__coerce_type(other))
+        try:
+            states = getattr(self, 'state', {}).get(other)
+        except TypeError:
+            states = None
+        return in1d(self.raw.data, states) if states else MaskedArray.__eq__(self.raw, self.__coerce_type(other))
 
     def __ne__(self, other):
         '''
         In MappedArrays, != is always the opposite of ==
         '''
-        return MaskedArray.__ne__(self.raw, self.__coerce_type(other))
+        try:
+            states = getattr(self, 'state', {}).get(other)
+        except TypeError:
+            states = None
+        return in1d(self.raw.data, states, invert=True) if states else MaskedArray.__ne__(self.raw, self.__coerce_type(other))
 
     def __gt__(self, other):
         '''
         works - but comparing against string states is not recommended
         '''
-        return MaskedArray.__gt__(self.raw, self.__coerce_type(other))
+        try:
+            states = getattr(self, 'state', {}).get(other)
+        except TypeError:
+            states = None
+        return MaskedArray.__gt__(self.raw, max(states) if states else self.__coerce_type(other))
 
     def __ge__(self, other):
-        return MaskedArray.__ge__(self.raw, self.__coerce_type(other))
+        try:
+            states = getattr(self, 'state', {}).get(other)
+        except TypeError:
+            states = None
+        return MaskedArray.__ge__(self.raw, max(states) if states else self.__coerce_type(other))
 
     def __lt__(self, other):
-        return MaskedArray.__lt__(self.raw, self.__coerce_type(other))
+        try:
+            states = getattr(self, 'state', {}).get(other)
+        except TypeError:
+            states = None
+        return MaskedArray.__lt__(self.raw, min(states) if states else self.__coerce_type(other))
 
     def __le__(self, other):
-        return MaskedArray.__le__(self.raw, self.__coerce_type(other))
+        try:
+            states = getattr(self, 'state', {}).get(other)
+        except TypeError:
+            states = None
+        return MaskedArray.__le__(self.raw, min(states) if states else self.__coerce_type(other))
 
     def __getitem__(self, key):
         '''
@@ -264,7 +289,7 @@ masked_%(name)s(values = %(sdata)s,
             if isinstance(val, basestring):
                 # expecting self[:3] = 'one'
                 return super(MappedArray, self).__setitem__(
-                    key, self.state[val])
+                    key, self.state[val][0])
             else:
                 # expecting the following options (all the same):
                 # self[:3] = ['two', 'two', 'two']
@@ -285,7 +310,7 @@ masked_%(name)s(values = %(sdata)s,
                             mapped_val[i] = v
                         elif v in self.state:
                             # v is a string
-                            mapped_val[i] = self.state[v]
+                            mapped_val[i] = self.state[v][0]
                         elif v in self.values_mapping:
                             # v is an int
                             mapped_val[i] = v

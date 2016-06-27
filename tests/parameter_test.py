@@ -49,7 +49,7 @@ class TestMappedArray(unittest.TestCase):
         self.assertTrue(a[1] is np.ma.masked)
         # get mapped data value
         self.assertEqual(type(a), MappedArray)
-        self.assertEqual(a.state['one'], 1)
+        self.assertEqual(a.state['one'], [1])
 
     def test_set_slice(self):
         values = [1, 2, 3, 3]
@@ -205,7 +205,7 @@ masked_array(data = [False False  True False False],
         # Ensure that __ne__ is returning a boolean array!
         np.testing.assert_array_equal(
             str(array != 'On'),
-            '[True True True True False False True True False True]')
+            '[ True  True  True  True False False  True  True False  True]')
 
         array[array != 'On'] = np.ma.masked
         np.testing.assert_array_equal(array.mask, expected)
@@ -229,6 +229,25 @@ masked_array(data = [False False  True False False],
         # AttributeError: 'MappedArray' object has no attribute 'values_mapping'
         result = np.ma.masked_less(array, 1.0)
         self.assertEquals(array.values_mapping, result.values_mapping)
+    
+    def test_duplicate_values(self):
+        values_mapping = {0: 'A', 1: 'A', 2: 'B', 3: 'C', 5: 'C'}
+        data = [0, 1, 2, 3, 4, 5]
+        
+        array = np.ma.masked_array(data, mask=False)
+        array = MappedArray(array, values_mapping=values_mapping)
+        self.assertEqual(array[0], 'A')
+        self.assertEqual(array[1], 'A')
+        self.assertEqual(array[2], 'B')
+        self.assertEqual(array[3], 'C')
+        self.assertEqual(array[4], '?')
+        self.assertEqual(array[5], 'C')
+        
+        self.assertEqual(array.state['A'], [0, 1])
+        self.assertEqual(array.state['B'], [2])
+        self.assertEqual(array.state['C'], [3, 5])
+        
+        self.assertEqual((array == 'A').tolist(), [True, True, False, False, False, False])
 
 
 class TestParameter(unittest.TestCase):
