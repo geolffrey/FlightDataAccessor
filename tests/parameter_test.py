@@ -205,7 +205,7 @@ masked_array(data = [False False  True False False],
         # Ensure that __ne__ is returning a boolean array!
         np.testing.assert_array_equal(
             str(array != 'On'),
-            '[ True  True  True  True False False  True  True False  True]')
+            '[True True True True False False True True False True]')
 
         array[array != 'On'] = np.ma.masked
         np.testing.assert_array_equal(array.mask, expected)

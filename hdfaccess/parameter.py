@@ -198,56 +198,59 @@ masked_%(name)s(values = %(sdata)s,
                 pass  # allow equality by MaskedArray
         return other
 
+    def __raw_values__(self, state):
+        '''
+        :type state: str
+        :returns: Raw values corresponding to state.
+        '''
+        try:
+            return getattr(self, 'state', {}).get(state)
+        except TypeError:
+            return None
+
+    def __equality__(self, other, invert=False):
+        '''
+        Test equality or inequality allowing for multiple raw values matching a
+        state.
+        '''
+        raw_values = self.__raw_values__(other)
+        if raw_values:
+            return MaskedArray(in1d(self.raw.data, raw_values, invert=invert), mask=self.mask)
+        else:
+            method = MaskedArray.__ne__ if invert else MaskedArray.__eq__
+            return method(self.raw, self.__coerce_type(other))
+    
+    def __relational__(self, other, method, aggregate):
+        raw_values = self.__raw_values__(other)
+        other = aggregate(raw_values) if raw_values else self.__coerce_type(other)
+        return method(self.raw, other)
+
     def __eq__(self, other):
         '''
         Allow comparison with Strings such as array == 'state'
         '''
-        try:
-            states = getattr(self, 'state', {}).get(other)
-        except TypeError:
-            states = None
-        return in1d(self.raw.data, states) if states else MaskedArray.__eq__(self.raw, self.__coerce_type(other))
+        return self.__equality__(other)
 
     def __ne__(self, other):
         '''
         In MappedArrays, != is always the opposite of ==
         '''
-        try:
-            states = getattr(self, 'state', {}).get(other)
-        except TypeError:
-            states = None
-        return in1d(self.raw.data, states, invert=True) if states else MaskedArray.__ne__(self.raw, self.__coerce_type(other))
+        return self.__equality__(other, invert=True)
 
     def __gt__(self, other):
         '''
         works - but comparing against string states is not recommended
         '''
-        try:
-            states = getattr(self, 'state', {}).get(other)
-        except TypeError:
-            states = None
-        return MaskedArray.__gt__(self.raw, max(states) if states else self.__coerce_type(other))
+        return self.__relational__(other, MaskedArray.__gt__, max)
 
     def __ge__(self, other):
-        try:
-            states = getattr(self, 'state', {}).get(other)
-        except TypeError:
-            states = None
-        return MaskedArray.__ge__(self.raw, max(states) if states else self.__coerce_type(other))
+        return self.__relational__(other, MaskedArray.__ge__, max)
 
     def __lt__(self, other):
-        try:
-            states = getattr(self, 'state', {}).get(other)
-        except TypeError:
-            states = None
-        return MaskedArray.__lt__(self.raw, min(states) if states else self.__coerce_type(other))
+        return self.__relational__(other, MaskedArray.__lt__, min)
 
     def __le__(self, other):
-        try:
-            states = getattr(self, 'state', {}).get(other)
-        except TypeError:
-            states = None
-        return MaskedArray.__le__(self.raw, min(states) if states else self.__coerce_type(other))
+        return self.__relational__(other, MaskedArray.__le__, min)
 
     def __getitem__(self, key):
         '''
