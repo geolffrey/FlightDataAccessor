@@ -76,6 +76,7 @@ class MappedArray(MaskedArray):
             self.state = defaultdict(list)
             for k, v in value.iteritems():
                 self.state[v].append(k)
+            self.state = dict(self.state)
         super(MappedArray, self).__setattr__(key, value)
 
     def __repr__(self):
