@@ -205,7 +205,7 @@ masked_%(name)s(values = %(sdata)s,
         :returns: Raw values corresponding to state.
         '''
         try:
-            return self.state[state]
+            return getattr(self, 'state', {})[state]
         except KeyError:
             if isinstance(state, basestring):
                 raise
