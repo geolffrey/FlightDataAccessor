@@ -248,6 +248,17 @@ masked_array(data = [False False  True False False],
         self.assertEqual(array.state['C'], [3, 5])
         
         self.assertEqual((array == 'A').tolist(), [True, True, False, False, False, False])
+    
+    def test_missing_state(self):
+        values_mapping = {0: 'A', 1: 'B', 2: 'C'}
+        array = MappedArray([0, 0, 0, 1, 2, 1, 0, 0], mask=[True] * 2 + [False] * 5 + [True], values_mapping=values_mapping)
+        self.assertEqual((array == 'A').tolist(), [None, None, True, False, False, False, True, None])
+        self.assertRaises(KeyError, array.__eq__, 'D')
+        self.assertRaises(KeyError, array.__ne__, 'E')
+        self.assertRaises(KeyError, array.__gt__, 'F')
+        self.assertRaises(KeyError, array.__ge__, 'G')
+        self.assertRaises(KeyError, array.__lt__, 'H')
+        self.assertRaises(KeyError, array.__le__, 'I')
 
 
 class TestParameter(unittest.TestCase):

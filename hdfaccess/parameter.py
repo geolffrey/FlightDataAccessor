@@ -205,9 +205,13 @@ masked_%(name)s(values = %(sdata)s,
         :returns: Raw values corresponding to state.
         '''
         try:
-            return getattr(self, 'state', {}).get(state)
+            return self.state[state]
+        except KeyError:
+            if isinstance(state, basestring):
+                raise
         except TypeError:
-            return None
+            pass
+        return None
 
     def __equality__(self, other, invert=False):
         '''
