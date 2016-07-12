@@ -44,8 +44,11 @@ class hdf_file(object):    # rare case of lower case?!
         Displays open or closed state (assists reopening)
         '''
         state = 'Open' if self.hdf.id else 'Closed'
-        size = pretty_size(os.path.getsize(self.file_path))
-        return '<%s HDF5 %s (%d parameters) %s>' % (state, size, len(self), self.file_path)
+        try:
+            size = pretty_size(os.path.getsize(self.file_path))
+        except OSError:
+            size = 'unknown size'
+        return '<%s HDF5 (%s, %d parameters) %s>' % (state, size, len(self), self.file_path)
 
     def __str__(self):
         return self.__repr__().lstrip('<').rstrip('>')
