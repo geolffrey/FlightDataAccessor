@@ -5,36 +5,28 @@ import sys
 import json
 import logging
 import numpy as np
+
 from hdfaccess.file import hdf_file
 from analysis_engine.utils import list_parameters
 from flightdatautilities import units as ut
-
 from collections import Counter
 
-LOG_FORMAT_STR = r'%(levelname)-10s - %(name)-10s - %(message)s'
-STOP_ON_ERROR = False
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format=LOG_FORMAT_STR,
-)
 logger = logging.getLogger(__name__)
 
+class StoppedOnFirstError(Exception):
+    pass
 
-
-class Tee(object):
-    def __init__(self, name, mode):
-        self.file = open(name, mode)
-        self.stdout = sys.stdout
-        sys.stdout = self
-    def __del__(self):
-        sys.stdout = self.stdout
-        self.file.close()
-    def write(self, data):
-        self.file.write(data)
-        self.stdout.write(data)
-
-
+class StopOnFirstErrorHandler(logging.StreamHandler):
+    """
+    A handler to raise stop on the first error log.
+    """  
+    def __init__(self):
+        super(StopOnFirstErrorHandler, self).__init__()
+        
+    def emit(self, record):
+        super(StopOnFirstErrorHandler, self).emit(record)
+        if record.levelno >= 40:
+            raise StoppedOnFirstError()
 
 VALID_FREQUENCIES = {
     # base 2 frequencies
@@ -413,7 +405,7 @@ def validate_namespace(hdf5):
 #==============================================================================
 #   Root Attributes
 #==============================================================================
-def validate_root_attribute(hdf, stop_on_error):
+def validate_root_attribute(hdf):
     title("Checking the Root attributes", '=')
     validate_duration_attribute(hdf)
     validate_frequencies_attribute(hdf)
@@ -597,7 +589,7 @@ def validate_superframe_present_attribute(hdf):
         print "superframe_present attribute is not present and is optional."
 
 
-def validate_file(hdffile, stop_on_error):
+def validate_file(hdffile):
     filename = hdffile.split(os.sep)[-1]
     open_with_h5py = False
     logger.info("Verifying file '%s' with FlightDataAccessor." % (filename,))
@@ -629,7 +621,7 @@ def validate_file(hdffile, stop_on_error):
     else:
         validate_namespace(hdf.hdf)
         #continue testing using FlightDataAccessor
-        validate_root_attribute(hdf, stop_on_error)
+        validate_root_attribute(hdf)
         check_parameter_names(hdf)
         check_for_core_parameters(hdf)
         validate_parameter_attributes(hdf)
@@ -637,10 +629,6 @@ def validate_file(hdffile, stop_on_error):
     logger.info("Validation ended with %s passes, %s errors and %s warnings" \
           % (result['passed'], result['failed'], result['warning']))
     hdf.close()
-        
-    
-    
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -651,37 +639,58 @@ def main():
     parser.add_argument(
         "-s",
         "--stop",
-        help="Will stop on the first issue encountered.",
+        help="stop on the first error encountered.",
         action="store_true"
     )
     parser.add_argument(
-        "-r",
-        "--report",
-        help="Generate a report file.",
-        metavar='FILE'
-    )
+        "-n",
+        "--nolog",
+        help="no log report file generated.",
+        action="store_true"
+    ) 
+    parser.add_argument(
+        "-e",
+        "--erroronly",
+        help="display only warnings and errors on screen.",
+        action="store_true"
+    )     
     parser.add_argument(
         'file',
         help="Input HDF5 to be tested for POLARIS compatibility."
     )    
     args = parser.parse_args()
-    if args.report:
-        #Tee(args.report, 'w')
-        pass
 
     #Setup logger 
-    logfilename = args.file.split(os.sep)[-1]
-    logfilename = logfilename.replace('.hdf5','')\
-        .replace('.bz2','').replace('.gz','')
-    logfilename = logfilename + ".log"
-    handler = logging.FileHandler(logfilename, mode='w')
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(LOG_FORMAT_STR)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.debug("args: %s" % (str(args),))
-    validate_file(args.file, args.stop)
-
+    fmtr = logging.Formatter(r'%(levelname)-10s - %(name)-10s - %(message)s')
+    #setup a file handler 
+    if args.nolog is False:
+        logfilename = args.file.split(os.sep)[-1]
+        logfilename = logfilename.replace('.hdf5','')\
+            .replace('.bz2','').replace('.gz','')
+        logfilename = logfilename + ".log"
+        handler = logging.FileHandler(logfilename, mode='w')
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(fmtr)
+        logger.addHandler(handler)
+    
+    #setup a stream handler
+    if args.stop:
+        sh = StopOnFirstErrorHandler()
+    else:
+        sh = logging.StreamHandler()
+    if args.erroronly:
+        sh.setLevel(logging.ERROR)
+    else:
+        sh.setLevel(logging.INFO)
+    sh.setFormatter(fmtr)
+    logger.addHandler(sh)
+    
+    logger.setLevel(logging.DEBUG)
+    logger.debug("Arguments: %s" % (str(args),))
+    try:
+        validate_file(args.file)
+    except StoppedOnFirstError:
+        logger.info("First error encountered. Stopping as requested.")
 
 
 if __name__ == '__main__':
