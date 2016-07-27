@@ -340,23 +340,27 @@ def validate_supf_offset(hdf, name, parameter):
 
 def validate_units(hdf, name, parameter):
     logger.info("Checking parameter attribute: units")
-    if 'string' not in type(parameter.units).__name__:
-        logger.error("'units' expected to be a string, got %s" \
-                     % (type(parameter.units).__name__))
+
     if parameter.units is None:
         logger.error("No attribute 'units' for '%s'. Attribute is Required."\
                      % (name,))
         result['failed'] += 1
-    elif parameter.units is "":
-        logger.info("Attribute 'units' is present for '%s', but empty."\
-                    % (name,))
-    elif parameter.units in ut.available():
-        logger.info("Attribute 'units' is present for '%s' and has a valid unit "\
-                    "of '%s'." % (name, parameter.units))   
-    elif parameter.units not in ut.available():
-        logger.error("Attribute 'units' is present for '%s' and has an "\
-                     "unknown unit of '%s'." % (name, parameter.units))
-        result['failed'] += 1
+    else:
+        if type(parameter.units).__name__ not in ['str', 'string']:
+            logger.error("'units' expected to be a string, got %s" \
+                         % (type(parameter.units).__name__))    
+        if parameter.units is "":
+            logger.info("Attribute 'units' is present for '%s', but empty."\
+                        % (name,))
+        elif parameter.units in ut.available():
+            logger.info(
+                "Attribute 'units' is present for '%s' and has a valid unit "\
+                "of '%s'." % (name, parameter.units)
+            )   
+        else:
+            logger.error("Attribute 'units' is present for '%s' and has an "\
+                         "unknown unit of '%s'." % (name, parameter.units))
+            result['failed'] += 1
 
 
 def validate_values_mapping(hdf, name, parameter):
@@ -385,7 +389,29 @@ def validate_values_mapping(hdf, name, parameter):
             logger.error("'values_mapping' is not a valid JSON string. (%s)"\
                          % (e, ))
             result['failed'] += 1
-        
+        if parameter.data_type == 'Discrete':
+            try: 
+                value0 = parameter.values_mapping[0] # False values
+                logger.debug("discrete value of 0 mapps to %s." % (value0))
+            except KeyError as e:
+                logger.debug("discrete value of 0 has no mapping.")
+            try:
+                value1 = parameter.values_mapping[1] # True values
+                if value1 in ["", "-"]:
+                    logger.error("discrete value of 1 should map to a non "\
+                                 "emtpy (or '-') string value of 1. Got '%s'." \
+                                 % (value1,))
+                else:
+                    logger.debug("discrete value of 1 mapps to %s" % (value1))                
+            except:
+                logger.error("discrete value of 1 has no mapping. Needs "\
+                             "to have a mapping for this value.")
+            if len(parameter.values_mapping.keys()) > 2:
+                logger.error("'%s' a discrete parameter, but values_mapping "\
+                             "attribute has %s values should be no "\
+                             "more than 2." \
+                             % (name, len(parameter.data_type.keys())))
+                
 
 
 def validate_dataset(hdf, name, parameter):
@@ -730,7 +756,7 @@ def main():
     args = parser.parse_args()
 
     #Setup logger 
-    fmtr = logging.Formatter(r'%(levelname)-10s - %(name)-10s - %(message)s')
+    fmtr = logging.Formatter(r'%(levelname)-8s - %(name)-8s - %(message)s')
     #setup a file handler 
     if args.nolog is False:
         logfilename = args.file.split(os.sep)[-1]
