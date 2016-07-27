@@ -3,12 +3,24 @@ import argparse
 import os
 import sys
 import json
+import logging
 import numpy as np
 from hdfaccess.file import hdf_file
 from analysis_engine.utils import list_parameters
 from flightdatautilities import units as ut
 
 from collections import Counter
+
+LOG_FORMAT_STR = r'%(levelname)-10s - %(name)-10s - %(message)s'
+STOP_ON_ERROR = False
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format=LOG_FORMAT_STR,
+)
+logger = logging.getLogger(__name__)
+
+
 
 class Tee(object):
     def __init__(self, name, mode):
@@ -21,6 +33,8 @@ class Tee(object):
     def write(self, data):
         self.file.write(data)
         self.stdout.write(data)
+
+
 
 VALID_FREQUENCIES = {
     # base 2 frequencies
@@ -71,9 +85,9 @@ result = {
 }
 
 def title(title, line='-'):
-    print "%s" % ('_'*80)
-    print title
-    print "%s" % (line*len(title),)
+    logger.info("%s" % ('_'*80))
+    logger.info(title)
+    logger.info("%s" % (line*len(title),))
 
 def check_parameter_names(hdf):
     params_from_file = set(hdf.keys())
@@ -347,51 +361,54 @@ def validate_dataset(hdf, name, parameter):
     #print "%s" % (parameter.array.data.shape)
     #TODO: other tests
 
-def validate_root_group(hdf5):
+def validate_namespace(hdf5):
     '''Uses h5py functions to verify what is stored on the root group'''
     found = ''
     title("Checking for the namespace 'series' group on root", '=')
     if 'series' in hdf5.keys():
-        print "Passed: 'series' found on root."
+        logger.info("Found the POLARIS namespace 'series' on root.")
         found = 'series'
         result['passed'] += 1
     else:
         found = [g for g in hdf5.keys() if 'series' in g.lower()]
         if found:
-            print "Error: '%s' was found, but needs to be in lower case." \
-                  % (found,)
+            # series found but in the wrong case.
+            logger.error("Namespace '%s' found, but needs to be in "\
+                         "lower case." % (found,))
             result['failed'] += 1
         else:
-            print "Error: 'series' was not found on root."
+            logger.error("Namespace 'series' was not found on root.")
             result['failed'] += 1
                 
-    print "Checking group on root..."
+    logger.info("Checking for other namespace groups on root.")
     group_num = len(hdf5.keys())
     
     show_groups = False
     if group_num is 1 and 'series' in found:
-        print "Passed: 'series' is the only group on root."
+        logger.info("Namespace 'series' is the only group on root.")
         result['passed'] += 1
     elif group_num is 1 and 'series' not in found:
-        print "Error: Only one group on root, but it's not 'series'."
+        logger.error("Only one namespace on root, but it's not 'series'.")
         result['failed'] += 1
         show_groups = True
     elif group_num is 0:
-        print "Error: No groups in found in the file."
+        logger.error("No namespace groups in found in the file.")
         result['failed'] += 1
     elif group_num > 1 and 'series' in found:
-        print "Warning: 'series' found along with %s addtional groups. "\
-              "There should only be 1 group named 'series'." % (group_num-1,)
+        logger.warn("Namespace 'series' found along with %s addtional "\
+                    "groups." % (group_num-1,))
         result['warning'] += 1
         show_groups = True
     elif group_num > 1:
-        print "Error: %s groups were found on root. " % (group_num,)
+        logger.error("%s namespace groups are on root, but not 'series'." \
+                     % (group_num,))
         result['failed'] += 1
         show_groups = True
     if show_groups:
-        print "The following groups are on root %s" \
-              % ([g for g in hdf5.keys() if 'series' not in g],)
-        print "If these are parmeters they must be stored within 'series'."
+        logger.debug("The following namespace groups are on root: %s" \
+                     % ([g for g in hdf5.keys() if 'series' not in g],))
+        logger.info("If these are parmeters they must be stored "\
+                    "within 'series'.")
         
 #==============================================================================
 #   Root Attributes
@@ -583,15 +600,16 @@ def validate_superframe_present_attribute(hdf):
 def validate_file(hdffile, stop_on_error):
     filename = hdffile.split(os.sep)[-1]
     open_with_h5py = False
-    print "Verifying '%s' with FlightDataAccessor." % (filename,)
+    logger.info("Verifying file '%s' with FlightDataAccessor." % (filename,))
     try:
         hdf = hdf_file(hdffile, read_only=True)
         result['passed'] += 1
     except Exception as e:
-        print "%s: %s" % (type(e).__name__, e)
-        print "Error: FlightDataAccessor cannot open '%s'." % (filename,)
+        logger.error("FlightDataAccessor cannot open '%s'. "\
+                     "Exception(%s: %s)" % (filename, type(e).__name__, e))
+
         result['failed'] += 1
-        print "Checking file with H5PY package."
+        logger.info("Checking that H5PY package can read the file.")
         open_with_h5py = True
     # If FlightDataAccessor errors upon opening it maybe because '/series'
     # is not included in the file. hdf_file attempts to create and fails 
@@ -600,23 +618,24 @@ def validate_file(hdffile, stop_on_error):
     if open_with_h5py:
         try:
             hdf = h5py.File(hdffile, 'r')
-            print "%s can be opened by H5PY package, suggesting the HDF5 "\
-                  "file is not compatible for POLARIS" % (filename,)
+            logger.info("File %s can be opened by H5PY, suggesting "\
+                        "the format is not compatible for POLARIS to use." \
+                        % (filename,))
         except Exception as e:
-            print "%s: %s" % (type(e).__name__, e)
-            print "H5PY cannot open '%s'." % (filename,)
+            logger.error("cannot open '%s' using H5PY. Exception(%s: %s)" \
+                         % (filename, type(e).__name__, e))
             return
-        validate_root_group(hdf)
+        validate_namespace(hdf)
     else:
-        validate_root_group(hdf.hdf)
+        validate_namespace(hdf.hdf)
         #continue testing using FlightDataAccessor
         validate_root_attribute(hdf, stop_on_error)
         check_parameter_names(hdf)
         check_for_core_parameters(hdf)
         validate_parameter_attributes(hdf)
     title("Results", '=')
-    print "Validation ended with %s passes, %s errors and %s warnings" \
-          % (result['passed'], result['failed'], result['warning'])
+    logger.info("Validation ended with %s passes, %s errors and %s warnings" \
+          % (result['passed'], result['failed'], result['warning']))
     hdf.close()
         
     
@@ -647,7 +666,20 @@ def main():
     )    
     args = parser.parse_args()
     if args.report:
-        Tee(args.report, 'w')
+        #Tee(args.report, 'w')
+        pass
+
+    #Setup logger 
+    logfilename = args.file.split(os.sep)[-1]
+    logfilename = logfilename.replace('.hdf5','')\
+        .replace('.bz2','').replace('.gz','')
+    logfilename = logfilename + ".log"
+    handler = logging.FileHandler(logfilename, mode='w')
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(LOG_FORMAT_STR)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.debug("args: %s" % (str(args),))
     validate_file(args.file, args.stop)
 
 
