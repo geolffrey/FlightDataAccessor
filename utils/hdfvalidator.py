@@ -76,12 +76,17 @@ result = {
     'warning': 0,
 }
 
-def title(title, line='-'):
-    logger.info("%s" % ('_'*80))
+def subtitle(subtitle):
+    title(subtitle, line='-', section=False)
+
+def title(title, line='=', section=True):
+    if section:
+        logger.info("%s" % ('_'*80))
     logger.info(title)
     logger.info("%s" % (line*len(title),))
 
 def check_parameter_names(hdf):
+    subtitle("Checking parameter names")
     params_from_file = set(hdf.keys())
     parameter_naming = set(list_parameters()) | set(EXTRA_PARAMETERS)
     matched_names = set()
@@ -90,16 +95,30 @@ def check_parameter_names(hdf):
         if found:
             matched_names.update(found)
     unmatched_names = params_from_file - matched_names
-    if unmatched_names:
-        print "Number of parameter recongnised by POLARIS: %s" \
-              % (len(matched_names),)
-        print "Number of parameters unrecongnised by POLARIS: %s" \
-              % (len(unmatched_names),)
-        print "The following parameters names are unrecognised by "\
-              "POLARIS: %s" % (unmatched_names,)
+    if not matched_names:
+        logger.error(
+            "All %s parameters are unrecongnised by POLARIS." \
+            % (len(unmatched_names),)
+        )
+    elif unmatched_names:
+        logger.info(
+            "Number of parameter recongnised by POLARIS: %s" \
+            % (len(matched_names),)
+        )
+        logger.warn(
+            "Number of parameters unrecongnised by POLARIS: %s" \
+            % (len(unmatched_names),)
+        )
+        logger.debug(
+            "The following parameters names are unrecognised by "\
+            "POLARIS: %s" % (unmatched_names,)
+        )
     else:
-        print "All %s parameters are recongnised by POLARIS." \
-              % (len(matched_names),)
+        logger.info(
+            "All %s parameters are recongnised by POLARIS." \
+            % (len(matched_names),)
+        )
+    return (tuple(matched_names), tuple(unmatched_names))
         
 def check_for_core_parameters(hdf):
     params_from_file = hdf.keys()
@@ -107,256 +126,298 @@ def check_for_core_parameters(hdf):
     altitude = 'Altitude STD' in params_from_file
     heading = 'Heading' in params_from_file
     heading_true = 'Heading True' in params_from_file
+    core_available = airspeed and altitude and (heading or heading_true)
     
-    if airspeed and altitude and (heading or heading_true):
-        print "Passed: All core parameters available for analysis."
+    if core_available:
+        logger.info("All core parameters available for analysis.")
         if heading_true and not heading:
-            print "Analysis will use 'Heading True' as no 'Heading' available."
-        return 
+            logger.info("Analysis will use parameter 'Heading True' as "\
+                        "parameter 'Heading' not available.")
     else:
         if not airspeed:
-            print "Error: 'Airspeed' not found."
+            logger.error("Parameter 'Airspeed' not found. Required as one "\
+                         "of the core parameters for analysis.")
             result['failed'] += 1
         if not altitude:
-            print "Error: 'Altitude STD' not found."
+            logger.error("Parameter 'Altitude STD' not found. Required as "\
+                         "one of the core parameters for analysis.")
             result['failed'] += 1
         if not heading and not heading_true:
-            print "Error: 'Heading' and 'Heading True' not found."
+            logger.error("Parameter 'Heading' and 'Heading True' not found. "\
+                         "One of these parameters is required for analysis.")
             result['failed'] += 1
+    return core_available
             
 #==============================================================================
 #   Parameter's Attributes
 #==============================================================================
-def validate_parameter_attributes(hdf):
+def validate_parameters(hdf):
+    title("Checking Parameters")
+    rc = 0
+    matched, unmatched = check_parameter_names(hdf)
+    core_available = check_for_core_parameters(hdf)    
     for name, parameter in hdf.iteritems():
-        title("Checking Attribute for Parameter: %s" % (name))
-        validate_arinc_429(hdf, name, parameter)
-        validate_data_type(hdf, name, parameter)
-        validate_frequency(hdf, name, parameter)
-        validate_lfl(hdf, name, parameter)
-        validate_name(hdf, name, parameter)
-        validate_source_name(hdf, name, parameter)
-        validate_supf_offset(hdf, name, parameter)
-        validate_units(hdf, name, parameter)
-        validate_values_mapping(hdf, name, parameter)
-        validate_dataset(hdf, name, parameter)
+        title("Checking Parameter: %s" % (name,))
+        if name in matched:
+            logger.info("'%s' is a recongnised by POLARIS." % (name,))
+        else:
+            logger.warn("'%s' is a unrecongnised by POLARIS." % (name,))
+        if name in CORE_PARAMETERS:
+            logger.info("'%s' is a core parameter required for basic "\
+                        "analysis." % (name,))
+        validate_parameter_attributes(hdf, name, parameter)
+        validate_parameters_dataset(hdf, name, parameter)
+    return rc
+
+def validate_parameter_attributes(hdf, name, parameter):
+    subtitle("Checking Attribute for Parameter: %s" % (name,))
+    validate_arinc_429(hdf, name, parameter)
+    validate_data_type(hdf, name, parameter)
+    validate_frequency(hdf, name, parameter)
+    validate_lfl(hdf, name, parameter)
+    validate_name(hdf, name, parameter)
+    validate_source_name(hdf, name, parameter)
+    validate_supf_offset(hdf, name, parameter)
+    validate_units(hdf, name, parameter)
+    validate_values_mapping(hdf, name, parameter)
+
+#==============================================================================
+#   Parameter's Attributes
+#==============================================================================
+def validate_parameters_dataset(hdf, name, parameter):
+    subtitle("Checking dataset for Parameter: %s" % (name,))
+    validate_dataset(hdf, name, parameter)
 
 def validate_arinc_429(hdf, name, parameter):
-    print "Checking parameter attribute: arinc_429"
+    logger.info("Checking parameter attribute: arinc_429")
     if parameter.arinc_429 is None:
-        print "No attribute 'arinc_429'. '%s' does not have an ARINC "\
-              "429 source." % name
-        return
+        logger.warn("No attribute 'arinc_429'. '%s' does not have an ARINC "\
+                    "429 source." % name)
     else:
         if 'bool' not in type(parameter.arinc_429).__name__:
-            print "Error: Attribute 'arinc_429' is not a Boolean type."
+            logger.error("Error: Attribute 'arinc_429' is not a Boolean type.")
             result['failed'] += 1
         if parameter.arinc_429:
-            print "'%s' has an ARINC 429 source." % name
+            logger.info("'%s' has an ARINC 429 source." % name)
         else:
-            print "'%s' does not have an ARINC 429 source." % name
+            logger.info("'%s' does not have an ARINC 429 source." % name)
 
 def validate_data_type(hdf, name, parameter):
-    print "Checking parameter attribute: data_type"
+    logger.info("Checking parameter attribute: data_type")
     if parameter.data_type is None:
-        print "Error: No attribute 'data_type' present for '%s'. "\
-              "This is required attribute." % (name,)
-        result['failed'] += 1
-        return 
+        logger.error(
+            "No attribute 'data_type' present for '%s'. "\
+            "This is required attribute." % (name,)
+        )
+        result['failed'] += 1 
     else:
-        print "'%s' has a 'data_type' attribute of: %s" \
-              % (name, parameter.data_type)
-        print "'%s' data has a dtype of: %s" \
-              % (name, parameter.array.data.dtype)
+        logger.info("'%s' has a 'data_type' attribute of: %s" \
+                    % (name, parameter.data_type))
+        logger.info("'%s' data has a dtype of: %s" \
+                    % (name, parameter.array.data.dtype))
         if parameter.data_type in ['ASCII',]:
             if 'string' not in parameter.array.dtype.name:
-                print "Error: Should be a string for '%s' parameters." \
-                      % (parameter.data_type,)
+                logger.error(
+                    "Data type should be a string for '%s' parameters." \
+                    % (parameter.data_type,)
+                )
                 result['failed'] += 1
                 return
         elif parameter.data_type in ['BCD', 'Interpolated', 'Polynomial',
                                      'Signed', 'Synchro', 'Unsigned']:
             if 'float' not in parameter.array.dtype.name:
-                print "Error: Should be a float for '%s' parameters." \
-                      % (parameter.data_type,)
+                logger.error(
+                    "Data type should be a float for '%s' parameters." \
+                    % (parameter.data_type,)
+                )
                 result['failed'] += 1
                 return
         elif parameter.data_type in ['Multi-state', 'Discrete']:
             if 'int' not in parameter.array.dtype.name:
-                print "Error: Should be an integer for '%s' parameters." \
-                      % (parameter.data_type,)
+                logger.error(
+                    "Data type should be an integer for '%s' parameters." \
+                    % (parameter.data_type,)
+                )
                 result['failed'] += 1
                 return 
-        print "'%s' data_type is %s and is an array of %s." \
-              % (name, parameter.data_type, parameter.array.dtype.name)         
+        logger.info(
+            "'%s' data_type is %s and is an array of %s." \
+            % (name, parameter.data_type, parameter.array.dtype.name)
+        )
    
 
 def validate_frequency(hdf, name, parameter):
-    print "Checking parameter attribute: frequency"
+    logger.info("Checking parameter attribute: frequency")
     if parameter.frequency is None:
-        print "Error: No attribute 'frequency' present for '%s'. "\
-              "This is required attribute." % (name,)
-        result['failed'] += 1
-        return
-    if parameter.frequency not in VALID_FREQUENCIES:
-        print "Error: '%s' has a 'frequency' of %s which is not a "\
-              "frequency supported by POLARIS." % (name, parameter.frequency)
+        logger.error("No attribute 'frequency' present for '%s'. "\
+                     "This is required attribute." % (name,))
         result['failed'] += 1
     else:
-        print "'frequency' is %s Hz for '%s' is a support frequency." \
-              % (parameter.frequency, name)
-    if hdf.frequencies is not None:
-        if 'array' in type(hdf.frequencies).__name__:
-            if parameter.frequency not in hdf.frequencies:
-                print "Frequency not in the Root attribute list of frequenices."
-        elif parameter.frequency != hdf.frequencies:
-            print "Frequency not in the Root attribute list of frequenices."
+        if parameter.frequency not in VALID_FREQUENCIES:
+            logger.error(
+                "'%s' has a 'frequency' of %s which is not a " \
+                "frequency supported by POLARIS." \
+                % (name, parameter.frequency)
+            )
+            result['failed'] += 1
+        else:
+            logger.info(
+                "'frequency' is %s Hz for '%s' and is a support frequency." \
+                % (parameter.frequency, name)
+            )
+        if hdf.frequencies is not None:
+            if 'array' in type(hdf.frequencies).__name__:
+                if parameter.frequency not in hdf.frequencies:
+                    logger.warn("Frequency not in the Root attribute list "\
+                                "of frequenices.")
+            elif parameter.frequency != hdf.frequencies:
+                logger.warn("Frequency not in the Root attribute list "\
+                            "of frequenices.")
 
 def validate_lfl(hdf, name, parameter):
     ''' 
     Check that the required lfl attribute is present. Report if recored or 
     derived.
     '''
-    print "Checking parameter attribute: lfl"
+    logger.info("Checking parameter attribute: lfl")
     if parameter.lfl is None:
-        print "Error: No attribute 'lfl' for '%s'. Attribute is Required."\
-              % (name,)
+        logger.error("Error: No attribute 'lfl' for '%s'. Attribute "\
+                     "is Required." % (name,))
         result['failed'] += 1
         return
     if 'bool' not in type(parameter.lfl).__name__:
-        print "Error: lfl should be an Boolean. Type is %s" \
-              % (type(parameter.lfl).__name__,)
+        logger.error("Error: lfl should be an Boolean. Type is %s" \
+                     % (type(parameter.lfl).__name__,))
         result['failed'] += 1
     if parameter.lfl:
-        print "'%s' is a recorded parameter." % (name,)
+        logger.info("'%s' is a recorded parameter." % (name,))
     else:
-        print "'%s' is a derived parameter." % (name,)
+        logger.info("'%s' is a derived parameter." % (name,))
 
 def validate_name(hdf, name, parameter):
-    print "Checking parameter attribute: name"
+    logger.info("Checking parameter attribute: name")
     if parameter.name is None:
-        print "Error: No attribute 'name' for '%s'. Attribute is Required."\
-              % (name,)
+        logger.error("No attribute 'name' for '%s'. Attribute is Required."\
+                     % (name,))
         result['failed'] += 1
-        return
     else:
         if parameter.name != name:
-            print "Error: 'name' is present, but is not the same name as "\
-                  "the parameter group. name: %s, parameter group: %s" \
-                  % (parameter.name, name)
+            logger.error(
+                "Error: 'name' is present, but is not the same name as "\
+                "the parameter group. name: %s, parameter group: %s" \
+                % (parameter.name, name)
+            )
             result['failed'] += 1
         else:
-            print "'name' is present and name is the same name as "\
-                  "the parameter group."
+            logger.info("'name' is present and name is the same name as "\
+                  "the parameter group.")
 
 
 def validate_source_name(hdf, name, parameter):
-    print "Checking parameter attribute: source_name"
+    logger.info("Checking parameter attribute: source_name")
     if parameter.source_name is None:
-        print "No attribute 'source_name' for '%s'. Attribute is optional. "\
-              % (name,)
-        return
+        logger.info(
+            "No attribute 'source_name' for '%s'. Attribute is optional. "\
+            % (name,)
+        )
     else:
-        print "'source_name' is present. Original name %s maps to "\
-              "POLARIS name %s" % (parameter.source_name, name)
+        logger.info("'source_name' is present. Original name %s maps to "\
+              "POLARIS name %s" % (parameter.source_name, name))
 
 def validate_supf_offset(hdf, name, parameter):
-    print "Checking parameter attribute: supf_offset"
+    logger.info("Checking parameter attribute: supf_offset")
     if parameter.offset is None:
-        print "Error: No attribute 'supf_offset' for '%s'. "\
-              "Attribute is Required. " % (name,)
+        logger.error("Error: No attribute 'supf_offset' for '%s'. "\
+                     "Attribute is Required. " % (name,))
         result['failed'] += 1
-        return
     else:
         if 'float' not in type(parameter.offset).__name__:
-            print "Error: 'supf_offset' type is not a float."
+            logger.error("Error: 'supf_offset' type is not a float.")
             result['failed'] += 1
         else:
-            print "'supf_offset' is present and correct data type."
+            logger.error("'supf_offset' is present and correct data type.")
     
 
 def validate_units(hdf, name, parameter):
-    print "Checking parameter attribute: units"
+    logger.info("Checking parameter attribute: units")
     if 'string' not in type(parameter.units).__name__:
-        print "Error: 'units' expected to be a string, got %s" \
-              % (type(parameter.units).__name__)
+        logger.error("'units' expected to be a string, got %s" \
+                     % (type(parameter.units).__name__))
     if parameter.units is None:
-        print "Error: No attribute 'units' for '%s'. Attribute is Required."\
-              % (name,)
+        logger.error("No attribute 'units' for '%s'. Attribute is Required."\
+                     % (name,))
         result['failed'] += 1
-        return
     elif parameter.units is "":
-        print "Attribute 'units' is present for '%s', but empty."\
-              % (name,)
-        return        
+        logger.info("Attribute 'units' is present for '%s', but empty."\
+                    % (name,))
     elif parameter.units in ut.available():
-        print "Attribute 'units' is present for '%s' and has a valid unit "\
-              "of '%s'." % (name, parameter.units)
-        return   
+        logger.info("Attribute 'units' is present for '%s' and has a valid unit "\
+                    "of '%s'." % (name, parameter.units))   
     elif parameter.units not in ut.available():
-        print "Error: Attribute 'units' is present for '%s' and has an "\
-              "unknown unit of '%s'." % (name, parameter.units)
+        logger.error("Attribute 'units' is present for '%s' and has an "\
+                     "unknown unit of '%s'." % (name, parameter.units))
         result['failed'] += 1
-        return
+
 
 def validate_values_mapping(hdf, name, parameter):
-    print "Checking parameter attribute: values_mapping"
+    logger.info("Checking parameter attribute: values_mapping")
     if parameter.values_mapping is None:
         if parameter.data_type in ('Discrete', 'Multi-state',
                                    'Enumerated Discrete'):    
-            print "Error: No attribute 'values_mapping' for '%s'. "\
-                  "Attribute is Required for a $s parameter. "\
-                  % (name, parameter.data_type)
+            logger.error("No attribute 'values_mapping' for '%s'. "\
+                         "Attribute is Required for a $s parameter. "\
+                         % (name, parameter.data_type))
             result['failed'] += 1
-            return
         else:
-            print "No attribute 'values_mapping' not required for '%s'. "\
-                  % (name, )            
+            logger.info("No attribute 'values_mapping' not required for '%s'."\
+                        % (name, ))
     else:
-        print "Attribute, 'values_mapping' value is: %s"\
-              % (parameter.values_mapping,)
+        logger.info("Attribute, 'values_mapping' value is: %s"\
+                    % (parameter.values_mapping,))
         try:
             # validate JSON string
             jstr = json.loads(
                 hdf.hdf['/series/' + name].attrs['values_mapping']
             )
-            print "Attribute, 'values_mapping' is a valid json string: %s" % (jstr,)
+            logger.info("Attribute, 'values_mapping' is a valid json "\
+                        "string: %s" % (jstr,))
         except ValueError as e:
-            print "Error: 'values_mapping' is not a valid JSON string. (%s)"\
-                  % (e, )
+            logger.error("'values_mapping' is not a valid JSON string. (%s)"\
+                         % (e, ))
             result['failed'] += 1
+        
 
 
 def validate_dataset(hdf, name, parameter):
-    print "Checking parameter dataset."
+    logger.info("Checking parameter dataset.")
     if 'int' in parameter.array.dtype.name or \
        'float' in parameter.array.dtype.name:
         if np.ma.masked_equal(np.isnan(parameter.array),False).count() != 0:
-            print "Error: NaN values found in data."
+            logger.error("NaN values found in data.")
             result['failed'] += 1
         if np.ma.masked_equal(np.isinf(parameter.array),False).count() != 0:
-            print "Error: Infinite values found in data."
+            logger.error("Infinite values found in data.")
             result['failed'] += 1
     expected_sized = hdf.duration * parameter.frequency
     actual_data_size = len(parameter.array)
     if expected_sized != actual_data_size:
-        print "Error: The data size of '%s' different to expected size."
+        logger.error("The data size of '%s' different to expected size.")
         result['failed'] += 1
     else:
-        print "Data array is of the expected size."
+        logger.info("Data array is of the expected size.")
     if len(parameter.array.data) != len(parameter.array.mask):
-        print "Error: The data and mask sizes of '%s' are different."
+        logger.error("The data and mask sizes of '%s' are different.")
         result['failed'] += 1
     else:
-        print "Data and Mask both have the size of %s elements." \
-              % (len(parameter.array.data))
+        logger.info("Data and Mask both have the size of %s elements." \
+                    % (len(parameter.array.data)))
     #print "%s" % (parameter.array.data.shape)
     #TODO: other tests
 
 def validate_namespace(hdf5):
     '''Uses h5py functions to verify what is stored on the root group'''
     found = ''
-    title("Checking for the namespace 'series' group on root", '=')
+    title("Checking for the namespace 'series' group on root")
     if 'series' in hdf5.keys():
         logger.info("Found the POLARIS namespace 'series' on root.")
         found = 'series'
@@ -406,7 +467,7 @@ def validate_namespace(hdf5):
 #   Root Attributes
 #==============================================================================
 def validate_root_attribute(hdf):
-    title("Checking the Root attributes", '=')
+    title("Checking the Root attributes")
     validate_duration_attribute(hdf)
     validate_frequencies_attribute(hdf)
     validate_reliable_frame_counter_attribute(hdf)
@@ -416,27 +477,27 @@ def validate_root_attribute(hdf):
 
 
 def validate_duration_attribute(hdf):
-    print "Checking Root Attribute: duration"
+    logger.info("Checking Root Attribute: duration")
     if hdf.duration:
-        print "Passed: duration attribute present with a value of %s." \
-              % (hdf.duration,)
+        logger.info("duration attribute present with a value of %s." \
+              % (hdf.duration,))
         result['passed'] += 1
         if 'int' in type(hdf.hdf.attrs['duration']).__name__:
-            print "Passed: duration is an integer."
+            logger.info("Passed: duration is an integer.")
             result['passed'] += 1
         else:
-            print "Error: duration is not an integer, type reported as '%s'." \
-                  % (type(hdf.hdf.attrs['duration']).__name__,)
+            logger.error("duration is not an integer, type reported as '%s'." \
+                         % (type(hdf.hdf.attrs['duration']).__name__,))
             result['failed'] += 1        
     else:
-        print "Error: No root attribrute 'duration'. "\
-              "This is a required attribute"
+        logger.error("No root attribrute 'duration'. This is a required "\
+                     "attribute.")
         result['failed'] += 1
 
 def validate_frequencies_attribute(hdf):
-    print "Checking Root Attribute: frequencies"
+    logger.info("Checking Root Attribute: frequencies")
     if hdf.frequencies is not None:
-        print "frequencies attribute present."
+        logger.info("frequencies attribute present.")
         name = type(hdf.frequencies).__name__
         if 'array' in name or 'list' in name:
             floatcount = 0
@@ -445,35 +506,36 @@ def validate_frequencies_attribute(hdf):
                 if 'float' in type(value).__name__:
                     floatcount += 1
                 else:
-                    print "Error: frequency value %s should be a float" \
-                          % (value)
+                    logger.error("frequency value %s should be a float" \
+                                 % (value))
                     result['failed'] += 1
             if floatcount == len(hdf.frequencies):
-                print "Passed: frequencies listed are float values."
+                logger.info("Passed: frequencies listed are float values.")
             else:
-                print "Error: some or all frequencies are not float values."
+                logger.error("Some or all frequencies are not float values.")
                 result['failed'] += 1
         elif 'float' in name:
-            print "Passed: frequency listed is a float value."
+            logger.info("Passed: frequency listed is a float value.")
             rf = set([hdf.frequencies])
         else:
-            print "Error: frequency listed is not a float value."
+            logger.error("Error: frequency listed is not a float value.")
             result['failed'] += 1
             
         
         pf = set([v.frequency for k,v in hdf.iteritems()])
         if rf == pf:
-            print "Root frequency list covers all the frequencies "\
-                  "used by parameters."
+            logger.info("Root frequency list covers all the frequencies "\
+                        "used by parameters.")
         elif rf - pf:
-            print "Root frequencies lists has more frequencies than used "\
-                  "by parameters. Unused frquencies: %s" % (list(rf - pf),)
+            logger.info("Root frequencies lists has more frequencies than "\
+                        "used by parameters. Unused frquencies: %s" \
+                        % (list(rf - pf),))
         elif pf - rf:
-            print "More parameter frequencies used than listed in root "\
-                  "attribute frequencies. Frequency not listed: %s" \
-                  % (list(pf - rf),)        
+            logger.info("More parameter frequencies used than listed in root "\
+                        "attribute frequencies. Frequency not listed: %s" \
+                        % (list(pf - rf),))
     else:
-        print "frequencies attribute not present and is optional."
+        logger.info("frequencies attribute not present and is optional.")
 
 def validate_reliable_frame_counter(hdf):
     try:
@@ -491,36 +553,40 @@ def validate_reliable_frame_counter(hdf):
     return False
 
 def validate_reliable_frame_counter_attribute(hdf):
-    print "Checking Root Attribute: 'reliable_frame_counter'"
+    logger.info("Checking Root Attribute: 'reliable_frame_counter'")
     parameter_exists = 'Frame Counter' in hdf.keys()
     reliable = validate_reliable_frame_counter(hdf)
     attribute_value = hdf.reliable_frame_counter
     correct_type = type(hdf.reliable_frame_counter) == bool
     if attribute_value is None:
-        print "Error: 'reliable_frame_counter' attribute not present "\
-              "and is required."
+        logger.error("'reliable_frame_counter' attribute not present "\
+                     "and is required.")
         result['failed'] += 1
     else:
-        print "'reliable_frame_counter' attribute is present."
+        logger.info("'reliable_frame_counter' attribute is present.")
         if parameter_exists and reliable and attribute_value:
-            print "'Frame Counter' parameter is present and is reliable "\
-                  "and 'reliable_frame_counter' marked as reliable."
+            logger.info("'Frame Counter' parameter is present and is "\
+                        "reliable and 'reliable_frame_counter' marked "\
+                        "as reliable.")
         elif parameter_exists and reliable and not attribute_value:
-            print "'Frame Counter' parameter is present and is reliable, "\
-                  "but 'reliable_frame_counter' not marked as reliable."      
+            logger.info("'Frame Counter' parameter is present and is "\
+                        "reliable, but 'reliable_frame_counter' not "\
+                        "marked as reliable.")
         elif parameter_exists and not reliable and attribute_value:
-            print "'Frame Counter' parameter is present and not reliable, "\
-                  "but 'reliable_frame_counter' is marked as reliable."
+            logger.info("'Frame Counter' parameter is present and not "\
+                        "reliable, but 'reliable_frame_counter' is marked "\
+                        "as reliable.")
         elif parameter_exists and not reliable and not attribute_value:
-            print "'Frame Counter' parameter is present and not reliable "\
-                  "and 'reliable_frame_counter' not marked as reliable."
+            logger.info("'Frame Counter' parameter is present and not "\
+                        "reliable and 'reliable_frame_counter' not marked "\
+                        "as reliable.")
         elif not parameter_exists and attribute_value:
-            print "'Frame Counter' parameter not present, but "\
-                  "'reliable_frame_counter' marked as reliable. "\
-                  "Value should be False."
+            logger.info("'Frame Counter' parameter not present, but "\
+                        "'reliable_frame_counter' marked as reliable. "\
+                        "Value should be False.")
         elif not parameter_exists and not attribute_value:
-            print "'Frame Counter' parameter not present and "\
-                  "'reliable_frame_counter' correctly set to False."        
+            logger.info("'Frame Counter' parameter not present and "\
+                        "'reliable_frame_counter' correctly set to False.")
 
 def validate_reliable_subframe_counter(hdf):
     try:
@@ -533,60 +599,65 @@ def validate_reliable_subframe_counter(hdf):
     return False
 
 def validate_reliable_subframe_counter_attribute(hdf):
-    print "Checking Root Attribute: 'reliable_subframe_counter'"
+    logger.info("Checking Root Attribute: 'reliable_subframe_counter'")
     parameter_exists = 'Subframe Counter' in hdf.keys()
     reliable = validate_reliable_subframe_counter(hdf)
     attribute_value = hdf.reliable_subframe_counter
     correct_type = type(hdf.reliable_subframe_counter) == bool
     if attribute_value is None:
-        print "Error: 'reliable_subframe_counter' attribute not present "\
-              "and is required."
+        logger.error("'reliable_subframe_counter' attribute not present "\
+                     "and is required.")
         result['failed'] += 1
     else:
-        print "'reliable_subframe_counter' attribute is present."
+        logger.info("'reliable_subframe_counter' attribute is present.")
         if parameter_exists and reliable and attribute_value:
-            print "'Frame Counter' parameter is present and is reliable "\
-                  "and 'reliable_subframe_counter' marked as reliable."
+            logger.info("'Frame Counter' parameter is present and is "\
+                        "reliable and 'reliable_subframe_counter' marked "\
+                        "as reliable.")
         elif parameter_exists and reliable and not attribute_value:
-            print "'Frame Counter' parameter is present and is reliable, "\
-                  "but 'reliable_subframe_counter' not marked as reliable."      
+            logger.info("'Frame Counter' parameter is present and is "\
+                        "reliable, but 'reliable_subframe_counter' not "\
+                        "marked as reliable.")
         elif parameter_exists and not reliable and attribute_value:
-            print "'Frame Counter' parameter is present and not reliable, "\
-                  "but 'reliable_subframe_counter' is marked as reliable."
+            logger.info("'Frame Counter' parameter is present and not "\
+                        "reliable, but 'reliable_subframe_counter' is "\
+                        "marked as reliable.")
         elif parameter_exists and not reliable and not attribute_value:
-            print "'Frame Counter' parameter is present and not reliable "\
-                  "and 'reliable_subframe_counter' not marked as reliable."
+            logger.iofo("'Frame Counter' parameter is present and not "\
+                        "reliable and 'reliable_subframe_counter' not "\
+                        "marked as reliable.")
         elif not parameter_exists and attribute_value:
-            print "'Frame Counter' parameter not present, but "\
-                  "'reliable_subframe_counter' marked as reliable. "\
-                  "Value should be False."
+            logger.info("'Frame Counter' parameter not present, but "\
+                        "'reliable_subframe_counter' marked as reliable. "\
+                        "Value should be False.")
         elif not parameter_exists and not attribute_value:
-            print "'Frame Counter' parameter not present and "\
-                  "'reliable_subframe_counter' correctly set to False."  
+            logger.info("'Frame Counter' parameter not present and "\
+                        "'reliable_subframe_counter' correctly set to False.")
 
 def validate_start_timestamp_attribute(hdf):
-    print "Checking Root Attribute: start_timestamp"
+    logger.info("Checking Root Attribute: start_timestamp")
     if hdf.start_datetime:
-        print "start_timestamp attribute present."
-        print "Time reported to be, %s" % (hdf.start_datetime)
-        print "Epoch timestamp value is: %s" \
-              % (hdf.hdf.attrs['start_timestamp'],)
+        logger.info("start_timestamp attribute present.")
+        logger.info("Time reported to be, %s" % (hdf.start_datetime))
+        logger.info("Epoch timestamp value is: %s" \
+                    % (hdf.hdf.attrs['start_timestamp'],))
         if 'float' in type(hdf.hdf.attrs['start_timestamp']).__name__:
-            print "Passed: start_timestamp is a float."
+            logger.info("start_timestamp is a float.")
         else:
-            print "Error: start_timestamp is not a float, type reported "\
-                  "as '%s'." \
-                  % (type(hdf.hdf.attrs['start_timestamp']).__name__,)
+            logger.error("Error: start_timestamp is not a float, type "\
+                         "reported as '%s'." \
+                         % (type(hdf.hdf.attrs['start_timestamp']).__name__,))
             result['failed'] += 1
     else:
-        print "'start_timestamp' attribute not present and is optional."
+        logger.info("'start_timestamp' attribute not present and is optional.")
 
 def validate_superframe_present_attribute(hdf):
-    print "Checking Root Attribute: superframe_present."
+    logger.info("Checking Root Attribute: superframe_present.")
     if hdf.superframe_present:
-        print "superframe_present attribute present."
+        logger.info("superframe_present attribute present.")
     else:
-        print "superframe_present attribute is not present and is optional."
+        logger.info("superframe_present attribute is not present and "\
+                    "is optional.")
 
 
 def validate_file(hdffile):
@@ -622,10 +693,8 @@ def validate_file(hdffile):
         validate_namespace(hdf.hdf)
         #continue testing using FlightDataAccessor
         validate_root_attribute(hdf)
-        check_parameter_names(hdf)
-        check_for_core_parameters(hdf)
-        validate_parameter_attributes(hdf)
-    title("Results", '=')
+        validate_parameters(hdf)
+    title("Results")
     logger.info("Validation ended with %s passes, %s errors and %s warnings" \
           % (result['passed'], result['failed'], result['warning']))
     hdf.close()
