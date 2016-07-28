@@ -744,10 +744,16 @@ def main():
     ) 
     parser.add_argument(
         "-e",
-        "--erroronly",
+        "--error",
+        help="display only errors on screen.",
+        action="store_true"
+    )
+    parser.add_argument(
+        "-w",
+        "--warn",
         help="display only warnings and errors on screen.",
         action="store_true"
-    )     
+    )    
     parser.add_argument(
         'file',
         help="Input HDF5 to be tested for POLARIS compatibility."
@@ -772,7 +778,9 @@ def main():
     sh = HDFValidatorStreamHandler(args.stop)
     error_count = sh.get_error_counts()
 
-    if args.erroronly:
+    if args.warn:
+        sh.setLevel(logging.WARNING)
+    elif args.error:
         sh.setLevel(logging.ERROR)
     else:
         sh.setLevel(logging.INFO)
