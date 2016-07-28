@@ -783,7 +783,8 @@ def main():
     args = parser.parse_args()
 
     #Setup logger 
-    fmtr = logging.Formatter(r'%(levelname)-8s - %(name)-8s - %(message)s')
+    #fmtr = logging.Formatter(r'%(levelname)-8s - %(name)-8s - %(message)s')
+    fmtr = logging.Formatter(r'%(levelname)-9s:%(message)s')
     #setup a file handler 
     if args.nolog is False:
         logfilename = args.file.split(os.sep)[-1]
