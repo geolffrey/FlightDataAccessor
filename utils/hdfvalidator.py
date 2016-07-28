@@ -17,17 +17,27 @@ logger = logging.getLogger(__name__)
 class StoppedOnFirstError(Exception):
     pass
 
-class StopOnFirstErrorHandler(logging.StreamHandler):
+class HDFValidatorStreamHandler(logging.StreamHandler):
     """
     A handler to raise stop on the first error log.
     """  
-    def __init__(self):
-        super(StopOnFirstErrorHandler, self).__init__()
+    def __init__(self, stop_on_error=None):
+        super(HDFValidatorStreamHandler, self).__init__()
+        self.stop_on_error = stop_on_error
+        self.errors = 0
+        self.warnings = 0
         
     def emit(self, record):
-        super(StopOnFirstErrorHandler, self).emit(record)
+        super(HDFValidatorStreamHandler, self).emit(record)
         if record.levelno >= 40:
+            self.errors += 1
+        elif record.levelname == 'WARNING':
+            self.warnings += 1
+        if self.stop_on_error and record.levelno >= 40:
             raise StoppedOnFirstError()
+    
+    def get_error_counts(self):
+        return {'warnings':self.warnings, 'errors':self.errors}
 
 VALID_FREQUENCIES = {
     # base 2 frequencies
@@ -763,9 +773,6 @@ def validate_file(hdffile):
         #continue testing using FlightDataAccessor
         validate_root_attribute(hdf)
         validate_parameters(hdf)
-    title("Results")
-    logger.info("Validation ended with %s passes, %s errors and %s warnings" \
-          % (result['passed'], result['failed'], result['warning']))
     hdf.close()
 
 def main():
@@ -813,15 +820,15 @@ def main():
         logger.addHandler(handler)
     
     #setup a stream handler
-    if args.stop:
-        sh = StopOnFirstErrorHandler()
-    else:
-        sh = logging.StreamHandler()
+    sh = HDFValidatorStreamHandler(args.stop)
+    error_count = sh.get_error_counts()
+
     if args.erroronly:
         sh.setLevel(logging.ERROR)
     else:
         sh.setLevel(logging.INFO)
     sh.setFormatter(fmtr)
+    
     logger.addHandler(sh)
     
     logger.setLevel(logging.DEBUG)
@@ -830,7 +837,14 @@ def main():
         validate_file(args.file)
     except StoppedOnFirstError:
         logger.info("First error encountered. Stopping as requested.")
+    
+    for hdr in logger.handlers:    
+        if isinstance(hdr, HDFValidatorStreamHandler):
+            error_count = hdr.get_error_counts()
 
+    title("Results")
+    logger.info("Validation ended with, %s errors and %s warnings" \
+                % (error_count['errors'], error_count['warnings']))
 
 if __name__ == '__main__':
     main()
