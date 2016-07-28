@@ -7,6 +7,7 @@ import logging
 import numpy as np
 
 from hdfaccess.file import hdf_file
+from hdfaccess.parameter import MappedArray
 from analysis_engine.utils import list_parameters
 from flightdatautilities import units as ut
 from collections import Counter
@@ -392,7 +393,7 @@ def validate_values_mapping(hdf, name, parameter):
         if parameter.data_type == 'Discrete':
             try: 
                 value0 = parameter.values_mapping[0] # False values
-                logger.debug("discrete value of 0 mapps to %s." % (value0))
+                logger.debug("discrete value of 0 maps to '%s'." % (value0))
             except KeyError as e:
                 logger.debug("discrete value of 0 has no mapping.")
             try:
@@ -402,7 +403,7 @@ def validate_values_mapping(hdf, name, parameter):
                                  "emtpy (or '-') string value of 1. Got '%s'." \
                                  % (value1,))
                 else:
-                    logger.debug("discrete value of 1 mapps to %s" % (value1))                
+                    logger.debug("discrete value of 1 maps to '%s'" % (value1))                
             except:
                 logger.error("discrete value of 1 has no mapping. Needs "\
                              "to have a mapping for this value.")
@@ -415,31 +416,57 @@ def validate_values_mapping(hdf, name, parameter):
 
 
 def validate_dataset(hdf, name, parameter):
-    logger.info("Checking parameter dataset.")
+    logger.info("Checking parameter dataset for inf and NaN values.")
     if 'int' in parameter.array.dtype.name or \
        'float' in parameter.array.dtype.name:
-        if np.ma.masked_equal(np.isnan(parameter.array),False).count() != 0:
-            logger.error("NaN values found in data.")
+        nan_count = np.ma.masked_equal(np.isnan(parameter.array),False).count()
+        inf_count = np.ma.masked_equal(np.isinf(parameter.array),False).count()
+        if nan_count != 0:
+            logger.error("%s NaN values found in the data of %s." \
+                         % (nan_count, name))
             result['failed'] += 1
-        if np.ma.masked_equal(np.isinf(parameter.array),False).count() != 0:
-            logger.error("Infinite values found in data.")
+        if inf_count != 0:
+            logger.error("%s inf values found in the data of %s." \
+                         % (nan_count, name))
             result['failed'] += 1
-    expected_sized = hdf.duration * parameter.frequency
+        if nan_count == inf_count == 0:
+            logger.info("dataset does not have any inf or NaN values.")
+    
+    logger.info("Checking parameter actual dataset size against, "\
+                "expected size of duration * param_freqr.")    
+    expected_array_size = hdf.duration * parameter.frequency
     actual_data_size = len(parameter.array)
-    if expected_sized != actual_data_size:
-        logger.error("The data size of '%s' different to expected size.")
+    if expected_array_size != actual_data_size:
+        logger.error("The data size of '%s' different to expected size of %s."\
+                     % (actual_data_size, expected_array_size))
         result['failed'] += 1
     else:
-        logger.info("Data array is of the expected size.")
+        logger.info("Data array is of the expected size of %s." \
+                    % (expected_array_size,))
     if len(parameter.array.data) != len(parameter.array.mask):
         logger.error("The data and mask sizes of '%s' are different.")
         result['failed'] += 1
     else:
         logger.info("Data and Mask both have the size of %s elements." \
                     % (len(parameter.array.data)))
-    #print "%s" % (parameter.array.data.shape)
-    #TODO: other tests
 
+    logger.info("Checking dataset type and shape.")
+    isMaskedArray = isinstance(parameter.array,np.ma.core.MaskedArray)
+    isMappedArray = isinstance(parameter.array,MappedArray)
+    if not isMaskedArray and not isMappedArray:
+        logger.error("Data for %s is not a MaskedArray or MappedArray. "\
+                     "Type is %s" % (name,type(parameter.array)),)
+    else:
+        # check shape, it should be 1 dimensional arrays for data and mask
+        if len(parameter.array.shape) != 1:
+            logger.error("The data and mask are not in an 1 dimensional "\
+                         "array. The data's shape is %s " \
+                         % (parameter.array.shape,))
+        else:
+            logger.info("Data is in a %s with a shape of %s"\
+                         % (type(parameter.array).__name__,
+                            parameter.array.shape, ))
+        
 def validate_namespace(hdf5):
     '''Uses h5py functions to verify what is stored on the root group'''
     found = ''
