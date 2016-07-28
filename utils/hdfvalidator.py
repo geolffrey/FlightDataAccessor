@@ -219,8 +219,9 @@ def validate_data_type(hdf, name, parameter):
         if parameter.data_type in ['ASCII',]:
             if 'string' not in parameter.array.dtype.name:
                 logger.error(
-                    "Data type should be a string for '%s' parameters." \
-                    % (parameter.data_type,)
+                    "'%s' data type is %s. It should be a string for '%s' "\
+                    "parameters. " % (name, parameter.array.dtype.name,
+                                      parameter.data_type)                     
                 )
                 result['failed'] += 1
                 return
@@ -228,16 +229,18 @@ def validate_data_type(hdf, name, parameter):
                                      'Signed', 'Synchro', 'Unsigned']:
             if 'float' not in parameter.array.dtype.name:
                 logger.error(
-                    "Data type should be a float for '%s' parameters." \
-                    % (parameter.data_type,)
+                    "'%s' data type is %s. It should be a float for '%s' "\
+                    "parameters. " % (name, parameter.array.dtype.name,
+                                      parameter.data_type)                    
                 )
                 result['failed'] += 1
                 return
         elif parameter.data_type in ['Multi-state', 'Discrete']:
             if 'int' not in parameter.array.dtype.name:
                 logger.error(
-                    "Data type should be an integer for '%s' parameters." \
-                    % (parameter.data_type,)
+                    "'%s' data type is %s. It should be an integer for '%s' "\
+                    "parameters. " % (name, parameter.array.dtype.name,
+                                      parameter.data_type)
                 )
                 result['failed'] += 1
                 return 
@@ -328,15 +331,18 @@ def validate_source_name(hdf, name, parameter):
 def validate_supf_offset(hdf, name, parameter):
     logger.info("Checking parameter attribute: supf_offset")
     if parameter.offset is None:
-        logger.error("Error: No attribute 'supf_offset' for '%s'. "\
+        logger.error("No attribute 'supf_offset' for '%s'. "\
                      "Attribute is Required. " % (name,))
         result['failed'] += 1
     else:
         if 'float' not in type(parameter.offset).__name__:
-            logger.error("Error: 'supf_offset' type is not a float.")
+            logger.error(
+                "'supf_offset' type for '%s' is not a float. Got %s instead" \
+                % (name, type(parameter.offset).__name__)
+            )
             result['failed'] += 1
         else:
-            logger.error("'supf_offset' is present and correct data type.")
+            logger.info("'supf_offset' is present and correct data type.")
     
 
 def validate_units(hdf, name, parameter):
@@ -347,10 +353,10 @@ def validate_units(hdf, name, parameter):
                      % (name,))
         result['failed'] += 1
     else:
-        if type(parameter.units).__name__ not in ['str', 'string']:
+        if type(parameter.units).__name__ not in ['str', 'string', 'string_']:
             logger.error("'units' expected to be a string, got %s" \
                          % (type(parameter.units).__name__))    
-        if parameter.units is "":
+        if parameter.units == '':
             logger.info("Attribute 'units' is present for '%s', but empty."\
                         % (name,))
         elif parameter.units in ut.available():
@@ -419,15 +425,25 @@ def validate_dataset(hdf, name, parameter):
     logger.info("Checking parameter dataset for inf and NaN values.")
     if 'int' in parameter.array.dtype.name or \
        'float' in parameter.array.dtype.name:
-        nan_count = np.ma.masked_equal(np.isnan(parameter.array),False).count()
-        inf_count = np.ma.masked_equal(np.isinf(parameter.array),False).count()
+
+        nan_unmasked = np.ma.masked_equal(
+            np.isnan(parameter.array),False).count()
+        nan_count = np.ma.masked_equal(
+            np.isnan(parameter.array.data),False).count()
+        inf_unmasked = np.ma.masked_equal(
+            np.isinf(parameter.array),False).count()
+        inf_count = np.ma.masked_equal(
+            np.isinf(parameter.array.data),False).count()        
+        
         if nan_count != 0:
-            logger.error("%s NaN values found in the data of %s." \
+            logger.error("%s NaN values found in the data of '%s'." \
                          % (nan_count, name))
+            logger.info("NaN values not masked: %s" % (nan_unmasked))
             result['failed'] += 1
         if inf_count != 0:
-            logger.error("%s inf values found in the data of %s." \
+            logger.error("%s inf values found in the data of '%s'." \
                          % (nan_count, name))
+            logger.info("inf values not masked: %s" % (inf_unmasked))
             result['failed'] += 1
         if nan_count == inf_count == 0:
             logger.info("dataset does not have any inf or NaN values.")
