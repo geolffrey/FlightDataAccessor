@@ -29,11 +29,11 @@ class HDFValidatorStreamHandler(logging.StreamHandler):
         
     def emit(self, record):
         super(HDFValidatorStreamHandler, self).emit(record)
-        if record.levelno >= 40:
+        if record.levelno >= logging.ERROR:
             self.errors += 1
-        elif record.levelname == 'WARNING':
+        elif record.levelno == logging.WARN:
             self.warnings += 1
-        if self.stop_on_error and record.levelno >= 40:
+        if self.stop_on_error and record.levelno >= logging.ERROR:
             raise StoppedOnFirstError()
     
     def get_error_counts(self):
@@ -197,7 +197,7 @@ def validate_arinc_429(hdf, name, parameter):
                     "if parmater does not have an ARINC 429 source." % name)
     else:
         if 'bool' not in type(parameter.arinc_429).__name__:
-            logger.error("Error: Attribute 'arinc_429' is not a Boolean type.")
+            logger.error("Attribute 'arinc_429' is not a Boolean type.")
         if parameter.arinc_429:
             logger.info("'%s' has an ARINC 429 source." % name)
         else:
@@ -234,7 +234,7 @@ def validate_data_type(hdf, name, parameter):
                 return
         elif parameter.data_type in ['Multi-state', 'Discrete']:
             if 'int' not in parameter.array.dtype.name:
-                logger.error(
+                logger.warn(
                     "'%s' data type is %s. It should be an integer for '%s' "\
                     "parameters. " % (name, parameter.array.dtype.name,
                                       parameter.data_type)
@@ -279,11 +279,11 @@ def validate_lfl(hdf, name, parameter):
     '''
     logger.info("Checking parameter attribute: lfl")
     if parameter.lfl is None:
-        logger.error("Error: No attribute 'lfl' for '%s'. Attribute "\
+        logger.error("No attribute 'lfl' for '%s'. Attribute "\
                      "is Required." % (name,))
         return
     if 'bool' not in type(parameter.lfl).__name__:
-        logger.error("Error: lfl should be an Boolean. Type is %s" \
+        logger.error("lfl should be an Boolean. Type is %s" \
                      % (type(parameter.lfl).__name__,))
     if parameter.lfl:
         logger.info("'%s' is a recorded parameter." % (name,))
@@ -298,7 +298,7 @@ def validate_name(hdf, name, parameter):
     else:
         if parameter.name != name:
             logger.error(
-                "Error: 'name' is present, but is not the same name as "\
+                "'name' is present, but is not the same name as "\
                 "the parameter group. name: %s, parameter group: %s" \
                 % (parameter.name, name)
             )
@@ -335,10 +335,12 @@ def validate_supf_offset(hdf, name, parameter):
 
 def validate_units(hdf, name, parameter):
     logger.info("Checking parameter attribute: units")
-
+    if parameter.data_type in ('Discrete', 'Multi-state',
+                                   'Enumerated Discrete'):
+        return
     if parameter.units is None:
-        logger.error("No attribute 'units' for '%s'. Attribute is Required."\
-                     % (name,))
+        logger.warn("No attribute 'units' for '%s'. Attribute is Required."\
+                    % (name,))
     else:
         if type(parameter.units).__name__ not in ['str', 'string', 'string_']:
             logger.error("'units' expected to be a string, got %s" \
@@ -521,11 +523,12 @@ def validate_duration_attribute(hdf):
     logger.info("Checking Root Attribute: duration")
     if hdf.duration:
         logger.info("duration attribute present with a value of %s." \
-              % (hdf.duration,))
+              % (hdf.hdf.attrs['duration'],))
         if 'int' in type(hdf.hdf.attrs['duration']).__name__:
-            logger.info("Passed: duration is an integer.")
+            logger.info("duration attribute is an integer.")
         else:
-            logger.error("duration is not an integer, type reported as '%s'." \
+            logger.error("duration attribute is not an integer, type "\
+                         "reported as '%s'." \
                          % (type(hdf.hdf.attrs['duration']).__name__,))       
     else:
         logger.error("No root attribrute 'duration'. This is a required "\
@@ -553,7 +556,7 @@ def validate_frequencies_attribute(hdf):
             logger.info("Passed: frequency listed is a float value.")
             rf = set([hdf.frequencies])
         else:
-            logger.error("Error: frequency listed is not a float value.")
+            logger.error("frequency listed is not a float value.")
             
         pf = set([v.frequency for k,v in hdf.iteritems()])
         if rf == pf:
@@ -675,7 +678,7 @@ def validate_start_timestamp_attribute(hdf):
         if 'float' in type(hdf.hdf.attrs['start_timestamp']).__name__:
             logger.info("start_timestamp is a float.")
         else:
-            logger.error("Error: start_timestamp is not a float, type "\
+            logger.error("start_timestamp is not a float, type "\
                          "reported as '%s'." \
                          % (type(hdf.hdf.attrs['start_timestamp']).__name__,))
     else:
