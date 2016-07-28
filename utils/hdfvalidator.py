@@ -193,8 +193,8 @@ def validate_parameters_dataset(hdf, name, parameter):
 def validate_arinc_429(hdf, name, parameter):
     logger.info("Checking parameter attribute: arinc_429")
     if parameter.arinc_429 is None:
-        logger.warn("No attribute 'arinc_429'. '%s' does not have an ARINC "\
-                    "429 source." % name)
+        logger.warn("No attribute 'arinc_429' for '%s'. Optional attribute, "\
+                    "if parmater does not have an ARINC 429 source." % name)
     else:
         if 'bool' not in type(parameter.arinc_429).__name__:
             logger.error("Error: Attribute 'arinc_429' is not a Boolean type.")
