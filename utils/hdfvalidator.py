@@ -323,12 +323,15 @@ def validate_supf_offset(hdf, name, parameter):
     if parameter.offset is None:
         logger.error("No attribute 'supf_offset' for '%s'. "\
                      "Attribute is Required. " % (name,))
-    else:
+    else:   
         if 'float' not in type(parameter.offset).__name__:
-            logger.error(
-                "'supf_offset' type for '%s' is not a float. Got %s instead" \
+            msg = "'supf_offset' type for '%s' is not a float. Got %s instead"\
                 % (name, type(parameter.offset).__name__)
-            )
+            if parameter.offset == 0:
+                logger.warn(msg)
+            else:
+                logger.error(msg)
+
         else:
             logger.info("'supf_offset' is present and correct data type.")
     
