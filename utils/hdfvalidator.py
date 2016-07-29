@@ -157,7 +157,7 @@ def validate_parameters(hdf):
     matched, _ = check_parameter_names(hdf)
     check_for_core_parameters(hdf)
     for name, parameter in hdf.iteritems():
-        title("Checking Parameter: %s", name)
+        title("Checking Parameter: %s" % (name, ))
         if name in matched:
             logger.info("'%s' is a recongnised by POLARIS.", name)
         else:
@@ -342,7 +342,7 @@ def validate_units(name, parameter):
             logger.info("Attribute 'units' is present for '%s' and has a "
                         "valid unit of '%s'.", name, parameter.units)
         else:
-            logger.error("Attribute 'units' is present for '%s' and has an "
+            logger.error("Attribute 'units' is present for '%s', but has an "
                          "unknown unit of '%s'.", name, parameter.units)
 
 
@@ -409,17 +409,33 @@ def validate_dataset(hdf, name, parameter):
             np.isinf(parameter.array.data), False).count()
 
         if nan_count != 0:
-            logger.error("%s NaN values found in the data of '%s'.",
-                         nan_count, name)
-            logger.info("NaN values not masked: %s", nan_unmasked)
+            nan_msg = "%s NaN values found in the data of '%s'. " \
+                      % (nan_count, name)
+            nan_percent = (float(nan_count)/len(parameter.array.data))*100
+            nan_msg += "Represents %.2f%%. " % (nan_percent, )
+            if nan_unmasked:
+                nan_msg += "%s are not masked." % (nan_unmasked,)
+                logger.error(nan_msg)
+            else:
+                nan_msg += "All are masked."
+                logger.warn(nan_msg)
+
         if inf_count != 0:
-            logger.error("%s inf values found in the data of '%s'.",
-                         nan_count, name)
-            logger.info("inf values not masked: %s", inf_unmasked)
+            inf_msg = "%s NaN values found in the data of '%s'. " \
+                      % (inf_count, name)
+            inf_percent = (float(inf_count)/len(parameter.array.data))*100
+            inf_msg += "Represents %.2f%%. " % (inf_percent, )
+            if inf_unmasked:
+                inf_msg += "%s are not masked." % (inf_unmasked,)
+                logger.error(inf_msg)
+            else:
+                inf_msg += "All are masked."
+                logger.warn(inf_msg)
+
         if nan_count == inf_count == 0:
             logger.info("dataset does not have any inf or NaN values.")
 
-    logger.info("Checking parameter actual dataset size against, "
+    logger.info("Checking parameter actual dataset size against "
                 "expected size (duration * param_frequency).")
     expected_array_size = hdf.duration * parameter.frequency
     actual_data_size = len(parameter.array)
