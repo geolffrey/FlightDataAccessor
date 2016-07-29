@@ -1,0 +1,570 @@
+115 VAC Standby Bus
+115 VAC Unavailable To IGN (*) (*)
+115 VAC XFR Bus
+28 VDC Battery Bus
+28 VDC Battery Bus Hot
+28 VDC Battery Bus Switch Hot
+28 VDC Bus (*)
+28 VDC Standby Bus
+Acceleration Lateral
+Acceleration Lateral Offset Removed
+Acceleration Longitudinal
+Acceleration Normal
+AC Emergency Bus Fail
+AC Essential Bus Fail
+ADF (*) Frequency
+ADF (*) Selected (*)
+AFCAS Active Lateral Mode
+AFCAS Active Lateral Mode Capture
+AFCAS Active Lateral Mode Failure
+AFCAS Active Lateral Mode FMS
+AFCAS Active Lateral Mode Valid
+AFCAS Active Path Mode
+AFCAS Active Path Mode Capture
+AFCAS Active Path Mode Failure
+AFCAS Active Path Mode FMS
+AFCAS Active Path Mode Valid
+AFCAS Active Path Parameter Controlled
+AFCAS Active Speed Mode
+AFCAS Active Speed Mode AT Limit
+AFCAS Active Speed Mode Capture
+AFCAS Active Speed Mode Failure
+AFCAS Active Speed Mode FMS
+AFCAS Active Speed Mode Valid
+AFCAS Active Speed Parameter Controlled
+AFCAS Active Thrust Mode
+AFCAS Active Thrust Mode AT Limit
+AFCAS Active Thrust Mode Capture
+AFCAS Active Thrust Mode Failure
+AFCAS Active Thrust Mode FMS
+AFCAS Active Thrust Mode Valid
+Aileron
+Aileron (*)
+Aileron Actuator
+Aileron (*) Actuator
+Aileron Inboard
+Aileron (*) Inboard
+Aileron Outboard
+Aileron (*) Outboard
+Aileron Quadrant
+Aileron (*) Roll Command
+Aileron Roll Command
+Aileron Trim
+Aileron Trim (*)
+Airframe Anti Ice
+Airports Selected (*)
+Airspeed
+Airspeed Reference
+Airspeed Selected
+Airspeed Selected (*)
+Airspeed Selected (FMC)
+Airspeed True
+Alpha Floor
+Altimeter (*) Pressure Correction
+Altitude AAL
+Altitude Acq
+Altitude Acquire
+Altitude Alert
+Altitude Baro (*)
+Altitude Baro QFE (*)
+Altitude Hold
+Altitude Hold Push Button Light
+Altitude QNH
+Altitude Radio
+Altitude Radio (*)
+Altitude Radio (*) (*)
+Altitude Reference Active
+Altitude Selected
+Altitude (*) Selected
+Altitude Selected (FMC)
+Altitude STD
+Altitude STD (*)
+Altitude STD (Fine)
+Altitude STD Low
+Altitude STD Smoothed
+AOA
+AOA (*)
+AP Backcourse
+AP Collective ALTA
+AP Collective Glideslope
+AP Collective GS (*)
+AP Collective Mode (*)
+AP (*) Disconnect
+AP Engaged
+AP (*) Engaged
+AP FD Engage Status
+AP F-TDN Button
+AP ILS (*)
+AP ILS Localizer
+AP Manual Disconnect
+AP Pitch ALTA
+AP Pitch Glideslope
+AP Pitch GS (*)
+AP Pitch Mode (*)
+Approach Idle (*) Selected
+Approach Mode Selected (*)
+AP Roll-Yaw Mode (*)
+AP Touchdown
+AP Trim Down
+APU Bleed Air Switch
+APU Bleed Valve Open
+APU Fire
+APU Fuel Flow
+APU Gas Temp
+AP VOR (*)
+AP Warning
+Assumed Temp Derate
+AT Engaged
+AT (*) Engaged
+AT FMC Speed
+AT Go Around
+AT Limit
+AT MCP Speed
+AT Min Speed
+AT N1
+AT Retard
+AT Warning
+Autobrake Applied
+Autoland Enabled
+Auto Speedbrake Extend
+Autothrottle Engaged
+Backcourse Engaged
+Battery (*) Overheat
+Brake (*) Alternate Press
+Brake Alternate Press
+Brake Main Selected
+Brake (*) Press
+Brake Pressure
+Brake Pressure  (*)
+Brake Pressure (*)
+Cabin Altitude Warning
+Centre Of Gravity
+Collective (*)
+Collective Output (*)
+Command (*)
+Config
+Configuration
+Control Column
+Control Column (*)
+Control Column (Capt)
+Control Column (FO)
+Control Column Force
+Control Column Force (*)
+Control Column Force (FO)
+Control Column Force (Foreign)
+Control Column Force (Local)
+Control Wheel
+Control Wheel (*)
+Control Wheel (Capt)
+Control Wheel (FO)
+Control Wheel Force
+Control Wheel Steering (*) Engaged
+Control Wheel Steering Pitch Engaged
+Control Wheel Steering Roll Engaged
+Crosstrack Rate Latitude Over 0 Ft Sec
+Cyclic Fore-Aft (*)
+Cyclic Fore-Aft Output (*)
+Cyclic Lateral (*)
+Cyclic Lateral Output (*)
+Data Broadcast Mode (*)
+Day
+Descend For Flight Phases
+DEU Centre Display Format (*)
+DEU Check List
+DH Selected
+DH (*) Selected
+DH Selected (*)
+Displayed App Source (*)
+Display Unit (*) Format
+DME
+DME (*)
+DME (*) Frequency
+Drift
+Drift (*)
+EFIS Mode Selected (*)
+EFIS Scale Selected (*)
+EID (*) Submodes Page
+Elevator
+Elevator (*)
+Elevator Trim
+Elevator Trim (*)
+Eng (*) Airborne Vibration Monitoring
+Eng (*) Aircraft Type Code
+Eng (*) Anti Ice
+Eng (*) Anti Ice Configuration Code
+Eng (*) Bleed
+Eng (*) Chip Detector
+Eng (*) Cutoff
+Eng (*) EEC On Ground Selected
+Eng EPR
+Eng (*) EPR
+Eng (*) Fault Dispatch Level (A)
+Eng (*) Fire
+Eng (*) Flameout Protection On
+Eng (*) Fuel Burn
+Eng (*) Fuel Flow
+Eng Fuel Flow
+Eng (*) Gas Temp
+Eng Gas Temp
+Eng (*) Gas Temp Redline
+Eng (*) Hot Start
+Eng (*) Hot Start Detected
+Eng (*) Hyd (*)
+Eng ITT
+Eng (*) ITT
+Eng N1
+Eng (*) N1
+Eng (*) N1 Command
+Eng N1 Command
+Eng (*) N1 Max Climb Rating
+Eng (*) N1 Redline
+Eng (*) N1 Target
+Eng N1 Target
+Eng (*) N1 Trim
+Eng N2
+Eng (*) N2
+Eng (*) N2 Redline
+Eng (*) N2 Tachometer
+Eng N3
+Eng (*) N3
+Eng Np
+Eng (*) Np
+Eng (*) Np [RPM]
+Eng Np [RPM]
+Eng (*) Oil Filter Impending Bypass
+Eng (*) Oil Press
+Eng Oil Press
+Eng (*) Oil Press Amber Limit
+Eng (*) Oil Press Low
+Eng (*) Oil Press Low Red Warning
+Eng (*) Oil Qty
+Eng (*) Oil Temp
+Eng Oil Temp
+Eng (*) P0 Sensor Selected
+Eng (*) Panel Mode
+Eng (*) Reverse Thrust Limited By Thrust Reverser
+Eng (*) Speed Regulator
+Eng (*) Starter Valve
+Eng (*) Throttle Lever
+Eng Throttle Lever
+Eng (*) Thrust Reverser (*) Deployed
+Eng (*) Thrust Reverser In Transit
+Eng (*) Thrust Reverser (*) Sleeve
+Eng (*) Torque
+Eng (*) TPR
+Eng TR
+Eng (*) TR
+Eng (*) Turbine Inlet Temp
+Eng (*) Vib N1 Fan
+Eng Vib N1 Fan
+Eng (*) Vib N1 Turbine
+Eng Vib N1 Turbine
+Eng (*) Vib N2 Compressor
+Eng Vib N2 Compressor
+Eng (*) Vib N2 Turbine
+Final Approach Course Engaged
+Flap
+Flap Angle
+Flap Angle (*)
+Flaperon
+Flap Leading Edge (*) Extended
+Flap Leading Edge (*) In Transit
+Flap Lever
+Flap Lever Angle
+Flap Lever Position
+Flap Skew (1-8)
+Flap Skew (*) Position
+Flap Split Needle CW
+Flap Surface
+Flare Armed
+Flare Engaged
+Flight Dir (*) Engaged
+Flight Dir Pitch
+Flight Dir Pitch (*)
+Flight Dir Roll
+Flight Dir Roll (*)
+Flight Path Angle
+Flight Path Angle Selected
+Flight Path Vector Selected (*)
+FMC Primary Navigation Source Selected
+FMC Selected Navigation Source
+FMC Static Air Temperature
+Frame Counter
+Fuel Qty
+Fuel Qty (*)
+Fuel Qty (*) (*)
+Fuel Qty (Aux)
+Fuel Qty (Trim)
+Gear (*) Down
+Gear Down (*)
+Gear Down (N)
+Gear Down Selected
+Gear (*) On Ground
+Gear (*) Red Warning
+Gear Selected Down
+Gear Selected Up
+Gear Up Selected
+Glidepath Engaged
+GLS Mode (*)
+GMT Hour
+GMT Minute
+GMT Second
+GNSS Mode (*)
+GPS Approach
+GPS Hour
+GPS Minute
+GPS Second
+GPS Selected
+Gross Weight
+Groundspeed
+Groundspeed (*)
+Groundspeed (FMC)
+Ground Station Data Selected (*)
+Heading
+Heading (*)
+Heading Displayed (Capt)
+Heading Mag-True (Capt)
+Heading Selected
+Heading Selected Engaged
+Heading True
+Heading Up MAP Format (*)
+Hectopascals Selected (*)
+Hour
+HUD Approach Warning
+HUD Combiner Position
+HUD Flight Path X Position
+HUD Guidance Cue Flight Path Deviation
+HUD ILS Localizer Deviation
+HUD Roll Absolute Below 6 Deg
+HUD Touchdown
+Hyd (*) Electrical
+Hyd (*) Fluid Low
+Hyd (*) Low Press Flight Controls
+Hyd (*) Oil Press
+Hyd Oil Press
+Hyd (*) Press Alarm
+Hyd (*) Pressure Low
+Hyd (*) Red Display
+Hyd Standby
+Hyd Standby Low Press
+Hyd Standby Oil Press
+Hyd (*) Yellow Display
+IAN Final Approach Course
+IAN Glidepath
+ILS Frequency
+ILS (*) Frequency
+ILS Glideslope
+ILS (*) Glideslope
+ILS Glideslope (Elevation)
+ILS Glideslope Engaged
+ILS-GLS (*) Frequency
+ILS Inner Marker (*)
+ILS Localizer
+ILS (*) Localizer
+ILS Localizer (Azimuth)
+ILS Localizer Engaged
+ILS Marker Inner
+ILS Marker Middle
+ILS Marker Outer
+ILS Middle Marker (*)
+ILS-MLS-GLS (*) Mode Selected
+ILS (*) Mode
+ILS Outer Marker (*)
+ILS Range
+ILS Selected
+ILS (*) Standby
+ILS-VOR (*) Course Selected
+ILS-VOR Course Selected
+ILS-VOR Frequency
+ILS-VOR (*) Frequency
+In Air
+inHg Selected (*)
+IRU Navigation Capable
+Key HF (*)
+Key Satcom (*)
+Key VHF
+Key VHF (*)
+Land (*) (*)
+Latitude
+Latitude (Coarse)
+Leading Edge Master Extended
+Leading Edge Master In Transit
+Longitude
+Longitude (Coarse)
+Mach
+Mach Selected
+Mach Selected (*)
+Mach Selected (FMC)
+Main Gearbox Oil Press
+Main Gearbox Oil Press (*)
+Main Gearbox Oil Temp
+Main Gearbox Oil Temp (*)
+MAP Mode Selected (*)
+Master Caution
+Master Warning
+MDA Selected (*)
+Meters (*) Selected
+Minute
+MLS (*) Mode
+Mode Control Panel Speed (*)
+Month
+NAV Database Effectivity (*) Day
+NAV Mode Operational (*)
+No Autoland Advisory
+Nr (*)
+Origin
+Overspeed Warning
+Para-Visual Display Enabled
+Para-Visual Display (*) Enabled
+Para-Visual Display (*) On
+PFD Navigation Display Format (*)
+Pitch
+Pitch (*)
+Pitch (Capt)
+Pitch Command (*)
+Pitch (FO)
+Pitch Rate
+Pitch Trim
+Plan Mode Selected (*)
+Position Data Selected (*)
+Primary Flight Display No Autoland
+Range Seelcted
+Range Seelcted (*)
+Range Selected (*)
+Rob Display Unit Format
+Roll
+Roll (*)
+Roll (Capt)
+Roll (FO)
+Rollout Armed
+Rollout Engaged
+Roll Trim Command Wing (*) Down
+Roll Trim Command Wing (L) Down
+Roll Trim Command Wing (R) Down
+Rotor Brake Engaged
+Route Data Selected (*)
+Rudder
+Rudder Pedal
+Rudder Pedal Force
+Rudder Reversal
+Rudder Trim
+SAT
+Second
+Sidestick Pitch (*)
+Sidestick Roll (*)
+Single Channel Engaged
+Slat
+Slat Angle
+Slat Angle (*)
+Slat (*) Extended
+Slat (*) Fully Extended
+Slat (*) In Transit
+Sling Load Force
+Smoke Cargo Aft Warning
+Smoke Lavatory Warning
+Smoke Warning Lavatory
+Speedbrake
+Speedbrake Armed
+Speedbrake Deployed
+Speedbrake Do Not Arm
+Speedbrake Handle
+Spoiler
+Spoiler (*)
+Spoiler (10)
+Spoiler (11)
+Spoiler (12)
+Spoiler (5)
+Spoiler (6)
+Spoiler (7)
+Spoiler (8)
+Spoiler (9)
+Stabilizer
+Stabilizer Manual Trim Down
+Stabilizer Manual Trim Up
+Stick Pusher
+Stick Shaker
+Stick Shaker (*)
+System Push button Selected
+Tail Rotor Pedal (*)
+Tail Rotor Pedal Output (*)
+Takeoff And Go Around
+TAT
+TAT (*)
+TAWS Alert
+TAWS Alert Recorded
+TAWS Caution
+TAWS Caution Terrain
+TAWS Dont Sink
+TAWS General
+TAWS Glideslope
+TAWS Glideslope Cancel
+TAWS Inoperative
+TAWS Minimums
+TAWS Obstacle
+TAWS Obstacle Caution
+TAWS Obstacle Warning
+TAWS Predictive Windshear
+TAWS Pull Up
+TAWS Sink Rate
+TAWS Terrain
+TAWS Terrain Ahead
+TAWS Terrain Ahead Pull Up
+TAWS Terrain Awareness Inoperative
+TAWS Terrain Awareness Not Available
+TAWS Terrain Caution
+TAWS Terrain Display Selected (Capt)
+TAWS Terrain Display Selected (FO)
+TAWS Terrain Override
+TAWS Terrain Pull Up
+TAWS Terrain Warning
+TAWS Too Low Flap
+TAWS Too Low Gear
+TAWS Too Low Terrain
+TAWS V1 Callout Enabled (*)
+TAWS Warning
+TAWS Windshear
+TAWS Windshear Caution
+TAWS Windshear Caution 2
+TAWS Windshear Inoperative
+TAWS Windshear Warning
+TAWS Windshear Warning 2
+TCAS Advisory Rate to Maintain
+TCAS Altitude Rate Advisory
+TCAS Altitude Reporting
+TCAS Altitude Selected
+TCAS Combined Control
+TCAS Down Advisory
+TCAS Sensitivity Level
+TCAS Sensitivity Level Control
+TCAS System Status
+TCAS Up Advisory
+TCAS Vertical Control
+Test Pattern
+TFC Selected (*)
+Throttle Lever
+Throttle Lever Angle (*)
+V1
+V2
+Vapp
+Variable Bleed Valve (*)
+Vertical Speed
+Vertical Speed Engaged
+Vertical Speed Selected
+VMO-MMO Alternate (*)
+VOR (*) Frequency
+VORLOC Engaged
+VOR Mode Selected (*)
+VOR (*) Selected (*)
+VR
+Vref
+Wheel Well Fire
+Wind Direction
+Wind Speed
+Wing Anti Ice
+WPT Selected (*)
+WXR Selected (*)
+Yaw Damper Engaged
+Yaw Rate (*)
+Yaw Trim
+Yaw Trim (*) Command
+Year

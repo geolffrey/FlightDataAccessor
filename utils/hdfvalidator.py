@@ -95,14 +95,18 @@ def title(title, line='=', section=True):
 
 def check_parameter_names(hdf):
     subtitle("Checking parameter names")
-    params_from_file = set(hdf.keys())
-    parameter_naming = set(list_parameters()) | set(EXTRA_PARAMETERS)
+    hdf_parameters = set(hdf.keys())
+    polaris_naming = set(list_parameters()) | set(EXTRA_PARAMETERS)
+    for filename in ['parameters-vis.txt', 'parameters-data_exports.txt',
+                     'parameters-patterns.txt']:
+        with open(filename, 'r') as f:
+            polaris_naming.update([l.strip() for l in f])
     matched_names = set()
-    for name in parameter_naming:
+    for name in polaris_naming:
         found = hdf.search(name)
         if found:
             matched_names.update(found)
-    unmatched_names = params_from_file - matched_names
+    unmatched_names = hdf_parameters - matched_names
     if not matched_names:
         logger.error("All %s parameters are unrecongnised by POLARIS.",
                      len(unmatched_names))
@@ -120,11 +124,11 @@ def check_parameter_names(hdf):
 
 
 def check_for_core_parameters(hdf):
-    params_from_file = hdf.keys()
-    airspeed = 'Airspeed' in params_from_file
-    altitude = 'Altitude STD' in params_from_file
-    heading = 'Heading' in params_from_file
-    heading_true = 'Heading True' in params_from_file
+    hdf_parameters = hdf.keys()
+    airspeed = 'Airspeed' in hdf_parameters
+    altitude = 'Altitude STD' in hdf_parameters
+    heading = 'Heading' in hdf_parameters
+    heading_true = 'Heading True' in hdf_parameters
     core_available = airspeed and altitude and (heading or heading_true)
 
     if core_available:

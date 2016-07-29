@@ -1,0 +1,131 @@
+AOA
+AP (1) Engaged
+AP (2) Engaged
+AP Lateral Mode
+AP Vertical Mode
+AT Active
+AT Engaged
+Aileron
+Airspeed
+Airspeed Selected
+Alpha (*) Floor
+Altitude AAL
+Altitude AGL
+Altitude Acquire
+Altitude Constraint
+Altitude QNH
+Altitude Radio
+Altitude Selected (*)
+Back Course Mode Engaged
+Collective (1)
+DH Selected (*)
+DME (1)
+DME (2)
+Elevator
+Elevator Trim
+Eng (1) EPR
+Eng (1) Fuel Flow
+Eng (1) Gas Temp
+Eng (1) N1
+Eng (1) N2
+Eng (1) Np
+Eng (1) Throttle Lever
+Eng (1) Torque
+Eng (2) EPR
+Eng (2) Fuel Flow
+Eng (2) Gas Temp
+Eng (2) N1
+Eng (2) N2
+Eng (2) Np
+Eng (2) Throttle Lever
+Eng (2) Torque
+Eng (3) EPR
+Eng (3) Fuel Flow
+Eng (3) Gas Temp
+Eng (3) N1
+Eng (3) N2
+Eng (3) Np
+Eng (3) Throttle Lever
+Eng (3) Torque
+Eng (4) EPR
+Eng (4) Fuel Flow
+Eng (4) Gas Temp
+Eng (4) N1
+Eng (4) N2
+Eng (4) Np
+Eng (4) Throttle Lever
+Eng (4) Torque
+Flap Angle
+Flap Lever
+Flap Lever (Synthetic)
+Flap Lever Detent
+Flap Surface
+Flight Dir (A) Engaged
+Flight Dir (B) Engaged
+Gear (L) Down
+Gear (N) Down
+Gear (R) Down
+Gear Down
+Gear Down Selected
+Gear On Ground
+Heading
+Heading Continuous
+Heading Mode Engaged
+Heading Selected
+Heading True
+Heading True Continuous
+ILS (*) Frequency
+ILS (*) Glideslope
+ILS (*) Localizer
+ILS (1) Frequency
+ILS (2) Frequency
+ILS Glideslope Active
+ILS Localizer Active
+ILS Marker Inner
+ILS Marker Middle
+ILS Marker Outer
+Latitude
+Latitude (*)
+Latitude (Coarse)
+Latitude Smoothed
+Longitude
+Longitude (*)
+Longitude (Coarse)
+Longitude Smoothed
+Mach
+Master Caution
+Master Warning
+NAV Mode Active
+NAV/VOR Select
+Nr (1)
+On Ground
+Pitch
+Roll
+Rudder
+Sidestick Pitch (Capt)
+Sidestick Pitch (FO)
+Sidestick Roll (Capt)
+Sidestick Roll (FO)
+Slat
+Slat (*) Outboard Extended
+Slat Angle
+Slat Fully Extended
+Slat Part Extended
+Speed Control
+Speed Hold Units
+Speedbrake Selected
+Stick Shaker
+TAT
+TAWS General
+TAWS Unspecified
+TAWS Warning
+Time
+Track Selected
+VLS
+VOR (1) Frequency
+VOR (2) Frequency
+Vertical Navigation Engaged
+Vertical Speed
+Vertical Speed Selected
+Wind Direction
+Wind Speed
