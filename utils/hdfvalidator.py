@@ -150,7 +150,7 @@ def check_for_core_parameters(hdf):
 # =============================================================================
 def validate_parameters(hdf):
     title("Checking Parameters")
-    matched, unmatched = check_parameter_names(hdf)
+    matched, _ = check_parameter_names(hdf)
     check_for_core_parameters(hdf)
     for name, parameter in hdf.iteritems():
         title("Checking Parameter: %s", name)
@@ -168,14 +168,14 @@ def validate_parameters(hdf):
 
 def validate_parameter_attributes(hdf, name, parameter):
     subtitle("Checking Attribute for Parameter: %s" % (name, ))
-    validate_arinc_429(hdf, name, parameter)
-    validate_data_type(hdf, name, parameter)
+    validate_arinc_429(name, parameter)
+    validate_data_type(name, parameter)
     validate_frequency(hdf, name, parameter)
-    validate_lfl(hdf, name, parameter)
-    validate_name(hdf, name, parameter)
-    validate_source_name(hdf, name, parameter)
-    validate_supf_offset(hdf, name, parameter)
-    validate_units(hdf, name, parameter)
+    validate_lfl(name, parameter)
+    validate_name(name, parameter)
+    validate_source_name(name, parameter)
+    validate_supf_offset(name, parameter)
+    validate_units(name, parameter)
     validate_values_mapping(hdf, name, parameter)
 
 
@@ -187,7 +187,7 @@ def validate_parameters_dataset(hdf, name, parameter):
     validate_dataset(hdf, name, parameter)
 
 
-def validate_arinc_429(hdf, name, parameter):
+def validate_arinc_429(name, parameter):
     logger.info("Checking parameter attribute: arinc_429")
     if parameter.arinc_429 is None:
         logger.warn("No attribute 'arinc_429' for '%s'. Optional attribute, "
@@ -201,7 +201,7 @@ def validate_arinc_429(hdf, name, parameter):
             logger.info("'%s' does not have an ARINC 429 source.", name)
 
 
-def validate_data_type(hdf, name, parameter):
+def validate_data_type(name, parameter):
     logger.info("Checking parameter attribute: data_type")
     if parameter.data_type is None:
         logger.error("No attribute 'data_type' present for '%s'. "
@@ -257,7 +257,7 @@ def validate_frequency(hdf, name, parameter):
                             "frequenices.")
 
 
-def validate_lfl(hdf, name, parameter):
+def validate_lfl(name, parameter):
     '''
     Check that the required lfl attribute is present. Report if recored or
     derived.
@@ -276,7 +276,7 @@ def validate_lfl(hdf, name, parameter):
         logger.info("'%s' is a derived parameter.", name)
 
 
-def validate_name(hdf, name, parameter):
+def validate_name(name, parameter):
     logger.info("Checking parameter attribute: name")
     if parameter.name is None:
         logger.error("No attribute 'name' for '%s'. Attribute is Required.",
@@ -291,7 +291,7 @@ def validate_name(hdf, name, parameter):
                         "the parameter group.")
 
 
-def validate_source_name(hdf, name, parameter):
+def validate_source_name(name, parameter):
     logger.info("Checking parameter attribute: source_name")
     if parameter.source_name is None:
         logger.info("No attribute 'source_name' for '%s'. Attribute is "
@@ -301,7 +301,7 @@ def validate_source_name(hdf, name, parameter):
                     "POLARIS name %s", parameter.source_name, name)
 
 
-def validate_supf_offset(hdf, name, parameter):
+def validate_supf_offset(name, parameter):
     logger.info("Checking parameter attribute: supf_offset")
     if parameter.offset is None:
         logger.error("No attribute 'supf_offset' for '%s'. Attribute is "
@@ -319,7 +319,7 @@ def validate_supf_offset(hdf, name, parameter):
             logger.info("'supf_offset' is present and correct data type.")
 
 
-def validate_units(hdf, name, parameter):
+def validate_units(name, parameter):
     logger.info("Checking parameter attribute: units")
     if parameter.data_type in ('Discrete', 'Multi-state',
                                'Enumerated Discrete'):
@@ -380,7 +380,7 @@ def validate_values_mapping(hdf, name, parameter):
                                  value1)
                 else:
                     logger.debug("discrete value of 1 maps to '%s'", value1)
-            except:
+            except Exception:
                 logger.error("discrete value of 1 has no mapping. Needs "
                              "to have a mapping for this value.")
             if len(parameter.values_mapping.keys()) > 2:
@@ -432,9 +432,9 @@ def validate_dataset(hdf, name, parameter):
                     len(parameter.array.data))
 
     logger.info("Checking dataset type and shape.")
-    isMaskedArray = isinstance(parameter.array, np.ma.core.MaskedArray)
-    isMappedArray = isinstance(parameter.array, MappedArray)
-    if not isMaskedArray and not isMappedArray:
+    is_masked_array = isinstance(parameter.array, np.ma.core.MaskedArray)
+    is_mapped_array = isinstance(parameter.array, MappedArray)
+    if not is_masked_array and not is_mapped_array:
         logger.error("Data for %s is not a MaskedArray or MappedArray. "
                      "Type is %s", name, type(parameter.array))
     else:
@@ -543,7 +543,7 @@ def validate_frequencies_attribute(hdf):
         else:
             logger.error("frequency listed is not a float value.")
 
-        pf = set([v.frequency for k, v in hdf.iteritems()])
+        pf = set([v.frequency for _, v in hdf.iteritems()])
         if rf == pf:
             logger.info("Root frequency list covers all the frequencies "
                         "used by parameters.")
@@ -562,7 +562,7 @@ def validate_frequencies_attribute(hdf):
 def validate_reliable_frame_counter(hdf):
     try:
         fc = hdf['Frame Counter']
-    except:
+    except Exception:
         return False
     if np.ma.masked_inside(fc, 0, 4095).count() != 0:
         return False
@@ -618,7 +618,7 @@ def validate_reliable_frame_counter_attribute(hdf):
 def validate_reliable_subframe_counter(hdf):
     try:
         sfc = hdf['Subframe Counter']
-    except:
+    except Exception:
         return False
     sfc_diff = np.ma.masked_equal(np.ma.diff(sfc.array), 1)
     if sfc_diff.count() == 0:
