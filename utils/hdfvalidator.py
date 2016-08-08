@@ -1,8 +1,12 @@
-import h5py
+'''
+HDFValidator checks flight data, stored in a HDF5 file format, is in a
+compatible structure meeting POLARIS pre-analysis specification.
+'''
 import argparse
 import os
 import json
 import logging
+import h5py
 import numpy as np
 
 from hdfaccess.file import hdf_file
@@ -14,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class StoppedOnFirstError(Exception):
+    """ Exception class used if user wants to stop upon the first error."""
     pass
 
 
@@ -28,6 +33,8 @@ class HDFValidatorStreamHandler(logging.StreamHandler):
         self.warnings = 0
 
     def emit(self, record):
+        ''' Log message. Then increment counter if message is a warning or
+            error. Error count includes critical errors. '''
         super(HDFValidatorStreamHandler, self).emit(record)
         if record.levelno >= logging.ERROR:
             self.errors += 1
@@ -37,6 +44,7 @@ class HDFValidatorStreamHandler(logging.StreamHandler):
             raise StoppedOnFirstError()
 
     def get_error_counts(self):
+        ''' returns the number of warnings and errors logged.'''
         return {'warnings': self.warnings, 'errors': self.errors}
 
 VALID_FREQUENCIES = {
@@ -82,25 +90,35 @@ CORE_PARAMETERS = [
 ]
 
 
-def subtitle(subtitle):
-    title(subtitle, line='-', section=False)
-
-
-def title(title, line='=', section=True):
+def log_title(title, line='=', section=True):
+    """Add visual breaks in the logging for main sections."""
     if section:
         logger.info("%s", '_'*80)
     logger.info(title)
     logger.info("%s", line*len(title))
 
 
+def log_subtitle(subtitle):
+    """Add visual breaks in the logging for sub sections."""
+    log_title(subtitle, line='-', section=False)
+
+
 def check_parameter_names(hdf):
-    subtitle("Checking parameter names")
+    """
+    Check if the parameter name is one recognised as a POLARIS parameter
+    name.
+    Returns two tuples.
+      The first a tuple of names matching POLARIS parameters.
+      The second, a tuple of names that do not match POLARIS parameters and
+      will be ignored by analysis.
+    """
+    log_subtitle("Checking parameter names")
     hdf_parameters = set(hdf.keys())
     polaris_naming = set(list_parameters()) | set(EXTRA_PARAMETERS)
     for filename in ['parameters-vis.txt', 'parameters-data_exports.txt',
                      'parameters-patterns.txt']:
-        with open(filename, 'r') as f:
-            polaris_naming.update([l.strip() for l in f])
+        with open(filename, 'r') as fhdl:
+            polaris_naming.update([l.strip() for l in fhdl])
     matched_names = set()
     for name in polaris_naming:
         found = hdf.search(name)
@@ -124,6 +142,13 @@ def check_parameter_names(hdf):
 
 
 def check_for_core_parameters(hdf):
+    """
+    Check that the following parameters exist in the file:
+    - 'Airspeed'
+    - 'Altitude STD'
+    - either 'Heading' or 'Heading True'
+    Minimum parameter required for any analysis to be performed.
+    """
     hdf_parameters = hdf.keys()
     airspeed = 'Airspeed' in hdf_parameters
     altitude = 'Altitude STD' in hdf_parameters
@@ -153,11 +178,18 @@ def check_for_core_parameters(hdf):
 #   Parameter's Attributes
 # =============================================================================
 def validate_parameters(hdf):
-    title("Checking Parameters")
+    """
+    Iterates through all the parameters within the 'series' namespace and
+    validates:
+        Matches a POLARIS recognised parameter
+        Attributes
+        Data
+    """
+    log_title("Checking Parameters")
     matched, _ = check_parameter_names(hdf)
     check_for_core_parameters(hdf)
     for name, parameter in hdf.iteritems():
-        title("Checking Parameter: %s" % (name, ))
+        log_title("Checking Parameter: %s" % (name, ))
         if name in matched:
             logger.info("'%s' is a recongnised by POLARIS.", name)
         else:
@@ -171,7 +203,8 @@ def validate_parameters(hdf):
 
 
 def validate_parameter_attributes(hdf, name, parameter):
-    subtitle("Checking Attribute for Parameter: %s" % (name, ))
+    """Validates all parameter attributes."""
+    log_subtitle("Checking Attribute for Parameter: %s" % (name, ))
     validate_arinc_429(name, parameter)
     validate_data_type(name, parameter)
     validate_frequency(hdf, name, parameter)
@@ -183,15 +216,20 @@ def validate_parameter_attributes(hdf, name, parameter):
     validate_values_mapping(hdf, name, parameter)
 
 
-# =============================================================================
-#   Parameter's Attributes
-# =============================================================================
 def validate_parameters_dataset(hdf, name, parameter):
-    subtitle("Checking dataset for Parameter: %s" % (name, ))
+    """Validates all parameter datasets."""
+    log_subtitle("Checking dataset for Parameter: %s" % (name, ))
     validate_dataset(hdf, name, parameter)
 
 
+# =============================================================================
+#   Parameter's Attributes
+# =============================================================================
 def validate_arinc_429(name, parameter):
+    """
+    Reports if parameter attribute arinc_429 exists.
+    If so, check it is a boolean and report it's value.
+    """
     logger.info("Checking parameter attribute: arinc_429")
     if parameter.arinc_429 is None:
         logger.warn("No attribute 'arinc_429' for '%s'. Optional attribute, "
@@ -206,6 +244,10 @@ def validate_arinc_429(name, parameter):
 
 
 def validate_data_type(name, parameter):
+    """
+    Checks the parameter attribute data_type exists (It is required)
+    and verify that the data has the correct type.
+    """
     logger.info("Checking parameter attribute: data_type")
     if parameter.data_type is None:
         logger.error("No attribute 'data_type' present for '%s'. "
@@ -239,6 +281,11 @@ def validate_data_type(name, parameter):
 
 
 def validate_frequency(hdf, name, parameter):
+    """
+    Checks the parameter attribute frequency exists (It is required)
+    and report if it is a valid frequency and if it is listed in the root
+    attribute frequencies.
+    """
     logger.info("Checking parameter attribute: frequency")
     if parameter.frequency is None:
         logger.error("No attribute 'frequency' present for '%s'. "
@@ -263,7 +310,7 @@ def validate_frequency(hdf, name, parameter):
 
 def validate_lfl(name, parameter):
     '''
-    Check that the required lfl attribute is present. Report if recored or
+    Check that the required lfl attribute is present. Report if recorded or
     derived.
     '''
     logger.info("Checking parameter attribute: lfl")
@@ -281,6 +328,10 @@ def validate_lfl(name, parameter):
 
 
 def validate_name(name, parameter):
+    """
+    Checks the parameter attribute name exists (It is required)
+    and report if name matches the parameter's group name.
+    """
     logger.info("Checking parameter attribute: name")
     if parameter.name is None:
         logger.error("No attribute 'name' for '%s'. Attribute is Required.",
@@ -296,6 +347,7 @@ def validate_name(name, parameter):
 
 
 def validate_source_name(name, parameter):
+    """Reports if the parameter attribute source_name exists."""
     logger.info("Checking parameter attribute: source_name")
     if parameter.source_name is None:
         logger.info("No attribute 'source_name' for '%s'. Attribute is "
@@ -306,6 +358,10 @@ def validate_source_name(name, parameter):
 
 
 def validate_supf_offset(name, parameter):
+    """
+    Check if the parameter attribute supf_offset exists (It is required)
+    and report.
+    """
     logger.info("Checking parameter attribute: supf_offset")
     if parameter.offset is None:
         logger.error("No attribute 'supf_offset' for '%s'. Attribute is "
@@ -318,12 +374,16 @@ def validate_supf_offset(name, parameter):
                 logger.warn(msg)
             else:
                 logger.error(msg)
-
         else:
-            logger.info("'supf_offset' is present and correct data type.")
+            logger.info("'supf_offset' is present and correct data type "
+                        "and has a value of %s", parameter.offset)
 
 
 def validate_units(name, parameter):
+    """
+    Check if the parameter attribute units exists (It is required)
+    and reports the value and if it is valid unit name.
+    """
     logger.info("Checking parameter attribute: units")
     if parameter.data_type in ('Discrete', 'Multi-state',
                                'Enumerated Discrete'):
@@ -347,6 +407,10 @@ def validate_units(name, parameter):
 
 
 def validate_values_mapping(hdf, name, parameter):
+    """
+    Check if the parameter attribute values_mapping exists (It is required for
+    discrete or multi-state parameter) and reports the value.
+    """
     logger.info("Checking parameter attribute: values_mapping")
     if parameter.values_mapping is None:
         if parameter.data_type in ('Discrete', 'Multi-state',
@@ -367,14 +431,14 @@ def validate_values_mapping(hdf, name, parameter):
             )
             logger.info("Attribute, 'values_mapping' is a valid json "
                         "string: %s", jstr)
-        except ValueError as e:
+        except ValueError as err:
             logger.error("'values_mapping' is not a valid JSON string. (%s)",
-                         e)
+                         err)
         if parameter.data_type == 'Discrete':
             try:
                 value0 = parameter.values_mapping[0]  # False values
                 logger.debug("discrete value of 0 maps to '%s'.", value0)
-            except KeyError as e:
+            except KeyError:
                 logger.debug("discrete value of 0 has no mapping.")
             try:
                 value1 = parameter.values_mapping[1]  # True values
@@ -384,7 +448,7 @@ def validate_values_mapping(hdf, name, parameter):
                                  value1)
                 else:
                     logger.debug("discrete value of 1 maps to '%s'", value1)
-            except Exception:
+            except KeyError:
                 logger.error("discrete value of 1 has no mapping. Needs "
                              "to have a mapping for this value.")
             if len(parameter.values_mapping.keys()) > 2:
@@ -395,6 +459,7 @@ def validate_values_mapping(hdf, name, parameter):
 
 
 def validate_dataset(hdf, name, parameter):
+    """Check the data for size, unmasked inf/NaN values."""
     logger.info("Checking parameter dataset for inf and NaN values.")
     if 'int' in parameter.array.dtype.name or \
        'float' in parameter.array.dtype.name:
@@ -421,7 +486,7 @@ def validate_dataset(hdf, name, parameter):
                 logger.warn(nan_msg)
 
         if inf_count != 0:
-            inf_msg = "%s NaN values found in the data of '%s'. " \
+            inf_msg = "%s inf values found in the data of '%s'. " \
                       % (inf_count, name)
             inf_percent = (float(inf_count)/len(parameter.array.data))*100
             inf_msg += "Represents %.2f%%. " % (inf_percent, )
@@ -469,9 +534,9 @@ def validate_dataset(hdf, name, parameter):
 
 
 def validate_namespace(hdf5):
-    '''Uses h5py functions to verify what is stored on the root group'''
+    '''Uses h5py functions to verify what is stored on the root group.'''
     found = ''
-    title("Checking for the namespace 'series' group on root")
+    log_title("Checking for the namespace 'series' group on root")
     if 'series' in hdf5.keys():
         logger.info("Found the POLARIS namespace 'series' on root.")
         found = 'series'
@@ -514,7 +579,8 @@ def validate_namespace(hdf5):
 #   Root Attributes
 # =============================================================================
 def validate_root_attribute(hdf):
-    title("Checking the Root attributes")
+    """Validates all the root attributes."""
+    log_title("Checking the Root attributes")
     validate_duration_attribute(hdf)
     validate_frequencies_attribute(hdf)
     validate_reliable_frame_counter_attribute(hdf)
@@ -524,12 +590,16 @@ def validate_root_attribute(hdf):
 
 
 def validate_duration_attribute(hdf):
+    """
+    Check if the root attribute duration exists (It is required)
+    and report the value.
+    """
     logger.info("Checking Root Attribute: duration")
     if hdf.duration:
         logger.info("duration attribute present with a value of %s.",
                     hdf.hdf.attrs['duration'])
         if 'int' in type(hdf.hdf.attrs['duration']).__name__:
-            logger.info("duration attribute is an integer.")
+            logger.debug("duration attribute is an integer.")
         else:
             logger.error("duration attribute is not an integer, type "
                          "reported as '%s'.",
@@ -540,13 +610,18 @@ def validate_duration_attribute(hdf):
 
 
 def validate_frequencies_attribute(hdf):
+    """
+        Check if the root frequencies duration exists.
+        report all the values and if the list covers all frequencies used
+        by the store parameters.
+    """
     logger.info("Checking Root Attribute: frequencies")
     if hdf.frequencies is not None:
         logger.info("frequencies attribute present.")
         name = type(hdf.frequencies).__name__
         if 'array' in name or 'list' in name:
             floatcount = 0
-            rf = set(list(hdf.frequencies))
+            rootfreq = set(list(hdf.frequencies))
             for value in hdf.frequencies:
                 if 'float' in type(value).__name__:
                     floatcount += 1
@@ -559,35 +634,36 @@ def validate_frequencies_attribute(hdf):
                 logger.error("Some or all frequencies are not float values.")
         elif 'float' in name:
             logger.info("Passed: frequency listed is a float value.")
-            rf = set([hdf.frequencies])
+            rootfreq = set([hdf.frequencies])
         else:
             logger.error("frequency listed is not a float value.")
 
-        pf = set([v.frequency for _, v in hdf.iteritems()])
-        if rf == pf:
+        paramsfreq = set([v.frequency for _, v in hdf.iteritems()])
+        if rootfreq == paramsfreq:
             logger.info("Root frequency list covers all the frequencies "
                         "used by parameters.")
-        elif rf - pf:
+        elif rootfreq - paramsfreq:
             logger.info("Root frequencies lists has more frequencies than "
                         "used by parameters. Unused frquencies: %s",
-                        list(rf - pf))
-        elif pf - rf:
+                        list(rootfreq - paramsfreq))
+        elif paramsfreq - rootfreq:
             logger.info("More parameter frequencies used than listed in root "
                         "attribute frequencies. Frequency not listed: %s",
-                        list(pf - rf))
+                        list(paramsfreq - rootfreq))
     else:
         logger.info("frequencies attribute not present and is optional.")
 
 
-def validate_reliable_frame_counter(hdf):
+def is_reliable_frame_counter(hdf):
+    """returns if the parameter 'Frame Counter' is reliable."""
     try:
-        fc = hdf['Frame Counter']
-    except Exception:
+        pfc = hdf['Frame Counter']
+    except KeyError:
         return False
-    if np.ma.masked_inside(fc, 0, 4095).count() != 0:
+    if np.ma.masked_inside(pfc, 0, 4095).count() != 0:
         return False
     # from split_hdf_to_segments.py
-    fc_diff = np.ma.diff(fc.array)
+    fc_diff = np.ma.diff(pfc.array)
     fc_diff = np.ma.masked_equal(fc_diff, 1)
     fc_diff = np.ma.masked_equal(fc_diff, -4095)
     if fc_diff.count() == 0:
@@ -596,11 +672,15 @@ def validate_reliable_frame_counter(hdf):
 
 
 def validate_reliable_frame_counter_attribute(hdf):
+    """
+    Check if the root attribute reliable_frame_counter exists (It is required)
+    and report the value and if the value is correctly set.
+    """
     logger.info("Checking Root Attribute: 'reliable_frame_counter'")
     parameter_exists = 'Frame Counter' in hdf.keys()
-    reliable = validate_reliable_frame_counter(hdf)
+    reliable = is_reliable_frame_counter(hdf)
     attribute_value = hdf.reliable_frame_counter
-    correct_type = type(hdf.reliable_frame_counter) == bool
+    correct_type = isinstance(hdf.reliable_frame_counter, bool)
     if attribute_value is None:
         logger.error("'reliable_frame_counter' attribute not present "
                      "and is required.")
@@ -635,10 +715,11 @@ def validate_reliable_frame_counter_attribute(hdf):
                          type(hdf.reliable_frame_counter).__name__)
 
 
-def validate_reliable_subframe_counter(hdf):
+def is_reliable_subframe_counter(hdf):
+    """returns if the parameter 'Subframe Counter' is reliable."""
     try:
         sfc = hdf['Subframe Counter']
-    except Exception:
+    except KeyError:
         return False
     sfc_diff = np.ma.masked_equal(np.ma.diff(sfc.array), 1)
     if sfc_diff.count() == 0:
@@ -647,11 +728,15 @@ def validate_reliable_subframe_counter(hdf):
 
 
 def validate_reliable_subframe_counter_attribute(hdf):
+    """
+    Check if the root attribute reliable_subframe_counter exists
+    (It is required) and report the value and if the value is correctly set.
+    """
     logger.info("Checking Root Attribute: 'reliable_subframe_counter'")
     parameter_exists = 'Subframe Counter' in hdf.keys()
-    reliable = validate_reliable_subframe_counter(hdf)
+    reliable = is_reliable_subframe_counter(hdf)
     attribute_value = hdf.reliable_subframe_counter
-    correct_type = type(hdf.reliable_subframe_counter) == bool
+    correct_type = isinstance(hdf.reliable_subframe_counter, bool)
     if attribute_value is None:
         logger.error("'reliable_subframe_counter' attribute not present "
                      "and is required.")
@@ -687,6 +772,10 @@ def validate_reliable_subframe_counter_attribute(hdf):
 
 
 def validate_start_timestamp_attribute(hdf):
+    """
+    Check if the root attribute start_timestamp exists
+    and report the value.
+    """
     logger.info("Checking Root Attribute: start_timestamp")
     if hdf.start_datetime:
         logger.info("start_timestamp attribute present.")
@@ -704,6 +793,10 @@ def validate_start_timestamp_attribute(hdf):
 
 
 def validate_superframe_present_attribute(hdf):
+    """
+    Check if the root attribute superframe_present exists
+    and report.
+    """
     logger.info("Checking Root Attribute: superframe_present.")
     if hdf.superframe_present:
         logger.info("superframe_present attribute present.")
@@ -713,41 +806,51 @@ def validate_superframe_present_attribute(hdf):
 
 
 def validate_file(hdffile):
+    """
+    Attempts to open the HDF5 file in using FlightDataAccessor and run all the
+    validation tests. If the file cannot be opened, it will attempt to open
+    the file using the h5py package and validate the namespace to test the
+    HDF5 group structure.
+    """
     filename = hdffile.split(os.sep)[-1]
     open_with_h5py = False
+    hdf = None
     logger.info("Verifying file '%s' with FlightDataAccessor.", filename)
     try:
         hdf = hdf_file(hdffile, read_only=True)
-    except Exception as e:
+    except Exception as err:
         logger.error("FlightDataAccessor cannot open '%s'. "
-                     "Exception(%s: %s)", filename, type(e).__name__, e)
-
-        logger.info("Checking that H5PY package can read the file.")
+                     "Exception(%s: %s)", filename, type(err).__name__, err)
         open_with_h5py = True
     # If FlightDataAccessor errors upon opening it maybe because '/series'
     # is not included in the file. hdf_file attempts to create and fails
     # because we opening it as readonly. Verify the group structure by
     # using H5PY
     if open_with_h5py:
+        logger.info("Checking that H5PY package can read the file.")
         try:
-            hdf = h5py.File(hdffile, 'r')
-            logger.info("File %s can be opened by H5PY, suggesting "
-                        "the format is not compatible for POLARIS to use.",
-                        filename)
-        except Exception as e:
+            hdf_alt = h5py.File(hdffile, 'r')
+        except Exception as err:
             logger.error("cannot open '%s' using H5PY. Exception(%s: %s)",
-                         filename, type(e).__name__, e)
+                         filename, type(err).__name__, err)
             return
-        validate_namespace(hdf)
+        logger.info("File %s can be opened by H5PY, suggesting the format "
+                    "is not compatible for POLARIS to use.",
+                    filename)
+        logger.info("Will just verify the HDF5 structure and exit.")
+        validate_namespace(hdf_alt)
+        hdf_alt.close()
     else:
         validate_namespace(hdf.hdf)
         # continue testing using FlightDataAccessor
         validate_root_attribute(hdf)
         validate_parameters(hdf)
-    hdf.close()
+    if hdf:
+        hdf.close()
 
 
 def main():
+    """Main"""
     parser = argparse.ArgumentParser(
         description="Flight Data Services, HDF5 Validator for POLARIS "
                     "compatibility",
@@ -791,24 +894,24 @@ def main():
         logfilename = logfilename.replace('.hdf5', '')\
             .replace('.bz2', '').replace('.gz', '')
         logfilename = logfilename + ".log"
-        handler = logging.FileHandler(logfilename, mode='w')
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(fmtr)
-        logger.addHandler(handler)
+        file_hdlr = logging.FileHandler(logfilename, mode='w')
+        file_hdlr.setLevel(logging.DEBUG)
+        file_hdlr.setFormatter(fmtr)
+        logger.addHandler(file_hdlr)
 
     # setup a stream handler
-    sh = HDFValidatorStreamHandler(args.stop)
-    error_count = sh.get_error_counts()
+    stream_hdlr = HDFValidatorStreamHandler(args.stop)
+    error_count = stream_hdlr.get_error_counts()
 
     if args.warn:
-        sh.setLevel(logging.WARNING)
+        stream_hdlr.setLevel(logging.WARNING)
     elif args.error:
-        sh.setLevel(logging.ERROR)
+        stream_hdlr.setLevel(logging.ERROR)
     else:
-        sh.setLevel(logging.INFO)
-    sh.setFormatter(fmtr)
+        stream_hdlr.setLevel(logging.INFO)
+    stream_hdlr.setFormatter(fmtr)
 
-    logger.addHandler(sh)
+    logger.addHandler(stream_hdlr)
 
     logger.setLevel(logging.DEBUG)
     logger.debug("Arguments: %s", str(args))
@@ -821,7 +924,7 @@ def main():
         if isinstance(hdr, HDFValidatorStreamHandler):
             error_count = hdr.get_error_counts()
 
-    title("Results")
+    log_title("Results")
     logger.info("Validation ended with, %s errors and %s warnings",
                 error_count['errors'], error_count['warnings'])
 
