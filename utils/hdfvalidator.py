@@ -12,6 +12,7 @@ import numpy as np
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import MappedArray
 from analysis_engine.utils import list_parameters
+from flightdatautilities.patterns import wildcard_match, WILDCARD
 from flightdatautilities import units as ut
 
 logger = logging.getLogger(__name__)
@@ -22,12 +23,12 @@ class StoppedOnFirstError(Exception):
     pass
 
 
-class HDFValidatorStreamHandler(logging.StreamHandler):
+class HDFValidatorHandler(logging.Handler):
     """
     A handler to raise stop on the first error log.
     """
     def __init__(self, stop_on_error=None):
-        super(HDFValidatorStreamHandler, self).__init__()
+        super(HDFValidatorHandler, self).__init__()
         self.stop_on_error = stop_on_error
         self.errors = 0
         self.warnings = 0
@@ -35,7 +36,7 @@ class HDFValidatorStreamHandler(logging.StreamHandler):
     def emit(self, record):
         ''' Log message. Then increment counter if message is a warning or
             error. Error count includes critical errors. '''
-        super(HDFValidatorStreamHandler, self).emit(record)
+        #super(HDFValidatorStreamHandler, self).emit(record)
         if record.levelno >= logging.ERROR:
             self.errors += 1
         elif record.levelno == logging.WARN:
@@ -114,29 +115,36 @@ def check_parameter_names(hdf):
     """
     log_subtitle("Checking parameter names")
     hdf_parameters = set(hdf.keys())
-    polaris_naming = set(list_parameters()) | set(EXTRA_PARAMETERS)
+    polaris_names = set(list_parameters()) | set(EXTRA_PARAMETERS)
     for filename in ['parameters-vis.txt', 'parameters-data_exports.txt',
                      'parameters-patterns.txt']:
         with open(filename, 'r') as fhdl:
-            polaris_naming.update([l.strip() for l in fhdl])
+            polaris_names.update([l.strip() for l in fhdl])
     matched_names = set()
-    for name in polaris_naming:
-        found = hdf.search(name)
+    for name in polaris_names:
+        if WILDCARD in name:
+            found = wildcard_match(name, hdf_parameters, remove=' ')
+        else:
+            found = [name for p in hdf_parameters if p == name]
         if found:
             matched_names.update(found)
+
     unmatched_names = hdf_parameters - matched_names
     if not matched_names:
-        logger.error("All %s parameters are unrecongnised by POLARIS.",
+        logger.error("None of the %d parameters within HDF file are "
+                     "recognised by POLARIS",
                      len(unmatched_names))
     elif unmatched_names:
-        logger.info("Number of parameter recongnised by POLARIS: %s",
+        logger.info("Number of parameter names recongnised by POLARIS: %s",
                     len(matched_names))
-        logger.warn("Number of parameters unrecongnised by POLARIS: %s",
-                    len(unmatched_names))
-        logger.debug("The following parameters names are unrecognised by "
+        logger.warn("Number of parameters names not recongnised by "
+                    "POLARIS: %s", len(unmatched_names))
+        logger.debug("The following parameters names are recognised by "
+                     "POLARIS: %s", matched_names)
+        logger.debug("The following parameters names are not recognised by "
                      "POLARIS: %s", unmatched_names)
     else:
-        logger.info("All %s parameters are recongnised by POLARIS.",
+        logger.info("All %s parameters names are recongnised by POLARIS.",
                     len(matched_names))
     return (tuple(matched_names), tuple(unmatched_names))
 
@@ -189,31 +197,31 @@ def validate_parameters(hdf):
     matched, _ = check_parameter_names(hdf)
     check_for_core_parameters(hdf)
     for name, parameter in hdf.iteritems():
-        log_title("Checking Parameter: %s" % (name, ))
+        log_title("Checking Parameter: '%s'" % (name, ))
         if name in matched:
             logger.info("'%s' is a recongnised by POLARIS.", name)
         else:
-            logger.warn("'%s' is a unrecongnised by POLARIS.", name)
+            logger.warn("'%s' is not a recongnised by POLARIS.", name)
         if name in CORE_PARAMETERS:
             logger.info("'%s' is a core parameter required for basic "
                         "analysis.", name)
-        validate_parameter_attributes(hdf, name, parameter)
+        validate_parameter_attributes(hdf, name, parameter, name in matched)
         validate_parameters_dataset(hdf, name, parameter)
     return
 
 
-def validate_parameter_attributes(hdf, name, parameter):
+def validate_parameter_attributes(hdf, name, parameter, matched):
     """Validates all parameter attributes."""
     log_subtitle("Checking Attribute for Parameter: %s" % (name, ))
-    validate_arinc_429(name, parameter)
-    validate_data_type(name, parameter)
-    validate_frequency(hdf, name, parameter)
-    validate_lfl(name, parameter)
-    validate_name(name, parameter)
-    validate_source_name(name, parameter)
-    validate_supf_offset(name, parameter)
-    validate_units(name, parameter)
-    validate_values_mapping(hdf, name, parameter)
+    validate_arinc_429(parameter)
+    validate_data_type(parameter)
+    validate_frequency(hdf, parameter)
+    validate_lfl(parameter)
+    validate_name(parameter, name)
+    validate_source_name(parameter, matched)
+    validate_supf_offset(parameter)
+    validate_units(parameter)
+    validate_values_mapping(hdf, parameter)
 
 
 def validate_parameters_dataset(hdf, name, parameter):
@@ -225,7 +233,7 @@ def validate_parameters_dataset(hdf, name, parameter):
 # =============================================================================
 #   Parameter's Attributes
 # =============================================================================
-def validate_arinc_429(name, parameter):
+def validate_arinc_429(parameter):
     """
     Reports if parameter attribute arinc_429 exists.
     If so, check it is a boolean and report it's value.
@@ -233,17 +241,19 @@ def validate_arinc_429(name, parameter):
     logger.info("Checking parameter attribute: arinc_429")
     if parameter.arinc_429 is None:
         logger.warn("No attribute 'arinc_429' for '%s'. Optional attribute, "
-                    "if parmater does not have an ARINC 429 source.", name)
+                    "if parmater does not have an ARINC 429 source.",
+                    parameter.name)
     else:
         if 'bool' not in type(parameter.arinc_429).__name__:
             logger.error("Attribute 'arinc_429' is not a Boolean type.")
         if parameter.arinc_429:
-            logger.info("'%s' has an ARINC 429 source.", name)
+            logger.info("'%s' has an ARINC 429 source.", parameter.name)
         else:
-            logger.info("'%s' does not have an ARINC 429 source.", name)
+            logger.info("'%s' does not have an ARINC 429 source.",
+                        parameter.name)
 
 
-def validate_data_type(name, parameter):
+def validate_data_type(parameter):
     """
     Checks the parameter attribute data_type exists (It is required)
     and verify that the data has the correct type.
@@ -251,36 +261,37 @@ def validate_data_type(name, parameter):
     logger.info("Checking parameter attribute: data_type")
     if parameter.data_type is None:
         logger.error("No attribute 'data_type' present for '%s'. "
-                     "This is required attribute.", name)
+                     "This is required attribute.", parameter.name)
     else:
-        logger.info("'%s' has a 'data_type' attribute of: %s", name,
+        logger.info("'%s' has a 'data_type' attribute of: %s", parameter.name,
                     parameter.data_type)
-        logger.info("'%s' data has a dtype of: %s", name,
+        logger.info("'%s' data has a dtype of: %s", parameter.name,
                     parameter.array.data.dtype)
         if parameter.data_type in ['ASCII', ]:
             if 'string' not in parameter.array.dtype.name:
                 logger.error("'%s' data type is %s. It should be a string "
-                             "for '%s' parameters.", name,
+                             "for '%s' parameters.", parameter.name,
                              parameter.array.dtype.name, parameter.data_type)
                 return
         elif parameter.data_type in ['BCD', 'Interpolated', 'Polynomial',
                                      'Signed', 'Synchro', 'Unsigned']:
             if 'float' not in parameter.array.dtype.name:
                 logger.error("'%s' data type is %s. It should be a float "
-                             "for '%s' parameters.", name,
+                             "for '%s' parameters.", parameter.name,
                              parameter.array.dtype.name, parameter.data_type)
                 return
         elif parameter.data_type in ['Multi-state', 'Discrete']:
             if 'int' not in parameter.array.dtype.name:
                 logger.warn("'%s' data type is %s. It should be an integer "
-                            "for '%s' parameters.", name,
+                            "for '%s' parameters.", parameter.name,
                             parameter.array.dtype.name, parameter.data_type)
                 return
-        logger.info("'%s' data_type is %s and is an array of %s.", name,
-                    parameter.data_type, parameter.array.dtype.name)
+        logger.info("'%s' data_type is %s and is an array of %s.",
+                    parameter.name, parameter.data_type,
+                    parameter.array.dtype.name)
 
 
-def validate_frequency(hdf, name, parameter):
+def validate_frequency(hdf, parameter):
     """
     Checks the parameter attribute frequency exists (It is required)
     and report if it is a valid frequency and if it is listed in the root
@@ -289,15 +300,15 @@ def validate_frequency(hdf, name, parameter):
     logger.info("Checking parameter attribute: frequency")
     if parameter.frequency is None:
         logger.error("No attribute 'frequency' present for '%s'. "
-                     "This is required attribute.", name)
+                     "This is required attribute.", parameter.name)
     else:
         if parameter.frequency not in VALID_FREQUENCIES:
             logger.error("'%s' has a 'frequency' of %s which is not a "
-                         "frequency supported by POLARIS.", name,
+                         "frequency supported by POLARIS.", parameter.name,
                          parameter.frequency)
         else:
             logger.info("'frequency' is %s Hz for '%s' and is a support "
-                        "frequency.", parameter.frequency, name)
+                        "frequency.", parameter.frequency, parameter.name)
         if hdf.frequencies is not None:
             if 'array' in type(hdf.frequencies).__name__:
                 if parameter.frequency not in hdf.frequencies:
@@ -308,7 +319,7 @@ def validate_frequency(hdf, name, parameter):
                             "frequenices.")
 
 
-def validate_lfl(name, parameter):
+def validate_lfl(parameter):
     '''
     Check that the required lfl attribute is present. Report if recorded or
     derived.
@@ -316,18 +327,18 @@ def validate_lfl(name, parameter):
     logger.info("Checking parameter attribute: lfl")
     if parameter.lfl is None:
         logger.error("No attribute 'lfl' for '%s'. Attribute is Required.",
-                     name)
+                     parameter.name)
         return
     if 'bool' not in type(parameter.lfl).__name__:
         logger.error("lfl should be an Boolean. Type is %s",
                      type(parameter.lfl).__name__)
     if parameter.lfl:
-        logger.info("'%s' is a recorded parameter.", name)
+        logger.info("'%s' is a recorded parameter.", parameter.name)
     else:
-        logger.info("'%s' is a derived parameter.", name)
+        logger.info("'%s' is a derived parameter.", parameter.name)
 
 
-def validate_name(name, parameter):
+def validate_name(parameter, name):
     """
     Checks the parameter attribute name exists (It is required)
     and report if name matches the parameter's group name.
@@ -346,18 +357,25 @@ def validate_name(name, parameter):
                         "the parameter group.")
 
 
-def validate_source_name(name, parameter):
+def validate_source_name(parameter, matched):
     """Reports if the parameter attribute source_name exists."""
     logger.info("Checking parameter attribute: source_name")
     if parameter.source_name is None:
         logger.info("No attribute 'source_name' for '%s'. Attribute is "
-                    "optional.", name)
+                    "optional.", parameter.name)
     else:
-        logger.info("'source_name' is present. Original name %s maps to "
-                    "POLARIS name %s", parameter.source_name, name)
+        try:
+            pname = parameter.source_name.decode('utf8')
+        except UnicodeDecodeError:
+            pname = repr(parameter.source_name)
+        add_msg = ''
+        if matched:
+            add_msg = 'POLARIS name '
+        logger.info("'source_name' is present. Original name '%s' maps to "
+                    "%s'%s'", pname, add_msg, parameter.name)
 
 
-def validate_supf_offset(name, parameter):
+def validate_supf_offset(parameter):
     """
     Check if the parameter attribute supf_offset exists (It is required)
     and report.
@@ -365,11 +383,11 @@ def validate_supf_offset(name, parameter):
     logger.info("Checking parameter attribute: supf_offset")
     if parameter.offset is None:
         logger.error("No attribute 'supf_offset' for '%s'. Attribute is "
-                     "Required. ", name)
+                     "Required. ", parameter.name)
     else:
         if 'float' not in type(parameter.offset).__name__:
             msg = "'supf_offset' type for '%s' is not a float. Got %s instead"\
-                % (name, type(parameter.offset).__name__)
+                % (parameter.name, type(parameter.offset).__name__)
             if parameter.offset == 0:
                 logger.warn(msg)
             else:
@@ -379,7 +397,7 @@ def validate_supf_offset(name, parameter):
                         "and has a value of %s", parameter.offset)
 
 
-def validate_units(name, parameter):
+def validate_units(parameter):
     """
     Check if the parameter attribute units exists (It is required)
     and reports the value and if it is valid unit name.
@@ -390,23 +408,24 @@ def validate_units(name, parameter):
         return
     if parameter.units is None:
         logger.warn("No attribute 'units' for '%s'. Attribute is Required.",
-                    name)
+                    parameter.name)
     else:
         if type(parameter.units).__name__ not in ['str', 'string', 'string_']:
             logger.error("'units' expected to be a string, got %s",
                          type(parameter.units).__name__)
         if parameter.units == '':
             logger.info("Attribute 'units' is present for '%s', but empty.",
-                        name)
+                        parameter.name)
         elif parameter.units in ut.available():
             logger.info("Attribute 'units' is present for '%s' and has a "
-                        "valid unit of '%s'.", name, parameter.units)
+                        "valid unit of '%s'.", parameter.name, parameter.units)
         else:
             logger.error("Attribute 'units' is present for '%s', but has an "
-                         "unknown unit of '%s'.", name, parameter.units)
+                         "unknown unit of '%s'.",
+                         parameter.name, parameter.units)
 
 
-def validate_values_mapping(hdf, name, parameter):
+def validate_values_mapping(hdf, parameter):
     """
     Check if the parameter attribute values_mapping exists (It is required for
     discrete or multi-state parameter) and reports the value.
@@ -417,17 +436,17 @@ def validate_values_mapping(hdf, name, parameter):
                                    'Enumerated Discrete'):
             logger.error("No attribute 'values_mapping' for '%s'. "
                          "Attribute is Required for a %s parameter.",
-                         name, parameter.data_type)
+                         parameter.name, parameter.data_type)
         else:
             logger.info("No attribute 'values_mapping' not required for '%s'.",
-                        name)
+                        parameter.name)
     else:
         logger.info("Attribute, 'values_mapping' value is: %s",
                     parameter.values_mapping)
         try:
             # validate JSON string
             jstr = json.loads(
-                hdf.hdf['/series/' + name].attrs['values_mapping']
+                hdf.hdf['/series/' + parameter.name].attrs['values_mapping']
             )
             logger.info("Attribute, 'values_mapping' is a valid json "
                         "string: %s", jstr)
@@ -454,51 +473,13 @@ def validate_values_mapping(hdf, name, parameter):
             if len(parameter.values_mapping.keys()) > 2:
                 logger.error("'%s' a discrete parameter, but values_mapping "
                              "attribute has %s values should be no "
-                             "more than 2.", name,
+                             "more than 2.", parameter.name,
                              len(parameter.data_type.keys()))
 
 
 def validate_dataset(hdf, name, parameter):
     """Check the data for size, unmasked inf/NaN values."""
-    logger.info("Checking parameter dataset for inf and NaN values.")
-    if 'int' in parameter.array.dtype.name or \
-       'float' in parameter.array.dtype.name:
-
-        nan_unmasked = np.ma.masked_equal(
-            np.isnan(parameter.array), False).count()
-        nan_count = np.ma.masked_equal(
-            np.isnan(parameter.array.data), False).count()
-        inf_unmasked = np.ma.masked_equal(
-            np.isinf(parameter.array), False).count()
-        inf_count = np.ma.masked_equal(
-            np.isinf(parameter.array.data), False).count()
-
-        if nan_count != 0:
-            nan_msg = "%s NaN values found in the data of '%s'. " \
-                      % (nan_count, name)
-            nan_percent = (float(nan_count)/len(parameter.array.data))*100
-            nan_msg += "Represents %.2f%%. " % (nan_percent, )
-            if nan_unmasked:
-                nan_msg += "%s are not masked." % (nan_unmasked,)
-                logger.error(nan_msg)
-            else:
-                nan_msg += "All are masked."
-                logger.warn(nan_msg)
-
-        if inf_count != 0:
-            inf_msg = "%s inf values found in the data of '%s'. " \
-                      % (inf_count, name)
-            inf_percent = (float(inf_count)/len(parameter.array.data))*100
-            inf_msg += "Represents %.2f%%. " % (inf_percent, )
-            if inf_unmasked:
-                inf_msg += "%s are not masked." % (inf_unmasked,)
-                logger.error(inf_msg)
-            else:
-                inf_msg += "All are masked."
-                logger.warn(inf_msg)
-
-        if nan_count == inf_count == 0:
-            logger.info("dataset does not have any inf or NaN values.")
+    inf_nan_check(parameter)
 
     logger.info("Checking parameter actual dataset size against "
                 "expected size (duration * param_frequency).")
@@ -531,6 +512,46 @@ def validate_dataset(hdf, name, parameter):
         else:
             logger.info("Data is in a %s with a shape of %s",
                         type(parameter.array).__name__, parameter.array.shape)
+
+
+def inf_nan_check(parameter):
+    '''
+    Check the dataset for NaN or inf values
+    '''
+    def _report(count, parameter, unmasked, val_str):
+        '''
+        log as warning if all are masked, error if not
+        '''
+        if count:
+            msg = "%s %s values found in the data of '%s'. " \
+                % (count, val_str, parameter.name)
+            nan_percent = (float(count)/len(parameter.array.data))*100
+            msg += "Represents %.2f%%. " % (nan_percent, )
+            if unmasked:
+                msg += "%s are not masked." % (unmasked,)
+                logger.error(msg)
+            else:
+                msg += "All are masked."
+                logger.warn(msg)
+
+    logger.info("Checking parameter dataset for inf and NaN values.")
+    if 'int' in parameter.array.dtype.name or \
+       'float' in parameter.array.dtype.name:
+
+        nan_unmasked = np.ma.masked_equal(
+            np.isnan(parameter.array), False).count()
+        nan_count = np.ma.masked_equal(
+            np.isnan(parameter.array.data), False).count()
+        inf_unmasked = np.ma.masked_equal(
+            np.isinf(parameter.array), False).count()
+        inf_count = np.ma.masked_equal(
+            np.isinf(parameter.array.data), False).count()
+
+        _report(nan_count, parameter, nan_unmasked, 'NaN')
+        _report(inf_count, parameter, inf_unmasked, 'inf')
+
+        if nan_count == inf_count == 0:
+            logger.info("dataset does not have any inf or NaN values.")
 
 
 def validate_namespace(hdf5):
@@ -863,22 +884,23 @@ def main():
         action="store_true"
     )
     parser.add_argument(
-        "-n",
-        "--nolog",
-        help="no log report file generated.",
-        action="store_true"
-    )
-    parser.add_argument(
         "-e",
         "--error",
         help="display only errors on screen.",
         action="store_true"
     )
+    #parser.add_argument(
+        #"-w",
+        #"--warn",
+        #help="display only warnings and errors on screen.",
+        #action="store_true"
+    #)
     parser.add_argument(
-        "-w",
-        "--warn",
-        help="display only warnings and errors on screen.",
-        action="store_true"
+        '-o',
+        '--output',
+        metavar='filename',
+        type=str,
+        help='Output the console log to a file.',
     )
     parser.add_argument(
         'file',
@@ -888,45 +910,51 @@ def main():
 
     # Setup logger
     fmtr = logging.Formatter(r'%(levelname)-9s:%(message)s')
-    # setup a file handler
-    if args.nolog is False:
-        logfilename = args.file.split(os.sep)[-1]
-        logfilename = logfilename.replace('.hdf5', '')\
-            .replace('.bz2', '').replace('.gz', '')
-        logfilename = logfilename + ".log"
+
+    # setup a output file handler, if required
+    if args.output:
+        logfilename = args.output
         file_hdlr = logging.FileHandler(logfilename, mode='w')
         file_hdlr.setLevel(logging.DEBUG)
         file_hdlr.setFormatter(fmtr)
         logger.addHandler(file_hdlr)
 
-    # setup a stream handler
-    stream_hdlr = HDFValidatorStreamHandler(args.stop)
-    error_count = stream_hdlr.get_error_counts()
-
-    if args.warn:
-        stream_hdlr.setLevel(logging.WARNING)
-    elif args.error:
-        stream_hdlr.setLevel(logging.ERROR)
+    # setup a stream handler (display to terminal)
+    term_hdlr = logging.StreamHandler()
+    if args.error:
+        term_hdlr.setLevel(logging.ERROR)
     else:
-        stream_hdlr.setLevel(logging.INFO)
-    stream_hdlr.setFormatter(fmtr)
+        term_hdlr.setLevel(logging.INFO)
+    term_hdlr.setFormatter(fmtr)
+    logger.addHandler(term_hdlr)
 
-    logger.addHandler(stream_hdlr)
+    # setup a separate handler so we count log levels and stop on first error
+    hdfv_hdlr = HDFValidatorHandler(args.stop)
+    error_count = hdfv_hdlr.get_error_counts()
+    hdfv_hdlr.setLevel(logging.INFO)
+    hdfv_hdlr.setFormatter(fmtr)
+    logger.addHandler(hdfv_hdlr)
 
     logger.setLevel(logging.DEBUG)
     logger.debug("Arguments: %s", str(args))
     try:
         validate_file(args.file)
     except StoppedOnFirstError:
-        logger.info("First error encountered. Stopping as requested.")
+        msg = "First error encountered. Stopping as requested."
+        logger.info(msg)
+        if args.error:
+            print msg
 
     for hdr in logger.handlers:
-        if isinstance(hdr, HDFValidatorStreamHandler):
+        if isinstance(hdr, HDFValidatorHandler):
             error_count = hdr.get_error_counts()
 
     log_title("Results")
-    logger.info("Validation ended with, %s errors and %s warnings",
-                error_count['errors'], error_count['warnings'])
+    msg = "Validation ended with, %s errors and %s warnings" %\
+        (error_count['errors'], error_count['warnings'])
+    logger.info(msg)
+    if args.error:
+        print msg
 
 if __name__ == '__main__':
     main()
