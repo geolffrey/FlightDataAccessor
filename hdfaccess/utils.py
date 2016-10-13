@@ -127,25 +127,7 @@ def write_segment(source, segment, dest, boundary):
             "File '%s' already exists, write_segments will delete file.", dest)
         os.remove(dest)
 
-    supf_stop_secs = segment.stop
-
-    if segment.start:
-        supf_start_secs = (int(segment.start) / boundary) * boundary
-        array_start_secs = segment.start % boundary
-    else:
-        supf_start_secs = 0
-        array_start_secs = 0
-
-    array_stop_secs = 0
-    if segment.stop:
-        # Always round up to next boundary
-        supf_stop_secs = (int(segment.stop) / boundary) * boundary
-
-        if segment.stop % boundary != 0:
-            # Segment does not end on a frame/superframe boundary, include the
-            # following frame/superframe.
-            supf_stop_secs += boundary
-            array_stop_secs = boundary - (segment.stop % boundary)
+    supf_start_secs, supf_stop_secs, array_start_secs, array_stop_secs = segment_boundaries(segment, boundary)
 
     if supf_start_secs == 0 and supf_stop_secs is None:
         logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
@@ -230,6 +212,32 @@ def write_segment(source, segment, dest, boundary):
                 #logging.debug("Finished writing segment: %s", dest_hdf)
 
     return dest
+
+def segment_boundaries(segment, boundary):
+    '''
+    Calculate start and stop boundaries from segment slice and amount of
+    padding needed to fill to boundary edge
+    '''
+    supf_stop_secs = segment.stop
+
+    if segment.start:
+        supf_start_secs = (int(segment.start) / boundary) * boundary
+        array_start_secs = segment.start % boundary
+    else:
+        supf_start_secs = 0
+        array_start_secs = 0
+
+    array_stop_secs = 0
+    if segment.stop:
+        # Always round up to next boundary
+        supf_stop_secs = (int(segment.stop) / boundary) * boundary
+
+        if segment.stop % boundary != 0:
+            # Segment does not end on a frame/superframe boundary, include the
+            # following frame/superframe.
+            supf_stop_secs += boundary
+            array_stop_secs = boundary - (segment.stop % boundary)
+    return supf_start_secs, supf_stop_secs, array_start_secs, array_stop_secs
 
 
 def revert_masks(hdf_path, params=None, delete_derived=False):
