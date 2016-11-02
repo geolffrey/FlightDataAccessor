@@ -8,6 +8,7 @@ import json
 import logging
 import h5py
 import numpy as np
+from math import ceil 
 
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import MappedArray
@@ -88,6 +89,9 @@ CORE_PARAMETERS = [
     u'Heading',
     u'Altitude STD',
     u'Heading True',
+    u'Nr',
+    u'Nr (1)',
+    u'Nr (2)',
 ]
 
 
@@ -149,12 +153,14 @@ def check_parameter_names(hdf):
     return (tuple(matched_names), tuple(unmatched_names))
 
 
-def check_for_core_parameters(hdf):
+def check_for_core_parameters(hdf, helicopter=False):
     """
     Check that the following parameters exist in the file:
     - 'Airspeed'
     - 'Altitude STD'
     - either 'Heading' or 'Heading True'
+    For Helicopters, an additional parameter, Rotor Speed, is required: 
+    - either 'Nr' or for dual rotors 'Nr (1)' and 'Nr (2)'  
     Minimum parameter required for any analysis to be performed.
     """
     hdf_parameters = hdf.keys()
@@ -162,7 +168,12 @@ def check_for_core_parameters(hdf):
     altitude = 'Altitude STD' in hdf_parameters
     heading = 'Heading' in hdf_parameters
     heading_true = 'Heading True' in hdf_parameters
+    nr = 'Nr' in hdf_parameters
+    nr1and2 = ('Nr (1)' in hdf_parameters) and ('Nr (2)' in hdf_parameters)
+
     core_available = airspeed and altitude and (heading or heading_true)
+    if core_available and helicopter:
+        core_available = nr or nr1and2
 
     if core_available:
         logger.info("All core parameters available for analysis.")
@@ -179,13 +190,17 @@ def check_for_core_parameters(hdf):
         if not heading and not heading_true:
             logger.error("Parameter 'Heading' and 'Heading True' not found. "
                          "One of these parameters is required for analysis.")
+        if helicopter and not nr and not nr1and2:
+            logger.error("Parameter 'Nr' (or 'Nr (1)' and 'Nr (2)') not "
+                         "found. Helicopter's rotor speed is required as one "
+                         "of the core parameter for analysis.")
     return core_available
 
 
 # =============================================================================
 #   Parameter's Attributes
 # =============================================================================
-def validate_parameters(hdf):
+def validate_parameters(hdf, helicopter=False):
     """
     Iterates through all the parameters within the 'series' namespace and
     validates:
@@ -195,7 +210,7 @@ def validate_parameters(hdf):
     """
     log_title("Checking Parameters")
     matched, _ = check_parameter_names(hdf)
-    check_for_core_parameters(hdf)
+    check_for_core_parameters(hdf, helicopter)
     for name, parameter in hdf.iteritems():
         log_title("Checking Parameter: '%s'" % (name, ))
         if name in matched:
@@ -481,16 +496,22 @@ def validate_dataset(hdf, name, parameter):
     """Check the data for size, unmasked inf/NaN values."""
     inf_nan_check(parameter)
 
+    boundary = 64 if hdf.superframe_present else 4
+
+    expected_array_size = \
+        ceil(float(hdf.duration * parameter.frequency)/ boundary) * boundary
+
     logger.info("Checking parameter actual dataset size against "
-                "expected size (duration * param_frequency).")
-    expected_array_size = hdf.duration * parameter.frequency
+                "expected size (duration * parameter's frequency).")
+
     actual_data_size = len(parameter.array)
     if expected_array_size != actual_data_size:
-        logger.error("The data size of '%s' different to expected size of %s.",
-                     actual_data_size, expected_array_size)
+        logger.error("The data size of '%s' is %s and different to expected "
+                     "size of %s.",
+                     parameter.name, actual_data_size, expected_array_size)
     else:
-        logger.info("Data array is of the expected size of %s.",
-                    expected_array_size)
+        logger.info("Data size of '%s' is of the expected size of %s.",
+                    parameter.name, expected_array_size)
     if len(parameter.array.data) != len(parameter.array.mask):
         logger.error("The data and mask sizes are different.")
     else:
@@ -806,7 +827,7 @@ def validate_start_timestamp_attribute(hdf):
         if 'float' in type(hdf.hdf.attrs['start_timestamp']).__name__:
             logger.info("start_timestamp is a float.")
         else:
-            logger.error("start_timestamp is not a float, type "
+            logger.error("'start_timestamp' attribute is not a float, type "
                          "reported as '%s'.",
                          type(hdf.hdf.attrs['start_timestamp']).__name__)
     else:
@@ -826,7 +847,7 @@ def validate_superframe_present_attribute(hdf):
                     "is optional.")
 
 
-def validate_file(hdffile):
+def validate_file(hdffile, helicopter=False):
     """
     Attempts to open the HDF5 file in using FlightDataAccessor and run all the
     validation tests. If the file cannot be opened, it will attempt to open
@@ -865,7 +886,7 @@ def validate_file(hdffile):
         validate_namespace(hdf.hdf)
         # continue testing using FlightDataAccessor
         validate_root_attribute(hdf)
-        validate_parameters(hdf)
+        validate_parameters(hdf, helicopter)
     if hdf:
         hdf.close()
 
@@ -888,6 +909,11 @@ def main():
         "--error",
         help="display only errors on screen.",
         action="store_true"
+    )
+    parser.add_argument(
+        '--helicopter',
+        help='Validates HDF5 file for helicopter core parameters.',
+        action='store_true',
     )
     #parser.add_argument(
         #"-w",
@@ -938,7 +964,7 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.debug("Arguments: %s", str(args))
     try:
-        validate_file(args.file)
+        validate_file(args.file, args.helicopter)
     except StoppedOnFirstError:
         msg = "First error encountered. Stopping as requested."
         logger.info(msg)
