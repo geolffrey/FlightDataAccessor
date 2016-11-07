@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import h5py
+import inspect
 import numpy as np
 from math import ceil 
 
@@ -72,6 +73,27 @@ VALID_FREQUENCIES = {
     20,
 }
 
+#------------------------------------------------------------------------------
+# Collection of parameters known to Polaris 
+#------------------------------------------------------------------------------
+
+# Main list of parameters that from the Polaris analysis engine 
+PARAMETER_LIST = list_parameters()
+
+# Minimum list of parameters (including alternatives) needed in the HDF file.
+# See check_for_core_parameters method
+CORE_PARAMETERS = [
+    u'Airspeed',
+    u'Heading',
+    u'Altitude STD',
+    # Helicopter only
+    u'Nr',
+    # Alternatives 
+    u'Heading True',
+    u'Nr (1)',
+    u'Nr (2)',
+]
+
 # Extra parameters not listed from list_parameter
 EXTRA_PARAMETERS = [
     u'Day',
@@ -84,15 +106,33 @@ EXTRA_PARAMETERS = [
     u'Subframe Counter',
 ]
 
-CORE_PARAMETERS = [
-    u'Airspeed',
-    u'Heading',
-    u'Altitude STD',
-    u'Heading True',
-    u'Nr',
-    u'Nr (1)',
-    u'Nr (2)',
+# Text file list containing additional parameters 
+PARAMETER_FILE_LISTS = [
+    'parameters-vis.txt',
+    'parameters-data_exports.txt',
+    'parameters-patterns.txt',
 ]
+
+
+def get_polaris_parameter_list():
+    """
+    Collate Polaris parameter names into one list.
+    """
+    polaris_names = set(PARAMETER_LIST) | set(EXTRA_PARAMETERS) |\
+        set(CORE_PARAMETERS)
+    # Get the path to the utils directory (hdfaccess\..\utils\) where files
+    # contain addtional parameter lists.
+    utils_path = os.path.join(
+        os.path.split(os.path.dirname(os.path.abspath(
+            inspect.getabsfile(hdf_file))))[0],
+        'utils'
+    )
+    for filename in PARAMETER_FILE_LISTS:
+        f = os.path.join(utils_path, filename)
+        with open(f, 'r') as fhdl:
+            polaris_names.update([l.strip() for l in fhdl])
+    return list(polaris_names)
+#------------------------------------------------------------------------------
 
 
 def log_title(title, line='=', section=True):
@@ -119,13 +159,9 @@ def check_parameter_names(hdf):
     """
     log_subtitle("Checking parameter names")
     hdf_parameters = set(hdf.keys())
-    polaris_names = set(list_parameters()) | set(EXTRA_PARAMETERS)
-    for filename in ['parameters-vis.txt', 'parameters-data_exports.txt',
-                     'parameters-patterns.txt']:
-        with open(filename, 'r') as fhdl:
-            polaris_names.update([l.strip() for l in fhdl])
+
     matched_names = set()
-    for name in polaris_names:
+    for name in get_polaris_parameter_list():
         if WILDCARD in name:
             found = wildcard_match(name, hdf_parameters, remove=' ')
         else:
