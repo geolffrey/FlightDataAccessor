@@ -532,32 +532,34 @@ def validate_dataset(hdf, name, parameter):
     """Check the data for size, unmasked inf/NaN values."""
     inf_nan_check(parameter)
 
-    boundary = 64 if hdf.superframe_present else 4
+    boundary = (64.0 if hdf.superframe_present else 4.0)
+    # Expected size of the data is duration * the parameter's frequency,
+    # includes any padding required to the next frame/super frame boundary
+    expected_data_size = \
+        ceil(hdf.duration / boundary) * boundary * parameter.frequency
 
-    expected_array_size = \
-        ceil(float(hdf.duration * parameter.frequency)/ boundary) * boundary
+    logger.info("Checking parameter actual dataset size against expected "
+                "size (frame aligned, duration * parameter's frequency).")
 
-    logger.info("Checking parameter actual dataset size against "
-                "expected size (duration * parameter's frequency).")
-
-    actual_data_size = len(parameter.array)
-    if expected_array_size != actual_data_size:
+    if expected_data_size != parameter.array.size:
         logger.error("The data size of '%s' is %s and different to expected "
                      "size of %s.",
-                     parameter.name, actual_data_size, expected_array_size)
+                     parameter.name, parameter.array.size, expected_data_size)
     else:
         logger.info("Data size of '%s' is of the expected size of %s.",
-                    parameter.name, expected_array_size)
-    if len(parameter.array.data) != len(parameter.array.mask):
-        logger.error("The data and mask sizes are different.")
+                    parameter.name, expected_data_size)
+    if parameter.array.data.size != parameter.array.mask.size:
+        logger.error("The data and mask sizes are different. (Data is %s, "
+                     "Mask is %s)", parameter.array.data.size,
+                     parameter.array.mask.size)
     else:
         logger.info("Data and Mask both have the size of %s elements.",
-                    len(parameter.array.data))
+                    parameter.array.data.size)
 
     logger.info("Checking dataset type and shape.")
-    is_masked_array = isinstance(parameter.array, np.ma.core.MaskedArray)
-    is_mapped_array = isinstance(parameter.array, MappedArray)
-    if not is_masked_array and not is_mapped_array:
+    masked_array = isinstance(parameter.array, np.ma.core.MaskedArray)
+    mapped_array = isinstance(parameter.array, MappedArray)
+    if not masked_array and not mapped_array:
         logger.error("Data for %s is not a MaskedArray or MappedArray. "
                      "Type is %s", name, type(parameter.array))
     else:
