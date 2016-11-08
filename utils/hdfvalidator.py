@@ -933,42 +933,43 @@ def main():
     """Main"""
     parser = argparse.ArgumentParser(
         description="Flight Data Services, HDF5 Validator for POLARIS "
-                    "compatibility",
-        version="1.0"
+                    "compatibility.",
+        version="1.1"
+    )
+    parser.add_argument(
+        '--helicopter',
+        help='Validates HDF5 file against helicopter core parameters.',
+        action='store_true',
     )
     parser.add_argument(
         "-s",
         "--stop",
-        help="stop on the first error encountered.",
+        help="Stop validation on the first error encountered.",
         action="store_true"
     )
     parser.add_argument(
         "-e",
         "--error",
-        help="display only errors on screen.",
+        help="Display only errors on screen.",
         action="store_true"
-    )
-    parser.add_argument(
-        '--helicopter',
-        help='Validates HDF5 file for helicopter core parameters.',
-        action='store_true',
     )
     #parser.add_argument(
         #"-w",
         #"--warn",
-        #help="display only warnings and errors on screen.",
+        #help="Display only warnings and errors on screen.",
         #action="store_true"
     #)
     parser.add_argument(
         '-o',
         '--output',
-        metavar='filename',
+        metavar='LOG',
         type=str,
-        help='Output the console log to a file.',
+        help='Saves all the screen messages, during validation to a log file.',
     )
     parser.add_argument(
-        'file',
-        help="Input HDF5 to be tested for POLARIS compatibility."
+        'HDF5',
+        help="The HDF5 file to be tested for POLARIS compatibility. "
+        "This will also conpressed hdf5 files with the extension '.gz'.)"
     )
     args = parser.parse_args()
 
