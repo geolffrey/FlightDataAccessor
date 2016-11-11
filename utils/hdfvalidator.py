@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 HDFValidator checks flight data, stored in a HDF5 file format, is in a
 compatible structure meeting POLARIS pre-analysis specification.
@@ -175,16 +176,16 @@ def check_parameter_names(hdf):
                      "recognised by POLARIS",
                      len(unmatched_names))
     elif unmatched_names:
-        logger.info("Number of parameter names recongnised by POLARIS: %s",
+        logger.info("Number of parameter names recognised by POLARIS: %s",
                     len(matched_names))
-        logger.warn("Number of parameters names not recongnised by "
+        logger.warn("Number of parameters names not recognised by "
                     "POLARIS: %s", len(unmatched_names))
         logger.debug("The following parameters names are recognised by "
                      "POLARIS: %s", matched_names)
         logger.debug("The following parameters names are not recognised by "
                      "POLARIS: %s", unmatched_names)
     else:
-        logger.info("All %s parameters names are recongnised by POLARIS.",
+        logger.info("All %s parameters names are recognised by POLARIS.",
                     len(matched_names))
     return (tuple(matched_names), tuple(unmatched_names))
 
@@ -250,9 +251,9 @@ def validate_parameters(hdf, helicopter=False):
     for name, parameter in hdf.iteritems():
         log_title("Checking Parameter: '%s'" % (name, ))
         if name in matched:
-            logger.info("'%s' is a recongnised by POLARIS.", name)
+            logger.info("'%s' is a recognised by POLARIS.", name)
         else:
-            logger.warn("'%s' is not a recongnised by POLARIS.", name)
+            logger.warn("'%s' is not a recognised by POLARIS.", name)
         if name in CORE_PARAMETERS:
             logger.info("'%s' is a core parameter required for basic "
                         "analysis.", name)
@@ -934,7 +935,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Flight Data Services, HDF5 Validator for POLARIS "
                     "compatibility.",
-        version="1.1"
+        version="1.2"
     )
     parser.add_argument(
         '--helicopter',
@@ -969,7 +970,7 @@ def main():
     parser.add_argument(
         'HDF5',
         help="The HDF5 file to be tested for POLARIS compatibility. "
-        "This will also conpressed hdf5 files with the extension '.gz'.)"
+        "This will also compressed hdf5 files with the extension '.gz'.)"
     )
     args = parser.parse_args()
 
@@ -1003,7 +1004,7 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.debug("Arguments: %s", str(args))
     try:
-        validate_file(args.file, args.helicopter)
+        validate_file(args.HDF5, args.helicopter)
     except StoppedOnFirstError:
         msg = "First error encountered. Stopping as requested."
         logger.info(msg)
