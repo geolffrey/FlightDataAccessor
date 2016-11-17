@@ -14,6 +14,7 @@ from math import ceil
 
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import MappedArray
+from hdfaccess.tools.parameter_lists import PARAMETERS_FROM_FILES
 from analysis_engine.utils import list_parameters
 from flightdatautilities.patterns import wildcard_match, WILDCARD
 from flightdatautilities import units as ut
@@ -79,11 +80,11 @@ VALID_FREQUENCIES = {
 #------------------------------------------------------------------------------
 
 # Main list of parameters that from the Polaris analysis engine 
-PARAMETER_LIST = list_parameters()
+PARAMETERS_ANALYSIS = list_parameters()
 
 # Minimum list of parameters (including alternatives) needed in the HDF file.
 # See check_for_core_parameters method
-CORE_PARAMETERS = [
+PARAMETERS_CORE = [
     u'Airspeed',
     u'Heading',
     u'Altitude STD',
@@ -96,7 +97,7 @@ CORE_PARAMETERS = [
 ]
 
 # Extra parameters not listed from list_parameter
-EXTRA_PARAMETERS = [
+PARAMETERS_EXTRA = [
     u'Day',
     u'Hour',
     u'Minute',
@@ -107,32 +108,9 @@ EXTRA_PARAMETERS = [
     u'Subframe Counter',
 ]
 
-# Text file list containing additional parameters 
-PARAMETER_FILE_LISTS = [
-    'parameters-vis.txt',
-    'parameters-data_exports.txt',
-    'parameters-patterns.txt',
-]
+PARAMETER_LIST = list(set(PARAMETERS_FROM_FILES + PARAMETERS_ANALYSIS + \
+                          PARAMETERS_CORE + PARAMETERS_EXTRA))
 
-
-def get_polaris_parameter_list():
-    """
-    Collate Polaris parameter names into one list.
-    """
-    polaris_names = set(PARAMETER_LIST) | set(EXTRA_PARAMETERS) |\
-        set(CORE_PARAMETERS)
-    # Get the path to the utils directory (hdfaccess\..\utils\) where files
-    # contain addtional parameter lists.
-    utils_path = os.path.join(
-        os.path.split(os.path.dirname(os.path.abspath(
-            inspect.getabsfile(hdf_file))))[0],
-        'utils'
-    )
-    for filename in PARAMETER_FILE_LISTS:
-        f = os.path.join(utils_path, filename)
-        with open(f, 'r') as fhdl:
-            polaris_names.update([l.strip() for l in fhdl])
-    return list(polaris_names)
 #------------------------------------------------------------------------------
 
 
@@ -162,7 +140,7 @@ def check_parameter_names(hdf):
     hdf_parameters = set(hdf.keys())
 
     matched_names = set()
-    for name in get_polaris_parameter_list():
+    for name in PARAMETER_LIST:
         if WILDCARD in name:
             found = wildcard_match(name, hdf_parameters, remove=' ')
         else:
@@ -254,7 +232,7 @@ def validate_parameters(hdf, helicopter=False):
             logger.info("'%s' is a recognised by POLARIS.", name)
         else:
             logger.warn("'%s' is not a recognised by POLARIS.", name)
-        if name in CORE_PARAMETERS:
+        if name in PARAMETERS_CORE:
             logger.info("'%s' is a core parameter required for basic "
                         "analysis.", name)
         validate_parameter_attributes(hdf, name, parameter, name in matched)
@@ -935,7 +913,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Flight Data Services, HDF5 Validator for POLARIS "
                     "compatibility.",
-        version="1.2"
+        version="1.3"
     )
     parser.add_argument(
         '--helicopter',
