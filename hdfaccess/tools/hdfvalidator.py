@@ -8,9 +8,8 @@ import os
 import json
 import logging
 import h5py
-import inspect
 import numpy as np
-from math import ceil 
+from math import ceil
 
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import MappedArray
@@ -75,11 +74,11 @@ VALID_FREQUENCIES = {
     20,
 }
 
-#------------------------------------------------------------------------------
-# Collection of parameters known to Polaris 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Collection of parameters known to Polaris
+# -----------------------------------------------------------------------------
 
-# Main list of parameters that from the Polaris analysis engine 
+# Main list of parameters that from the Polaris analysis engine
 PARAMETERS_ANALYSIS = list_parameters()
 
 # Minimum list of parameters (including alternatives) needed in the HDF file.
@@ -90,7 +89,7 @@ PARAMETERS_CORE = [
     u'Altitude STD',
     # Helicopter only
     u'Nr',
-    # Alternatives 
+    # Alternatives
     u'Heading True',
     u'Nr (1)',
     u'Nr (2)',
@@ -108,10 +107,9 @@ PARAMETERS_EXTRA = [
     u'Subframe Counter',
 ]
 
-PARAMETER_LIST = list(set(PARAMETERS_FROM_FILES + PARAMETERS_ANALYSIS + \
+PARAMETER_LIST = list(set(PARAMETERS_FROM_FILES + PARAMETERS_ANALYSIS +
                           PARAMETERS_CORE + PARAMETERS_EXTRA))
-
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 def log_title(title, line='=', section=True):
@@ -174,8 +172,8 @@ def check_for_core_parameters(hdf, helicopter=False):
     - 'Airspeed'
     - 'Altitude STD'
     - either 'Heading' or 'Heading True'
-    For Helicopters, an additional parameter, Rotor Speed, is required: 
-    - either 'Nr' or for dual rotors 'Nr (1)' and 'Nr (2)'  
+    For Helicopters, an additional parameter, Rotor Speed, is required:
+    - either 'Nr' or for dual rotors 'Nr (1)' and 'Nr (2)'
     Minimum parameter required for any analysis to be performed.
     """
     hdf_parameters = hdf.keys()
@@ -183,12 +181,12 @@ def check_for_core_parameters(hdf, helicopter=False):
     altitude = 'Altitude STD' in hdf_parameters
     heading = 'Heading' in hdf_parameters
     heading_true = 'Heading True' in hdf_parameters
-    nr = 'Nr' in hdf_parameters
+    rotor = 'Nr' in hdf_parameters
     nr1and2 = ('Nr (1)' in hdf_parameters) and ('Nr (2)' in hdf_parameters)
 
     core_available = airspeed and altitude and (heading or heading_true)
     if core_available and helicopter:
-        core_available = nr or nr1and2
+        core_available = rotor or nr1and2
 
     if core_available:
         logger.info("All core parameters available for analysis.")
@@ -205,7 +203,7 @@ def check_for_core_parameters(hdf, helicopter=False):
         if not heading and not heading_true:
             logger.error("Parameter 'Heading' and 'Heading True' not found. "
                          "One of these parameters is required for analysis.")
-        if helicopter and not nr and not nr1and2:
+        if helicopter and not rotor and not nr1and2:
             logger.error("Parameter 'Nr' (or 'Nr (1)' and 'Nr (2)') not "
                          "found. Helicopter's rotor speed is required as one "
                          "of the core parameter for analysis.")
