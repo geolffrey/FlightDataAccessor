@@ -4,6 +4,7 @@ import numpy as np
 import os
 import shutil
 
+from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.filesystem_tools import copy_file
 
 from hdfaccess.file import hdf_file
@@ -95,7 +96,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     return params.keys()
 
 
-def write_segment(source, segment, dest, boundary):
+def write_segment(source, segment, dest, boundary, submasks=None):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by
     segments, a slice in seconds. Expects the HDF file to contain whole
@@ -116,6 +117,8 @@ def write_segment(source, segment, dest, boundary):
     :type dest: str
     :param supf_boundary: Split on superframe boundaries, masking data outside of the segment.
     :type supf_boundary: bool
+    :param submasks: Collection of submask names to write. The default value of None writes all submasks, while an empty collection will result in no submasks being written.
+    :type submasks: collection (tuple/list/set) or None
     :return: path to output hdf file containing specified segment.
     :rtype: str
 
@@ -176,6 +179,13 @@ def write_segment(source, segment, dest, boundary):
                         "values every superframe. Check the LFL definition."
                         % param_name)
 
+                if submasks is not None:
+                    filtered_submasks = {k: v for k, v in param.submasks.iteritems()
+                                         if k in submasks}
+                    if len(param.submasks) != len(filtered_submasks):
+                        param.array.mask = merge_masks(filtered_submasks.values())
+                    param.submasks = filtered_submasks
+
                 param.array = param.raw_array
 
                 param_start_index = int(array_start_secs * param.hz)
@@ -203,7 +213,7 @@ def write_segment(source, segment, dest, boundary):
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked
 
-                for sub_name, submask in param.submasks.items():
+                for submask in param.submasks.itervalues():
                     submask[:param_start_index] = True
                     submask[param_stop_index:] = True
 
