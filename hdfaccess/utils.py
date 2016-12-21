@@ -179,12 +179,14 @@ def write_segment(source, segment, dest, boundary, submasks=None):
                         "values every superframe. Check the LFL definition."
                         % param_name)
 
-                if submasks is not None:
-                    filtered_submasks = {k: v for k, v in param.submasks.iteritems()
-                                         if k in submasks}
-                    if len(param.submasks) != len(filtered_submasks):
-                        param.array.mask = merge_masks(filtered_submasks.values())
-                    param.submasks = filtered_submasks
+                if submasks is not None and param.submasks:
+                    # if param does not have submasks, or no submasks match,
+                    # write the original mask
+                    mask_subset = {k: v for k, v in param.submasks.iteritems()
+                                   if k in submasks}
+                    if mask_subset and len(param.submasks) != len(mask_subset):
+                        param.array.mask = merge_masks(mask_subset.values())
+                    param.submasks = mask_subset
 
                 param.array = param.raw_array
 
