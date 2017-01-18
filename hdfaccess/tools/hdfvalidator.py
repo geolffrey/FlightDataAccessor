@@ -444,7 +444,22 @@ def validate_units(parameter):
         if parameter.units == '':
             LOGGER.info("Attribute 'units' is present for '%s', but empty.",
                         parameter.name)
-        elif parameter.units in ut.available():
+            
+        available = parameter.units in ut.available()
+        corrections = ut.UNIT_CORRECTIONS.get(parameter.units)
+        converting = ut.STANDARD_CONVERSIONS.get((corrections or parameter.units))
+        if converting:
+            convserion_desc = ut.UNIT_DESCRIPTIONS.get(converting)
+            LOGGER.error("Attribute 'units' is present for '%s', but from the "
+                         "value ('%s') the parameter data requires "
+                         "converting to %s with a units value of '%s'.",
+                         parameter.name, parameter.units,
+                         convserion_desc, converting)    
+        elif corrections:
+            LOGGER.error("Attribute 'units' is present for '%s', but the "
+                         "value ('%s') needs to be updated to '%s'.",
+                         parameter.name, parameter.units, corrections)
+        elif available:
             LOGGER.info("Attribute 'units' is present for '%s' and has a "
                         "valid unit of '%s'.", parameter.name, parameter.units)
         else:
@@ -562,12 +577,12 @@ def inf_nan_check(parameter):
             msg = "%s %s values found in the data of '%s'. " \
                 % (count, val_str, parameter.name)
             nan_percent = (float(count) / len(parameter.array.data)) * 100
-            msg += "Represents %.2f%%. " % (nan_percent, )
+            msg += "Represents %.2f%% of the data. " % (nan_percent, )
             if unmasked:
                 msg += "%s are not masked." % (unmasked,)
                 LOGGER.error(msg)
             else:
-                msg += "All are masked."
+                msg += "All of these values are masked."
                 LOGGER.warn(msg)
 
     LOGGER.info("Checking parameter dataset for inf and NaN values.")
