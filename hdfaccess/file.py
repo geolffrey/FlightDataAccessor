@@ -842,7 +842,7 @@ class hdf_file(object):    # rare case of lower case?!
             param_group.attrs['lfl'] = param.lfl
         if hasattr(param, 'data_type') and param.data_type is not None:
             param_group.attrs['data_type'] = param.data_type
-        if hasattr(param, 'values_mapping') and param.values_mapping:
+        if hasattr(param, 'values_mapping') and param.values_mapping is not None:
             param_group.attrs['values_mapping'] = simplejson.dumps(
                 param.values_mapping)
         if hasattr(param, 'source_name') and param.source_name:
