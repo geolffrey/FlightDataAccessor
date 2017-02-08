@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 import unittest
 
@@ -91,7 +93,7 @@ class TestMappedArray(unittest.TestCase):
         arr = np.ma.MaskedArray(values, mask)
         a = MappedArray(arr, values_mapping=self.mapping)
         # ensure string vals is within repr
-        print a.__repr__()
+        print(a.__repr__())
         self.assertTrue('one' in a.__repr__())
 
     def test_getitem_filters_boolean_array(self):

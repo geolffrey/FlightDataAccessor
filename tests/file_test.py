@@ -118,11 +118,11 @@ class TestHdfFile(unittest.TestCase):
             # check it's open
             self.assertFalse(hdf.hdf.id is None)
             hdf['sample'] = Parameter('sample', np.array(range(10)))
-            self.assertEqual(list(hdf['sample'].array.data), range(10))
+            self.assertEqual(hdf['sample'].array.data.tolist(), list(range(10)))
             self.assertTrue(hasattr(hdf['sample'].array, 'mask'))
 
             hdf['masked sample'] = Parameter('masked sample', np.ma.array(range(10)))
-            self.assertEqual(list(hdf['masked sample'].array.data), range(10))
+            self.assertEqual(list(hdf['masked sample'].array.data), list(range(10)))
             # check masks are returned in full (not just a single False)
             self.assertEqual(list(hdf['masked sample'].array.mask), [False] * 10)
         # check it's closed
@@ -193,7 +193,7 @@ class TestHdfFile(unittest.TestCase):
                          ['TEST_PARAM10', 'TEST_PARAM11', 'Valid Param'])
         # request params by name
         valid_few = hdf.get_params(param_names=['Valid Param'], valid_only=True)
-        self.assertEqual(valid_few.keys(),
+        self.assertEqual(list(valid_few.keys()),
                          ['Valid Param'])
         # try to request the invalid param, but only accepting valid raises keyerror
         self.assertRaises(KeyError, hdf.get_params,
@@ -384,7 +384,7 @@ class TestHdfFile(unittest.TestCase):
     def test_mapped_array(self):
         # created mapped array
         mapping = {0: 'zero', 2: 'two', 3: 'three'}
-        array = np.ma.array(range(5) + range(5), mask=[1, 1, 1, 0, 0, 0, 0, 0, 1, 1])
+        array = np.ma.array(list(range(5)) + list(range(5)), mask=[1, 1, 1, 0, 0, 0, 0, 0, 1, 1])
         multi_p = Parameter('multi', array, values_mapping=mapping)
         multi_p.array[0] = 'three'
 

@@ -3,6 +3,8 @@
 A script to generate python lists from list_data/parameters-*.txt files into a
 python module, allowing lists to be imported by other scripts.
 '''
+from __future__ import print_function
+
 import os
 import glob
 
@@ -58,11 +60,11 @@ def main():
         response = raw_input("%s already exists. Continuing will overwrite "
                              "this file, continue? [Y/n]:" % GEN_FILENAME)
         if response not in ['Y', 'y', '']:
-            print "Exiting, no changes made."
+            print("Exiting, no changes made.")
             return
-    print "Creating %s..." % GEN_FILENAME
+    print("Creating %s..." % GEN_FILENAME)
     generate_parameter_list()
-    print "Finished."
+    print("Finished.")
 
 if __name__ == '__main__':
     main()

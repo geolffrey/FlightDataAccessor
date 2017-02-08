@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import base64
 import logging
 import h5py
@@ -28,7 +30,7 @@ HDFACCESS_VERSION = 1
 class hdf_file(object):    # rare case of lower case?!
     """ usage example:
     with hdf_file('path/to/file.hdf5') as hdf:
-        print hdf['Altitude AAL']['data'][:20]
+        print(hdf['Altitude AAL']['data'][:20])
 
     # bits of interest
     hdf['series']['Altitude AAL']['levels']['1'] (Float array)
@@ -134,6 +136,7 @@ class hdf_file(object):    # rare case of lower case?!
         """
         for param_name in self.keys():
             yield param_name, self[param_name]
+    items = iteritems
 
     def __contains__(self, key):
         """check if the key exists"""
@@ -286,7 +289,7 @@ class hdf_file(object):    # rare case of lower case?!
         else:
             self.hdf.attrs['dependency_tree'] = \
                 base64.encodestring(
-                    zlib.compress(simplejson.dumps(dependency_tree)))
+                    zlib.compress(simplejson.dumps(dependency_tree).encode('ascii')))
 
     @property
     def duration(self):
@@ -853,7 +856,7 @@ class hdf_file(object):    # rare case of lower case?!
         # TODO: Possible to store validity percentage upon name.attrs
 
         # Update all parameter name caches with updates:
-        for key, cache in self._cache.iteritems():
+        for key, cache in self._cache.items():
             cache.discard(param.name)
             if not cache:
                 continue  # don't add to the cache if it is empty.
@@ -898,7 +901,7 @@ class hdf_file(object):    # rare case of lower case?!
         if name not in self.keys():
             raise KeyError('%s' % name)
         del self.hdf['series'][name]
-        for cache in self._cache.itervalues():
+        for cache in self._cache.values():
             if name in cache:
                 cache.remove(name)
 
@@ -989,16 +992,16 @@ def print_hdf_info(hdf_file):
     # IOLA
     # 8.0
     if 'Time' in series:
-        print 'Tailmark:', hdf_file.attrs['tailmark']
-        print 'Start Time:', hdf_file.attrs['starttime']
-        print 'End Time:', hdf_file.attrs['endtime']
+        print('Tailmark:', hdf_file.attrs['tailmark'])
+        print('Start Time:', hdf_file.attrs['starttime'])
+        print('End Time:', hdf_file.attrs['endtime'])
 
-    for group_name, group in series.iteritems():
-        print '[%s]' % group_name
-        print 'Frequency:', group.attrs['frequency']
-        print group.attrs.items()
-        print 'Offset:', group.attrs['supf_offset']
-        print 'Number of recorded values:', len(group['data'])
+    for group_name, group in series.items():
+        print('[%s]' % group_name)
+        print('Frequency:', group.attrs['frequency'])
+        print(group.attrs.items())
+        print('Offset:', group.attrs['supf_offset'])
+        print('Number of recorded values:', len(group['data']))
     #param_series = hdf_file['series'][parameter]
     #data = param_series['data']
 

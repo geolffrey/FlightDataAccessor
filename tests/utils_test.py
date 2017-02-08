@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import errno
 import h5py
 import numpy as np
@@ -28,7 +30,7 @@ class CreateHDFForTest(object):
             self.ivv_supf_offset = 2.1
             ivv_group.attrs['supf_offset'] = self.ivv_supf_offset
             self.ivv_data = np.arange(self.data_secs * self.ivv_frequency,
-                                      dtype=np.dtype(np.float))
+                                      dtype=np.float)
             self.ivv_mask = np.array([False] * len(self.ivv_data))
             ivv_group.create_dataset('data', data=self.ivv_data)
             ivv_group.create_dataset('mask', data=self.ivv_mask)
@@ -37,7 +39,7 @@ class CreateHDFForTest(object):
             self.wow_frequency = 4
             wow_group.attrs['frequency'] = self.wow_frequency
             self.wow_data = np.arange(self.data_secs * self.wow_frequency,
-                                      dtype=np.dtype(np.float))
+                                      dtype=np.float)
             self.wow_mask = np.array([False] * len(self.wow_data))
             wow_group.create_dataset('data', data=self.wow_data)
             wow_group.create_dataset('mask', data=self.wow_mask)
@@ -46,7 +48,7 @@ class CreateHDFForTest(object):
             self.dme_frequency = 0.25
             dme_group.attrs['frequency'] = self.dme_frequency
             self.dme_data = np.arange(self.data_secs * self.dme_frequency,
-                                      dtype=np.dtype(np.float))
+                                      dtype=np.float)
             self.dme_mask = np.array([False] * len(self.dme_data))
             dme_group.create_dataset('data', data=self.dme_data)
             dme_group.create_dataset('mask', data=self.dme_mask)
@@ -56,16 +58,16 @@ class TestConcatHDF(unittest.TestCase):
     def setUp(self):
         try:
             os.makedirs(TEMP_DIR_PATH)
-        except OSError, err:
+        except OSError as err:
             if err.errno == errno.EEXIST:
                 pass
 
         self.hdf_path_1 = os.path.join(TEMP_DIR_PATH,
                                        'concat_hdf_1.hdf5')
-        self.hdf_data_1 = np.arange(100, dtype=np.dtype(np.float))
+        self.hdf_data_1 = np.arange(100, dtype=np.float)
         self.hdf_path_2 = os.path.join(TEMP_DIR_PATH,
                                        'concat_hdf_2.hdf5')
-        self.hdf_data_2 = np.arange(200, dtype=np.dtype(np.float))
+        self.hdf_data_2 = np.arange(200, dtype=np.float)
 
         # Create test hdf files.
         with h5py.File(self.hdf_path_1, 'w') as hdf_file_1:
@@ -124,7 +126,7 @@ class TestConcatHDF(unittest.TestCase):
         for file_path in (self.hdf_path_1, self.hdf_path_2, self.hdf_out_path):
             try:
                 os.remove(file_path)
-            except OSError, err:
+            except OSError as err:
                 if err.errno != errno.ENOENT:
                     raise
 
@@ -146,18 +148,16 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         '''
         strip_hdf(self.hdf_path, [], self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            self.assertEqual(hdf_file['series'].keys(), [])
+            self.assertEqual(list(hdf_file['series'].keys()), [])
 
     def test_strip_hdf_ivv(self):
         params_to_keep = ['IVV']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            self.assertEqual(hdf_file['series'].keys(), params_to_keep)
+            self.assertEqual(list(hdf_file['series'].keys()), params_to_keep)
             # Ensure datasets are unchanged.
-            self.assertTrue(all(hdf_file['series']['IVV']['data'][:] == \
-                                self.ivv_data))
-            self.assertTrue(all(hdf_file['series']['IVV']['mask'][:] == \
-                                self.ivv_mask))
+            self.assertTrue(all(hdf_file['series']['IVV']['data'][:] == self.ivv_data))
+            self.assertTrue(all(hdf_file['series']['IVV']['mask'][:] == self.ivv_mask))
             # Ensure attributes are unchanged.
             self.assertEqual(hdf_file['series']['IVV'].attrs['supf_offset'],
                              self.ivv_supf_offset)
@@ -172,7 +172,7 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         params_to_keep = ['DME', 'WOW']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            self.assertEqual(hdf_file['series'].keys(), params_to_keep)
+            self.assertEqual(list(hdf_file['series'].keys()), params_to_keep)
 
 
 class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
@@ -209,7 +209,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_expected_result = np.arange(
                 frame_boundary_segment.start * self.ivv_frequency,
                 frame_boundary_segment.stop * self.ivv_frequency,
-                dtype=np.dtype(np.float))
+                dtype=np.float)
             ivv_expected_result = np.ma.masked_array(
                 ivv_expected_result, mask=[True] * 2 + [False] * 7 + [True] * 3)
             self.assertEqual(ivv_result.tolist(), ivv_expected_result.tolist())
@@ -221,14 +221,14 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             wow_expected_result = np.arange(
                 frame_boundary_segment.start * self.wow_frequency,
                 frame_boundary_segment.stop * self.wow_frequency,
-                dtype=np.dtype(np.float))
+                dtype=np.float)
             self.assertEqual(list(wow_result), list(wow_expected_result))
             # 'DME' - 0.25Hz parameter.
             dme_group = hdf_file['series']['DME']
             self.assertEqual(dme_group.attrs['frequency'],
                              self.dme_frequency)
             dme_result = dme_group['data'][:]  # array([ 3.,  4.])
-            dme_expected_result = np.arange(2, 5, dtype=np.dtype(np.float))
+            dme_expected_result = np.arange(2, 5, dtype=np.float)
             self.assertEqual(list(dme_result), list(dme_expected_result))
             self.assertEqual(
                 hdf_file.attrs['duration'],
@@ -248,7 +248,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                              self.ivv_supf_offset)
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(64 * self.ivv_frequency,
-                                            dtype=np.dtype(np.float))
+                                            dtype=np.float)
             self.assertEqual(list(ivv_result), list(ivv_expected_result))
             # 'WOW' - 4Hz parameter.
             wow_group = hdf_file['series']['WOW']
@@ -256,7 +256,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                              self.wow_frequency)
             wow_result = wow_group['data'][:]
             wow_expected_result = np.arange(64 * self.wow_frequency,
-                                            dtype=np.dtype(np.float))
+                                            dtype=np.float)
             self.assertEqual(list(wow_result), list(wow_expected_result))
             # 'DME' - 0.25Hz parameter.
             dme_group = hdf_file['series']['DME']
@@ -264,7 +264,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                              self.dme_frequency)
             dme_result = dme_group['data'][:]
             dme_expected_result = np.arange(64 * self.dme_frequency,
-                                            dtype=np.dtype(np.float))
+                                            dtype=np.float)
             self.assertEqual(list(dme_result), list(dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 64)
 
@@ -293,11 +293,9 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_expected_result = np.arange(
                 frame_start * self.ivv_frequency,
                 self.data_secs * self.ivv_frequency,
-                dtype=np.dtype(np.float))
+                dtype=np.float)
             ivv_expected_result = np.ma.masked_array(
                 ivv_expected_result, mask=[True] * 2 + [False] * 78)
-            print ivv_result
-            print ivv_expected_result
             self.assertEqual(ivv_result.tolist(), ivv_expected_result.tolist())
             # 'WOW' - 4Hz parameter.
             wow_group = hdf_file['series']['WOW']
@@ -307,14 +305,14 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             wow_expected_result = np.arange(
                 frame_start * self.wow_frequency,
                 self.data_secs * self.wow_frequency,
-                dtype=np.dtype(np.float))
+                dtype=np.float)
             self.assertEqual(wow_result.tolist(), wow_expected_result.tolist())
             # 'DME' - 0.25Hz parameter.
             dme_group = hdf_file['series']['DME']
             self.assertEqual(dme_group.attrs['frequency'],
                              self.dme_frequency)
             dme_result = dme_group['data'][:]
-            dme_expected_result = np.arange(12, 32, dtype=np.dtype(np.float))
+            dme_expected_result = np.arange(12, 32, dtype=np.float)
             self.assertEqual(dme_result.tolist(), dme_expected_result.tolist())
             self.assertEqual(hdf_file.attrs['duration'], 80)
 
@@ -342,7 +340,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             ivv_result = ivv_group['data'][:]
             ivv_expected_result = np.arange(
                 0, frame_boundary_segment.stop * self.ivv_frequency,
-                dtype=np.dtype(np.float))
+                dtype=np.float)
             self.assertTrue(all(ivv_result == ivv_expected_result))
             # 'WOW' - 4Hz parameter.
             wow_group = hdf_file['series']['WOW']
@@ -351,14 +349,14 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             wow_result = wow_group['data'][:]
             wow_expected_result = np.arange(
                 0, frame_boundary_segment.stop * self.wow_frequency,
-                dtype=np.dtype(np.float))
+                dtype=np.float)
             self.assertTrue(list(wow_result), list(wow_expected_result))
             # 'DME' - 0.25Hz parameter.
             dme_group = hdf_file['series']['DME']
             self.assertEqual(dme_group.attrs['frequency'],
                              self.dme_frequency)
             dme_result = dme_group['data'][:]
-            dme_expected_result = np.arange(0, 18, dtype=np.dtype(np.float))
+            dme_expected_result = np.arange(0, 18, dtype=np.float)
             self.assertEqual(list(dme_result), list(dme_expected_result))
             self.assertEqual(hdf_file.attrs['duration'], 72)
 
@@ -409,11 +407,16 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
     def tearDown(self):
         try:
             os.remove(self.hdf_path)
-        except OSError, err:
+        except OSError as err:
             if err.errno != errno.ENOENT:
                 raise
         try:
             os.remove(self.out_path)
-        except OSError, err:
+        except OSError as err:
             if err.errno != errno.ENOENT:
                 raise
+
+
+if __name__ == '__main__':
+    unittest.main()
+

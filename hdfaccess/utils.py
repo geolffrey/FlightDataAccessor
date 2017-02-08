@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import logging
 import numpy as np
@@ -15,7 +17,7 @@ def _copy_attrs(source_group, target_group, deidentify=False):
     While the library can recursively copy groups and datasets, there does
     not seem to be a simple way to copy all of a group's attributes at once.
     '''
-    for key, value in source_group.attrs.iteritems():
+    for key, value in source_group.attrs.items():
         if deidentify and key in ('aircraft_info', 'tailmark'):
             continue
         target_group.attrs[key] = value
@@ -91,7 +93,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     with hdf_file(hdf_path) as hdf, hdf_file(dest, create=True) as hdf_dest:
         _copy_attrs(hdf.hdf, hdf_dest.hdf, deidentify=deidentify)  # Copy top-level attrs.
         params = hdf.get_params(params_to_keep)
-        for param_name, param in params.iteritems():
+        for param_name, param in params.items():
             hdf_dest[param_name] = param
     return params.keys()
 
@@ -182,8 +184,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
                 if submasks is not None and param.submasks:
                     # if param does not have submasks, or no submasks match,
                     # write the original mask
-                    mask_subset = {k: v for k, v in param.submasks.iteritems()
-                                   if k in submasks}
+                    mask_subset = {k: v for k, v in param.submasks.items() if k in submasks}
                     if mask_subset and len(param.submasks) != len(mask_subset):
                         param.array.mask = merge_masks(mask_subset.values())
                     param.submasks = mask_subset
@@ -215,7 +216,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
                 param.array[:param_start_index] = np.ma.masked
                 param.array[param_stop_index:] = np.ma.masked
 
-                for submask in param.submasks.itervalues():
+                for submask in param.submasks.values():
                     submask[:param_start_index] = True
                     submask[param_stop_index:] = True
 
@@ -233,7 +234,7 @@ def segment_boundaries(segment, boundary):
     supf_stop_secs = segment.stop
 
     if segment.start:
-        supf_start_secs = (int(segment.start) / boundary) * boundary
+        supf_start_secs = (int(segment.start) // boundary) * boundary
         array_start_secs = segment.start % boundary
     else:
         supf_start_secs = 0
@@ -242,7 +243,7 @@ def segment_boundaries(segment, boundary):
     array_stop_secs = 0
     if segment.stop:
         # Always round up to next boundary
-        supf_stop_secs = (int(segment.stop) / boundary) * boundary
+        supf_stop_secs = (int(segment.stop) // boundary) * boundary
 
         if segment.stop % boundary != 0:
             # Segment does not end on a frame/superframe boundary, include the
@@ -311,11 +312,11 @@ if __name__ == '__main__':
         output_parameters = strip_hdf(args.input_file_path, args.parameters,
                                       args.output_file_path)
         if output_parameters:
-            print 'The following parameters are in the output hdf file:'
+            print('The following parameters are in the output hdf file:')
             for name in output_parameters:
-                print ' * %s' % name
+                print(' * %s' % name)
         else:
-            print 'No matching parameters were found in the hdf file.'
+            print('No matching parameters were found in the hdf file.')
     elif args.command == 'revert':
         revert_masks(args.file_path, params=args.parameters,
                      delete_derived=args.delete_derived)

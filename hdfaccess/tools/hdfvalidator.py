@@ -3,6 +3,8 @@
 HDFValidator checks flight data, stored in a HDF5 file format, is in a
 compatible structure meeting POLARIS pre-analysis specification.
 '''
+from __future__ import print_function
+
 import argparse
 import os
 import json
@@ -224,7 +226,7 @@ def validate_parameters(hdf, helicopter=False):
     log_title("Checking Parameters")
     matched, _ = check_parameter_names(hdf)
     check_for_core_parameters(hdf, helicopter)
-    for name, parameter in hdf.iteritems():
+    for name, parameter in hdf.items():
         log_title("Checking Parameter: '%s'" % (name, ))
         if name in matched:
             LOGGER.info("'%s' is a recognised by POLARIS.", name)
@@ -713,7 +715,7 @@ def validate_frequencies_attribute(hdf):
     else:
         LOGGER.error("frequency listed is not a float value.")
 
-    paramsfreq = set([v.frequency for _, v in hdf.iteritems()])
+    paramsfreq = set([v.frequency for _, v in hdf.items()])
     if rootfreq == paramsfreq:
         LOGGER.info("Root frequency list covers all the frequencies "
                     "used by parameters.")
@@ -995,7 +997,7 @@ def main():
         msg = "First error encountered. Stopping as requested."
         LOGGER.info(msg)
         if args.error:
-            print msg
+            print(msg)
 
     for hdr in LOGGER.handlers:
         if isinstance(hdr, HDFValidatorHandler):
@@ -1006,7 +1008,7 @@ def main():
         (error_count['errors'], error_count['warnings'])
     LOGGER.info(msg)
     if args.error:
-        print msg
+        print(msg)
 
 if __name__ == '__main__':
     main()

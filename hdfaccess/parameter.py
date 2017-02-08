@@ -12,6 +12,7 @@ import traceback
 from collections import defaultdict
 from numpy import bool_
 from numpy.ma import in1d, MaskedArray, masked, zeros
+from past.builtins import basestring
 
 from flightdatautilities.array_operations import merge_masks
 
@@ -74,7 +75,7 @@ class MappedArray(MaskedArray):
         # Update the reverse mappings in self.state
         if key == 'values_mapping':
             self.state = defaultdict(list)
-            for k, v in value.iteritems():
+            for k, v in value.items():
                 self.state[v].append(k)
             self.state = dict(self.state)
         super(MappedArray, self).__setattr__(key, value)
@@ -435,6 +436,6 @@ class Parameter(object):
         :rtype: np.array
         '''
         if self.submasks:
-            return merge_masks(self.submasks.values())
+            return merge_masks(list(self.submasks.values()))
         else:
             return self.array.mask
