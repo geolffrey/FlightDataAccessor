@@ -928,9 +928,9 @@ def main():
     """Main"""
     parser = argparse.ArgumentParser(
         description="Flight Data Services, HDF5 Validator for POLARIS "
-                    "compatibility.",
-        version="1.3"
-    )
+                    "compatibility.")
+    
+    parser.add_argument('--version', action='version', version='1.3')
     parser.add_argument(
         '--helicopter',
         help='Validates HDF5 file against helicopter core parameters.',
