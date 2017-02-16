@@ -312,7 +312,7 @@ def validate_data_type(parameter):
                 return
         elif parameter.data_type in ['Multi-state', 'Discrete']:
             if 'int' not in parameter.array.dtype.name:
-                LOGGER.warn("'%s' data type is %s. It should be an integer "
+                LOGGER.warn("'%s' data type is %s. It should be an int "
                             "for '%s' parameters.", parameter.name,
                             parameter.array.dtype.name, parameter.data_type)
                 return
