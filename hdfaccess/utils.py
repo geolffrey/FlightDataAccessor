@@ -5,6 +5,7 @@ import logging
 import numpy as np
 import os
 import shutil
+import six
 
 from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.filesystem_tools import copy_file
@@ -186,7 +187,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
                     # write the original mask
                     mask_subset = {k: v for k, v in param.submasks.items() if k in submasks}
                     if mask_subset and len(param.submasks) != len(mask_subset):
-                        param.array.mask = merge_masks(mask_subset.values())
+                        param.array.mask = merge_masks(list(six.itervalues(mask_subset)))
                     param.submasks = mask_subset
 
                 param.array = param.raw_array
