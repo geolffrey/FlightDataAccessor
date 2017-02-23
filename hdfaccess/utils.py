@@ -187,7 +187,12 @@ def write_segment(source, segment, dest, boundary, submasks=None):
                     # write the original mask
                     mask_subset = {k: v for k, v in param.submasks.items() if k in submasks}
                     if mask_subset and len(param.submasks) != len(mask_subset):
-                        param.array.mask = merge_masks(list(six.itervalues(mask_subset)))
+                        submask_arrays = list(six.itervalues(mask_subset))
+                        if 'padding' in submasks and 'padding' not in param.submasks:
+                            # padding submask from initial processing does not exist
+                            # in this case include the original array mask
+                            submask_arrays += [param.array.mask]
+                        param.array.mask = merge_masks(submask_arrays)
                     param.submasks = mask_subset
 
                 param.array = param.raw_array
