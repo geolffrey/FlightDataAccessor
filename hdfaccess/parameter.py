@@ -7,12 +7,12 @@ Parameter container class.
 
 import inspect
 import logging
+import six
 import traceback
 
 from collections import defaultdict
 from numpy import bool_
 from numpy.ma import in1d, MaskedArray, masked, zeros
-from past.builtins import basestring
 
 from flightdatautilities.array_operations import merge_masks
 
@@ -208,7 +208,7 @@ masked_%(name)s(values = %(sdata)s,
         try:
             return getattr(self, 'state', {})[state]
         except KeyError:
-            if isinstance(state, basestring):
+            if isinstance(state, six.string_types):
                 raise
         except TypeError:
             pass

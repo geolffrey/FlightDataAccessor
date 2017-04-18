@@ -1,6 +1,6 @@
 flightdatautilities
-future
 h5py>=2.0.1
 numpy
 simplejson
+six
 sortedcontainers
