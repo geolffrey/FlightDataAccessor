@@ -577,11 +577,9 @@ def expected_size_check(hdf, parameter):
             ceil(hdf.duration / boundary) * boundary * parameter.frequency
     else:
         LOGGER.error("%s: Not enough information to calculate expected data "
-                     "size. Duration: %s, Boundary: %s, Parameter "
-                     "Frequency: %s",
+                     "size. Duration: %s, Parameter Frequency: %s",
                      parameter.name,
                      'None' if hdf.duration is None else hdf.duration,
-                     'None' if hdf.superframe_present is None else boundary,
                      'None' if parameter.frequency is None else 
                      parameter.frequency)
         return
