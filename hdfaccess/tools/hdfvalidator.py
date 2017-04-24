@@ -226,7 +226,12 @@ def validate_parameters(hdf, helicopter=False):
     log_title("Checking Parameters")
     matched, _ = check_parameter_names(hdf)
     check_for_core_parameters(hdf, helicopter)
-    for name, parameter in hdf.items():
+    for name in hdf.keys():
+        try:
+            parameter = hdf.get_param(name)
+        except np.ma.core.MaskError as err:
+            LOGGER.error("Cannot get parameter '%s' (%s).", name, err)
+            continue
         log_title("Checking Parameter: '%s'" % (name, ))
         if name in matched:
             LOGGER.info("Parameter '%s' is a recognised by POLARIS.", name)
@@ -536,29 +541,7 @@ def validate_dataset(hdf, name, parameter):
     """Check the data for size, unmasked inf/NaN values."""
     inf_nan_check(parameter)
 
-    boundary = 64.0 if hdf.superframe_present else 4.0
-    frame = 'super frame' if hdf.superframe_present else 'frame'
-    LOGGER.info('Boundary size is %s for a %s.', boundary, frame)
-    # Expected size of the data is duration * the parameter's frequency,
-    # includes any padding required to the next frame/super frame boundary
-    expected_data_size = \
-        ceil(hdf.duration / boundary) * boundary * parameter.frequency
-
-    LOGGER.info("Checking parameters dataset size against expected size (%s).",
-                int(expected_data_size))
-    LOGGER.debug("Calculated: ceil(Duration(%s) / Boundary(%s)) * "
-                 "Boundary(%s) * Parameter Frequency (%s) = %s.",
-                 hdf.duration, boundary, boundary, parameter.frequency,
-                 expected_data_size)
-
-    if expected_data_size != parameter.array.size:
-        LOGGER.error("The data size of '%s' is %s and different to expected "
-                     "size of %s.",
-                     parameter.name, parameter.array.size,
-                     int(expected_data_size))
-    else:
-        LOGGER.info("Data size of '%s' is of the expected size of %s.",
-                    parameter.name, int(expected_data_size))
+    expected_size_check(hdf, parameter)
     if parameter.array.data.size != parameter.array.mask.size:
         LOGGER.error("The data and mask sizes are different. (Data is %s, "
                      "Mask is %s)", parameter.array.data.size,
@@ -582,6 +565,42 @@ def validate_dataset(hdf, name, parameter):
         else:
             LOGGER.info("Data is in a %s with a shape of %s",
                         type(parameter.array).__name__, parameter.array.shape)
+
+def expected_size_check(hdf, parameter):
+    boundary = 64.0 if hdf.superframe_present else 4.0
+    frame = 'super frame' if hdf.superframe_present else 'frame'
+    LOGGER.info('Boundary size is %s for a %s.', boundary, frame)
+    # Expected size of the data is duration * the parameter's frequency,
+    # includes any padding required to the next frame/super frame boundary
+    if hdf.superframe_present and hdf.duration and parameter.frequency:
+        expected_data_size = \
+            ceil(hdf.duration / boundary) * boundary * parameter.frequency
+    else:
+        LOGGER.error("%s: Not enough information to calculate expected data "
+                     "size. Duration: %s, Boundary: %s, Parameter "
+                     "Frequency: %s",
+                     parameter.name,
+                     'None' if hdf.duration is None else hdf.duration,
+                     'None' if hdf.superframe_present is None else boundary,
+                     'None' if parameter.frequency is None else 
+                     parameter.frequency)
+        return
+
+    LOGGER.info("Checking parameters dataset size against expected size (%s).",
+                int(expected_data_size))
+    LOGGER.debug("Calculated: ceil(Duration(%s) / Boundary(%s)) * "
+                 "Boundary(%s) * Parameter Frequency (%s) = %s.",
+                 hdf.duration, boundary, boundary, parameter.frequency,
+                 expected_data_size)
+
+    if expected_data_size != parameter.array.size:
+        LOGGER.error("The data size of '%s' is %s and different to expected "
+                     "size of %s.",
+                     parameter.name, parameter.array.size,
+                     int(expected_data_size))
+    else:
+        LOGGER.info("Data size of '%s' is of the expected size of %s.",
+                    parameter.name, int(expected_data_size))
 
 
 def inf_nan_check(parameter):
@@ -949,7 +968,7 @@ def main():
         description="Flight Data Services, HDF5 Validator for POLARIS "
                     "compatibility.")
 
-    parser.add_argument('--version', action='version', version='1.4')
+    parser.add_argument('--version', action='version', version='0.1.5')
     parser.add_argument(
         '--helicopter',
         help='Validates HDF5 file against helicopter core parameters.',
