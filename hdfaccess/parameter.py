@@ -194,7 +194,7 @@ masked_%(name)s(values = %(sdata)s,
                 # state per raw value.
                 other = [
                     masked if el is masked else
-                    self.state[el][0] if el in self.state else None if isinstance(el, basestring) else el
+                    self.state[el][0] if el in self.state else None if isinstance(el, six.string_types) else el
                     for el in other]
             else:
                 pass  # allow equality by MaskedArray
@@ -295,7 +295,7 @@ masked_%(name)s(values = %(sdata)s,
             # self[:3] = np.ma.array([2,2,2])
             return super(MappedArray, self).__setitem__(key, val)
         else:
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 # expecting self[:3] = 'one'
                 return super(MappedArray, self).__setitem__(
                     key, self.state[val][0])
