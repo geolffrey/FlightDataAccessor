@@ -230,7 +230,8 @@ def validate_parameters(hdf, helicopter=False):
         try:
             parameter = hdf.get_param(name)
         except np.ma.core.MaskError as err:
-            LOGGER.error("Cannot get parameter '%s' (%s).", name, err)
+            LOGGER.error("MaskError: Cannot get parameter '%s' (%s).",
+                         name, err)
             continue
         log_title("Checking Parameter: '%s'" % (name, ))
         if name in matched:
@@ -1006,7 +1007,7 @@ def main():
     args = parser.parse_args()
 
     # Setup logger
-    fmtr = logging.Formatter(r'%(levelname)-9s:%(message)s')
+    fmtr = logging.Formatter(r'%(levelname)-9s: %(message)s')
 
     log_lvl = None
     if args.log_level:
