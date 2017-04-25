@@ -249,15 +249,26 @@ def validate_parameters(hdf, helicopter=False):
 def validate_parameter_attributes(hdf, name, parameter, matched):
     """Validates all parameter attributes."""
     log_subtitle("Checking Attribute for Parameter: %s" % (name, ))
+    param_attrs = hdf.hdf['/series/' + name].attrs.keys()
+    for attr in ['data_type', 'frequency', 'lfl', 'name',
+                 'supf_offset', 'units']:
+        if attr not in param_attrs:
+            LOGGER.error("Parameter attribute '%s' not present for '%s' "
+                         "and is Required.", attr, name)            
     validate_arinc_429(parameter)
-    validate_data_type(parameter)
-    validate_frequency(hdf, parameter)
-    validate_lfl(parameter)
-    validate_name(parameter, name)
     validate_source_name(parameter, matched)
     validate_supf_offset(parameter)
-    validate_units(parameter)
     validate_values_mapping(hdf, parameter)
+    if 'data_type' in param_attrs:
+        validate_data_type(parameter)
+    if 'frequency' in param_attrs:
+        validate_frequency(hdf, parameter)
+    if 'lfl' in param_attrs:
+        validate_lfl(parameter)
+    if 'name' in param_attrs:
+        validate_name(parameter, name)
+    if 'units' in param_attrs:
+        validate_units(parameter)
 
 
 def validate_parameters_dataset(hdf, name, parameter):
@@ -573,7 +584,7 @@ def expected_size_check(hdf, parameter):
     LOGGER.info('Boundary size is %s for a %s.', boundary, frame)
     # Expected size of the data is duration * the parameter's frequency,
     # includes any padding required to the next frame/super frame boundary
-    if hdf.superframe_present and hdf.duration and parameter.frequency:
+    if hdf.duration and parameter.frequency:
         expected_data_size = \
             ceil(hdf.duration / boundary) * boundary * parameter.frequency
     else:
@@ -691,10 +702,19 @@ def validate_namespace(hdf5):
 def validate_root_attribute(hdf):
     """Validates all the root attributes."""
     log_title("Checking the Root attributes")
-    validate_duration_attribute(hdf)
+    root_attrs = hdf.hdf.attrs.keys()
+    for attr in ['duration', 'reliable_frame_counter',
+                 'reliable_subframe_counter',]:
+        if attr not in root_attrs:
+            LOGGER.error("Root attribute '%s' not present and is required.",
+                         attr)
+    if 'duration' in root_attrs:
+        validate_duration_attribute(hdf)
     validate_frequencies_attribute(hdf)
-    validate_reliable_frame_counter_attribute(hdf)
-    validate_reliable_subframe_counter_attribute(hdf)
+    if 'reliable_frame_counter' in root_attrs:
+        validate_reliable_frame_counter_attribute(hdf)
+    if 'reliable_subframe_counter' in root_attrs:
+        validate_reliable_subframe_counter_attribute(hdf)
     validate_start_timestamp_attribute(hdf)
     validate_superframe_present_attribute(hdf)
 
@@ -967,7 +987,7 @@ def main():
         description="Flight Data Services, HDF5 Validator for POLARIS "
                     "compatibility.")
 
-    parser.add_argument('--version', action='version', version='0.1.5')
+    parser.add_argument('--version', action='version', version='0.1.6')
     parser.add_argument(
         '--helicopter',
         help='Validates HDF5 file against helicopter core parameters.',
