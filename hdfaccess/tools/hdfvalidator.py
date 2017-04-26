@@ -235,9 +235,9 @@ def validate_parameters(hdf, helicopter=False):
             continue
         log_title("Checking Parameter: '%s'" % (name, ))
         if name in matched:
-            LOGGER.info("Parameter '%s' is a recognised by POLARIS.", name)
+            LOGGER.info("Parameter '%s' is recognised by POLARIS.", name)
         else:
-            LOGGER.warn("Parameter '%s' is not a recognised by POLARIS.", name)
+            LOGGER.warn("Parameter '%s' is not recognised by POLARIS.", name)
         if name in PARAMETERS_CORE:
             LOGGER.info("Parameter '%s' is a core parameter required for "
                         "analysis.", name)
