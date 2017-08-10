@@ -142,7 +142,7 @@ def check_parameter_names(hdf):
     matched_names = set()
     for name in PARAMETER_LIST:
         if WILDCARD in name:
-            found = wildcard_match(name, hdf_parameters, remove=' ')
+            found = wildcard_match(name, hdf_parameters, missing=False)
         else:
             found = [name for p in hdf_parameters if p == name]
         if found:
