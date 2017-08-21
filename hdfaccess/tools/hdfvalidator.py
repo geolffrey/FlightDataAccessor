@@ -20,6 +20,7 @@ from hdfaccess.tools.parameter_lists import PARAMETERS_FROM_FILES
 from analysis_engine.utils import list_parameters
 from flightdatautilities.patterns import wildcard_match, WILDCARD
 from flightdatautilities import units as ut
+from flightdatautilities.state_mappings import PARAMETER_CORRECTIONS
 
 LOGGER = logging.getLogger(__name__)
 
@@ -215,7 +216,7 @@ def check_for_core_parameters(hdf, helicopter=False):
 # =============================================================================
 #   Parameter's Attributes
 # =============================================================================
-def validate_parameters(hdf, helicopter=False):
+def validate_parameters(hdf, helicopter=False, names=None, states=False):
     """
     Iterates through all the parameters within the 'series' namespace and
     validates:
@@ -227,6 +228,8 @@ def validate_parameters(hdf, helicopter=False):
     matched, _ = check_parameter_names(hdf)
     check_for_core_parameters(hdf, helicopter)
     for name in hdf.keys():
+        if names and name not in names:
+            continue
         try:
             parameter = hdf.get_param(name)
         except np.ma.core.MaskError as err:
@@ -241,12 +244,12 @@ def validate_parameters(hdf, helicopter=False):
         if name in PARAMETERS_CORE:
             LOGGER.info("Parameter '%s' is a core parameter required for "
                         "analysis.", name)
-        validate_parameter_attributes(hdf, name, parameter, name in matched)
+        validate_parameter_attributes(hdf, name, parameter, name in matched, states=states)
         validate_parameters_dataset(hdf, name, parameter)
     return
 
 
-def validate_parameter_attributes(hdf, name, parameter, matched):
+def validate_parameter_attributes(hdf, name, parameter, matched, states=False):
     """Validates all parameter attributes."""
     log_subtitle("Checking Attribute for Parameter: %s" % (name, ))
     param_attrs = hdf.hdf['/series/' + name].attrs.keys()
@@ -258,7 +261,7 @@ def validate_parameter_attributes(hdf, name, parameter, matched):
     validate_arinc_429(parameter)
     validate_source_name(parameter, matched)
     validate_supf_offset(parameter)
-    validate_values_mapping(hdf, parameter)
+    validate_values_mapping(hdf, parameter, states=states)
     if 'data_type' in param_attrs:
         validate_data_type(parameter)
     if 'frequency' in param_attrs:
@@ -492,7 +495,7 @@ def validate_units(parameter):
                          parameter.name, parameter.units)
 
 
-def validate_values_mapping(hdf, parameter):
+def validate_values_mapping(hdf, parameter, states=False):
     """
     Check if the parameter attribute values_mapping exists (It is required for
     discrete or multi-state parameter) and reports the value.
@@ -547,6 +550,22 @@ def validate_values_mapping(hdf, parameter):
                              "There should be no more than 2.",
                              parameter.name,
                              len(parameter.data_type.keys()))
+
+
+     
+    LOGGER.info("Checking parameter states and checking the validity: states")
+    if states: 
+        for pattern, states in PARAMETER_CORRECTIONS.items():
+            for parameter_name in wildcard_match(pattern, [parameter.name]):
+                if {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
+                    LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
+                                 "the states should be %s.",
+                                 parameter.name, parameter.values_mapping, states)         
+                break
+            else:
+                continue
+            break
+ 
 
 
 def validate_dataset(hdf, name, parameter):
@@ -937,7 +956,7 @@ def validate_superframe_present_attribute(hdf):
                     "is optional.")
 
 
-def validate_file(hdffile, helicopter=False):
+def validate_file(hdffile, helicopter=False, names=None, states=False):
     """
     Attempts to open the HDF5 file in using FlightDataAccessor and run all the
     validation tests. If the file cannot be opened, it will attempt to open
@@ -976,7 +995,7 @@ def validate_file(hdffile, helicopter=False):
         validate_namespace(hdf.hdf)
         # continue testing using FlightDataAccessor
         validate_root_attribute(hdf)
-        validate_parameters(hdf, helicopter)
+        validate_parameters(hdf, helicopter, names=names, states=states)
     if hdf:
         hdf.close()
 
@@ -991,8 +1010,15 @@ def main():
     parser.add_argument(
         '--helicopter',
         help='Validates HDF5 file against helicopter core parameters.',
-        action='store_true',
+        action='store_true'
     )
+    parser.add_argument(
+        '-p', '--parameter',
+        help='Validate a subset of parameters.',
+        default=None,
+        action='append'
+    )
+    parser.add_argument('--states', action='store_true', help='Check parameter states are consistent')
     parser.add_argument(
         "-s",
         "--stop-on-error",
@@ -1067,7 +1093,7 @@ def main():
     LOGGER.setLevel(logging.DEBUG)
     LOGGER.debug("Arguments: %s", str(args))
     try:
-        validate_file(args.HDF5, args.helicopter)
+        validate_file(args.HDF5, args.helicopter, names=args.parameter, states=args.states)
     except StoppedOnFirstError:
         msg = "First error encountered. Stopping as requested."
         LOGGER.info(msg)
