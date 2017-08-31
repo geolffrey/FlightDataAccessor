@@ -596,6 +596,9 @@ def validate_dataset(hdf, name, parameter):
         else:
             LOGGER.info("Data is in a %s with a shape of %s",
                         type(parameter.array).__name__, parameter.array.shape)
+    if parameter.array.mask.all():
+        LOGGER.warning("Data for '%s' is entirely masked. Is it meant to be?",
+                       name)
 
 def expected_size_check(hdf, parameter):
     boundary = 64.0 if hdf.superframe_present else 4.0
