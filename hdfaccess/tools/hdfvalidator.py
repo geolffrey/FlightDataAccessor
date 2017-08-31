@@ -618,18 +618,20 @@ def expected_size_check(hdf, parameter):
                      parameter.frequency)
         return
 
-    LOGGER.info("Checking parameters dataset size against expected size (%s).",
-                int(expected_data_size))
+    LOGGER.info("Checking parameters dataset size against expected frame "
+                "aligned size of %s.", int(expected_data_size))
     LOGGER.debug("Calculated: ceil(Duration(%s) / Boundary(%s)) * "
                  "Boundary(%s) * Parameter Frequency (%s) = %s.",
                  hdf.duration, boundary, boundary, parameter.frequency,
                  expected_data_size)
 
     if expected_data_size != parameter.array.size:
-        LOGGER.error("The data size of '%s' is %s and different to expected "
-                     "size of %s.",
-                     parameter.name, parameter.array.size,
-                     int(expected_data_size))
+        LOGGER.error("The data size of '%s' is %s and different to the "
+                     "expected frame aligned size of %s. The data needs "
+                     "padding by %s extra masked elements to align to the "
+                     "next frame boundary.", parameter.name, 
+                     parameter.array.size, int(expected_data_size),
+                     int(expected_data_size)-parameter.array.size)
     else:
         LOGGER.info("Data size of '%s' is of the expected size of %s.",
                     parameter.name, int(expected_data_size))
@@ -704,18 +706,21 @@ def validate_namespace(hdf5):
     elif group_num is 0:
         LOGGER.error("No namespace groups found in the file.")
     elif group_num > 1 and 'series' in found:
-        LOGGER.warn("Namespace 'series' found along with %s addtional "
-                    "groups.", group_num - 1)
+        LOGGER.warn("Namespace 'series' found, along with %s addtional "
+                    "groups. If these are parmeters and required by Polaris "
+                    "for analysis, they must be stored within 'series'.",
+                    group_num - 1)
         show_groups = True
     elif group_num > 1:
         LOGGER.error("There are %s namespace groups on root, "
-                     "but not the required 'series' namespace.", group_num)
+                     "but not the required 'series' namespace. If these are "
+                     "parmeters and required by Polaris for analysis, they "
+                     "must be stored within 'series'.", group_num)
         show_groups = True
     if show_groups:
         LOGGER.debug("The following namespace groups are on root: %s",
                      [g for g in hdf5.keys() if 'series' not in g])
-        LOGGER.info("If these are parmeters they must be stored "
-                    "within 'series'.")
+
 
 
 # =============================================================================
