@@ -257,7 +257,7 @@ def validate_parameter_attributes(hdf, name, parameter, matched, states=False):
                  'supf_offset', 'units']:
         if attr not in param_attrs:
             LOGGER.error("Parameter attribute '%s' not present for '%s' "
-                         "and is Required.", attr, name)            
+                         "and is Required.", attr, name)
     validate_arinc_429(parameter)
     validate_source_name(parameter, matched)
     validate_supf_offset(parameter)
@@ -551,21 +551,18 @@ def validate_values_mapping(hdf, parameter, states=False):
                              parameter.name,
                              len(parameter.data_type.keys()))
 
-
-     
     LOGGER.info("Checking parameter states and checking the validity: states")
-    if states: 
+    if states:
         for pattern, states in PARAMETER_CORRECTIONS.items():
             for parameter_name in wildcard_match(pattern, [parameter.name]):
                 if {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
                     LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
                                  "the states should be %s.",
-                                 parameter.name, parameter.values_mapping, states)         
-                break
-            else:
-                continue
+                                 parameter.name, parameter.values_mapping, states)
+                    break
+                else:
+                    continue
             break
- 
 
 
 def validate_dataset(hdf, name, parameter):
@@ -614,7 +611,7 @@ def expected_size_check(hdf, parameter):
                      "size. Duration: %s, Parameter Frequency: %s",
                      parameter.name,
                      'None' if hdf.duration is None else hdf.duration,
-                     'None' if parameter.frequency is None else 
+                     'None' if parameter.frequency is None else
                      parameter.frequency)
         return
 
@@ -629,7 +626,7 @@ def expected_size_check(hdf, parameter):
         LOGGER.error("The data size of '%s' is %s and different to the "
                      "expected frame aligned size of %s. The data needs "
                      "padding by %s extra masked elements to align to the "
-                     "next frame boundary.", parameter.name, 
+                     "next frame boundary.", parameter.name,
                      parameter.array.size, int(expected_data_size),
                      int(expected_data_size)-parameter.array.size)
     else:
@@ -1026,7 +1023,8 @@ def main():
         default=None,
         action='append'
     )
-    parser.add_argument('--states', action='store_true', help='Check parameter states are consistent')
+    parser.add_argument('--states', action='store_true',
+                        help='Check parameter states are consistent')
     parser.add_argument(
         "-s",
         "--stop-on-error",
