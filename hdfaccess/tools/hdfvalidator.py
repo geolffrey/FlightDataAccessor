@@ -554,15 +554,16 @@ def validate_values_mapping(hdf, parameter, states=False):
     LOGGER.info("Checking parameter states and checking the validity: states")
     if states:
         for pattern, states in PARAMETER_CORRECTIONS.items():
-            for parameter_name in wildcard_match(pattern, [parameter.name]):
-                if {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
-                    LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
-                                 "the states should be %s.",
-                                 parameter.name, parameter.values_mapping, states)
-                    break
-                else:
-                    continue
-            break
+            if wildcard_match(pattern, [parameter.name]):
+                for parameter_name in wildcard_match(pattern, [parameter.name]):
+                    if {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
+                        LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
+                                     "the states should be %s.",
+                                     parameter.name, parameter.values_mapping, states)
+                        break
+                    else:
+                        continue
+                break
 
 
 def validate_dataset(hdf, name, parameter):
