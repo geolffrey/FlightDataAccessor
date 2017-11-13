@@ -1106,10 +1106,6 @@ def main():
 
     LOGGER.setLevel(logging.DEBUG)
     LOGGER.debug("Arguments: %s", str(args))
-    
-    import datetime
-    print(datetime.datetime.time(datetime.datetime.now()))
-    
     try:
         validate_file(args.HDF5, args.helicopter, names=args.parameter, states=args.states)
     except StoppedOnFirstError:
@@ -1128,8 +1124,6 @@ def main():
     LOGGER.info(msg)
     if args.show_only_errors:
         print(msg)
-        
-    print(datetime.datetime.time(datetime.datetime.now()))
 
 if __name__ == '__main__':
     main()
