@@ -553,17 +553,24 @@ def validate_values_mapping(hdf, parameter, states=False):
 
     LOGGER.info("Checking parameter states and checking the validity: states")
     if states:
-        for pattern, states in PARAMETER_CORRECTIONS.items():
-            if wildcard_match(pattern, [parameter.name]):
-                for parameter_name in wildcard_match(pattern, [parameter.name]):
-                    if {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
-                        LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
-                                     "the states should be %s.",
-                                     parameter.name, parameter.values_mapping, states)
-                        break
-                    else:
-                        continue
-                break
+        if not '(' in parameter.name or not ')' in parameter.name:
+            states = PARAMETER_CORRECTIONS.get(parameter.name)
+            if states and {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
+                LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
+                             "the states should be %s.",
+                             parameter.name, parameter.values_mapping, states) 
+        else:
+            for pattern, states in PARAMETER_CORRECTIONS.items():
+                if wildcard_match(pattern, [parameter.name]):
+                    for parameter_name in wildcard_match(pattern, [parameter.name]):
+                        if {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
+                            LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
+                                         "the states should be %s.",
+                                         parameter.name, parameter.values_mapping, states)
+                            break
+                        else:
+                            continue
+                    break
 
 
 def validate_dataset(hdf, name, parameter):
@@ -1099,6 +1106,10 @@ def main():
 
     LOGGER.setLevel(logging.DEBUG)
     LOGGER.debug("Arguments: %s", str(args))
+    
+    import datetime
+    print(datetime.datetime.time(datetime.datetime.now()))
+    
     try:
         validate_file(args.HDF5, args.helicopter, names=args.parameter, states=args.states)
     except StoppedOnFirstError:
@@ -1117,6 +1128,8 @@ def main():
     LOGGER.info(msg)
     if args.show_only_errors:
         print(msg)
+        
+    print(datetime.datetime.time(datetime.datetime.now()))
 
 if __name__ == '__main__':
     main()
