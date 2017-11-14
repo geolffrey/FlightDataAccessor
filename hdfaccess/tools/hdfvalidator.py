@@ -561,9 +561,9 @@ def validate_values_mapping(hdf, parameter, states=False):
                              parameter.name, parameter.values_mapping, states) 
         else:
             for pattern, states in PARAMETER_CORRECTIONS.items():
-                found_matches=wildcard_match(pattern, [parameter.name])
+                found_matches = wildcard_match(pattern, [parameter.name])
                 if found_matches is not None and len(found_matches) > 0:
-                    for parameter_name in wildcard_match(pattern, [parameter.name]):
+                    for parameter_name in found_matches:
                         if {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
                             LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
                                          "the states should be %s.",
