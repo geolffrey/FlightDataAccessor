@@ -4,6 +4,7 @@
 '''
 Parameter container class.
 '''
+from __future__ import division
 
 import inspect
 import logging
@@ -11,10 +12,12 @@ import six
 import traceback
 
 from collections import defaultdict
-from numpy import bool_
+import numpy as np
 from numpy.ma import in1d, MaskedArray, masked, zeros
 
 from flightdatautilities.array_operations import merge_masks
+from .downsample import SAMPLES_PER_BUCKET, downsample
+
 
 # The value used to fill in MappedArrays for keys not within values_mapping
 NO_MAPPING = '?'  # only when getting values, setting raises ValueError
@@ -34,7 +37,7 @@ class MappedArray(MaskedArray):
     For details about numpy array subclassing see
     http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
     '''
-    def __new__(subtype, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
         '''
         Create new object.
 
@@ -225,7 +228,7 @@ masked_%(name)s(values = %(sdata)s,
         else:
             method = MaskedArray.__ne__ if invert else MaskedArray.__eq__
             return method(self.raw, self.__coerce_type(other))
-    
+
     def __relational__(self, other, method, aggregate):
         raw_values = self.__raw_values__(other)
         other = aggregate(raw_values) if raw_values else self.__coerce_type(other)
@@ -439,3 +442,38 @@ class Parameter(object):
             return merge_masks(list(self.submasks.values()))
         else:
             return self.array.mask
+
+    def downsample(self, width, start_offset=None, stop_offset=None, mask=True):
+        '''
+        Downsample data in range to fit in a window of given width.
+        '''
+        start_ix = int(start_offset * self.hz) if start_offset else 0
+        stop_ix = int(stop_offset * self.hz) if stop_offset else self.array.size
+        sliced = self.array[start_ix:stop_ix]
+        if not mask:
+            sliced = sliced.data
+        if sliced.size <= width:
+            return sliced, None
+
+        bucket_size = SAMPLES_PER_BUCKET * sliced.size // width
+        if bucket_size > 1:
+            downsampled = downsample(sliced, bucket_size)
+            return downsampled, bucket_size
+        else:
+            return sliced, bucket_size
+
+    def zoom(self, width, start_offset=0, stop_offset=None, mask=True, timestamps=False):
+        '''
+        Zoom out to display the data in range in a window of given width.
+
+        Optionally combine the data with timestamp information (in miliseconds).
+
+        This method is designed for use in data visualisation.
+        '''
+        downsampled, bucket_size = self.downsample(width, start_offset=start_offset, stop_offset=stop_offset, mask=mask)
+        if not timestamps:
+            return downsampled
+
+        interval = 1000 * (1 if bucket_size is None else bucket_size / SAMPLES_PER_BUCKET) / self.hz
+        timestamps = 1000 * (self.offset + start_offset) + interval * np.arange(downsampled.size)
+        return np.ma.dstack((timestamps, downsampled))[0]

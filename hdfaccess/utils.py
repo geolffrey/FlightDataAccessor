@@ -19,6 +19,8 @@ def _copy_attrs(source_group, target_group, deidentify=False):
     not seem to be a simple way to copy all of a group's attributes at once.
     '''
     for key, value in source_group.attrs.items():
+        # TODO: We are planning to upgrade the file format to remove cruft.
+        #       Remove obsolete attribute names when we have upgraded all files.
         if deidentify and key in ('aircraft_info', 'tailmark'):
             continue
         target_group.attrs[key] = value

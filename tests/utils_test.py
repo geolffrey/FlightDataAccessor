@@ -71,7 +71,6 @@ class TestConcatHDF(unittest.TestCase):
 
         # Create test hdf files.
         with h5py.File(self.hdf_path_1, 'w') as hdf_file_1:
-            hdf_file_1.attrs['tailmark'] = 'G-DEM'
             hdf_file_1.attrs['duration'] = 20
             series = hdf_file_1.create_group('series')
             series.attrs['frame_type'] = '737-3C'
@@ -107,7 +106,6 @@ class TestConcatHDF(unittest.TestCase):
         if dest:
             self.assertEqual(dest, out_path)
         with h5py.File(out_path, 'r') as hdf_out_file:
-            self.assertEqual(hdf_out_file.attrs['tailmark'], 'G-DEM')
             series = hdf_out_file['series']
             self.assertEqual(series.attrs['frame_type'], '737-3C')
             param = series['PARAM']

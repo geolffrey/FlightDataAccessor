@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import base64
+import collections
 import logging
 import h5py
 import numpy as np
@@ -8,6 +9,7 @@ import os
 import pickle
 import re
 import simplejson
+import six
 import zlib
 import pytz
 
@@ -131,12 +133,13 @@ class hdf_file(object):    # rare case of lower case?!
         assert key == param.name
         return self.set_param(param)
 
-    def iteritems(self):
-        """
-        """
+    def items(self):
         for param_name in self.keys():
             yield param_name, self[param_name]
-    items = iteritems
+
+    def values(self):
+        for param_name in self.keys():
+            yield self[param_name]
 
     def __contains__(self, key):
         """check if the key exists"""
@@ -182,6 +185,11 @@ class hdf_file(object):    # rare case of lower case?!
                     if append:
                         self._cache[key].add(name)
         return list(self._cache[key])
+
+    if six.PY2:
+        iteritems = items
+        iterkeys = keys
+        itervalues = values
 
     # TODO: These are deprecated and should be removed!
     get_param_list = lambda self: self.keys()
@@ -325,7 +333,17 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Parameter frequencies stored within the file.
         :rtype: str or None
         '''
-        return self.hdf.attrs.get('frequencies')
+        # XXX: This attribute is only set by the converter which does so
+        #      inconsistently, and as additional parameters are added by the
+        #      analyzer which doesn't update this, the value can be incorrect.
+        value = self.hdf.attrs.get('frequencies')
+        if isinstance(value, collections.Iterable):  # Not the best check, but close enough.
+            return value
+        # XXX: Fallback to fetching the set of frequencies from all parameters.
+        #      When we implement the next version of this, we could keep a flag
+        #      to determine when something has changed and then properly update
+        #      the attribute prior to the file being closed.
+        return sorted({float(x.attrs['frequency']) for x in six.itervalues(self.hdf['series'])})
 
     @frequencies.setter
     def frequencies(self, frequencies):
@@ -623,10 +641,11 @@ class hdf_file(object):    # rare case of lower case?!
         stored in the cache with the submasks. This bit can be optimised but we
         need to consider what are the use cases of submasks caching.
         '''
+        # XXX: Can we avoid this extra check and rely on h5py throwing KeyError?
         if name not in self.keys(valid_only):
-            # Exception should be caught otherwise HDF will crash and close!
             raise KeyError("%s" % name)
-        elif name in self._params_cache:
+
+        if name in self._params_cache:
             if not _slice:
                 logging.debug("Retrieving param '%s' from HDF cache", name)
                 # XXX: Caching breaks later loading of submasks!
@@ -676,31 +695,14 @@ class hdf_file(object):    # rare case of lower case?!
         # Backwards compatibility. Q: When can this be removed?
         if 'supf_offset' in attrs:
             kwargs['offset'] = attrs['supf_offset']
-        if 'arinc_429' in attrs:
-            kwargs['arinc_429'] = attrs['arinc_429']
         if 'invalid' in attrs:
             kwargs['invalid'] = attrs['invalid']
             if kwargs['invalid'] and 'invalidity_reason' in attrs:
                 kwargs['invalidity_reason'] = attrs['invalidity_reason']
-        # Units
-        if 'units' in attrs:
-            kwargs['units'] = attrs['units']
-        if 'lfl' in attrs:
-            kwargs['lfl'] = attrs['lfl']
-        elif 'description' in attrs:
-            # Backwards compatibility for HDF files converted from AGS where
-            # the units are stored in the description. Units will be invalid if
-            # parameters from a FlightDataAnalyser HDF do not have 'units'
-            # attributes.
-            description = attrs['description']
-            if description:
-                kwargs['units'] = description
-        if 'data_type' in attrs:
-            kwargs['data_type'] = attrs['data_type']
-        if 'source_name' in attrs:
-            kwargs['source_name'] = attrs['source_name']
-        if 'description' in attrs:
-            kwargs['description'] = attrs['description']
+
+        keys = ('arinc_429', 'data_type', 'description', 'lfl', 'source_name', 'units')
+        kwargs.update((key, attrs[key]) for key in keys if key in attrs)
+
         parameter = Parameter(name, array, **kwargs)
         # add to cache if required
         if name in self.cache_param_list:
@@ -877,11 +879,8 @@ class hdf_file(object):    # rare case of lower case?!
         :type name: str
         :param reason: Optional invalidity reason.
         :type reason: str
-        :raises KeyError: If parameter does not exist.
         :rtype: None
         '''
-        if name not in self.keys():
-            raise KeyError('%s' % name)
         param_group = self.hdf['series'][name]
         param_group.attrs['invalid'] = 1
         param_group.attrs['invalidity_reason'] = reason
@@ -895,11 +894,8 @@ class hdf_file(object):    # rare case of lower case?!
 
         :param param_name: Parameter name to be deleted
         :type param_name: str
-        :raises KeyError: If parameter does not exist.
         :rtype: None
         '''
-        if name not in self.keys():
-            raise KeyError('%s' % name)
         del self.hdf['series'][name]
         for cache in self._cache.values():
             if name in cache:
@@ -946,12 +942,7 @@ class hdf_file(object):    # rare case of lower case?!
         :type name: str
         :returns: Parameter operating limits or None if 'limits' attribute does not exist.
         :rtype: dict or None
-        :raises KeyError: If parameter name does not exist within the HDF file.
         '''
-        if name not in self:
-            # Do not try to retrieve a non-existing group within the HDF
-            # otherwise h5py.File object will crash and close.
-            raise KeyError("%s" % name)
         limits = self.hdf['series'][name].attrs.get('limits')
         return simplejson.loads(limits) if limits else default
 
@@ -963,12 +954,7 @@ class hdf_file(object):    # rare case of lower case?!
         :type name: str
         :returns: Parameter ARINC 429 flag.
         :rtype: bool
-        :raises KeyError: If parameter name does not exist within the HDF file.
         '''
-        if name not in self:
-            # Do not try to retrieve a non-existing group within the HDF
-            # otherwise h5py.File object will crash and close.
-            raise KeyError("%s" % name)
         arinc_429 = bool(self.hdf['series'][name].attrs.get('arinc_429'))
         return arinc_429
 
@@ -987,23 +973,12 @@ class hdf_file(object):    # rare case of lower case?!
 
 
 def print_hdf_info(hdf_file):
-    hdf_file = hdf_file.hdf
-    series = hdf_file['series']
-    # IOLA
-    # 8.0
-    if 'Time' in series:
-        print('Tailmark:', hdf_file.attrs['tailmark'])
-        print('Start Time:', hdf_file.attrs['starttime'])
-        print('End Time:', hdf_file.attrs['endtime'])
-
-    for group_name, group in series.items():
+    for group_name, group in hdf_file.hdf['series'].items():
         print('[%s]' % group_name)
         print('Frequency:', group.attrs['frequency'])
         print(group.attrs.items())
         print('Offset:', group.attrs['supf_offset'])
         print('Number of recorded values:', len(group['data']))
-    #param_series = hdf_file['series'][parameter]
-    #data = param_series['data']
 
 
 if __name__ == '__main__':
