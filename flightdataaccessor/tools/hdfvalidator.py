@@ -15,8 +15,8 @@ import h5py
 import numpy as np
 
 from flightdataaccessor.file import hdf_file
-from flightdataaccessor.parameter import MappedArray
-from flightdataaccessor.tools.parameter_lists import PARAMETERS_FROM_FILES
+from flightdataaccessor.datatypes.parameter import MappedArray
+from flightdataaccessor.tools.datatypes.parameter_lists import PARAMETERS_FROM_FILES
 from analysis_engine.utils import list_parameters
 from flightdatautilities.patterns import wildcard_match, WILDCARD
 from flightdatautilities import units as ut

@@ -39,7 +39,7 @@ MappedArrays
 .. code-block:: python
 
    >>> import numpy as np
-   >>> from flightdataaccessor.parameter import MappedArray
+   >>> from flightdataaccessor.datatypes.parameter import MappedArray
    >>> a = MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed', 2: 'ILS Mode Fail',
    3: 'Not Selected', 4: 'ILS Selected'})
    >>> a
@@ -87,7 +87,7 @@ MappedArrays
 Parameters
 ----------
 
-The `Parameter` class within the `flightdataaccessor.parameter` module represents a parameter's data and associated information.
+The `Parameter` class within the `flightdataaccessor.datatypes.parameter` module represents a parameter's data and associated information.
 
 A `Parameter` object has the following attributes:
 
@@ -106,7 +106,7 @@ A `Parameter` object has the following attributes:
 .. code-block:: python
 
    >>> import numpy as np
-   >>> from flightdataaccessor.parameter import Parameter
+   >>> from flightdataaccessor.datatypes.parameter import Parameter
    >>> param = Parameter('Longitude', frequency=2, offset=0.2375, units='deg',
        description='The east-west position of the aircraft in decimal degrees.',
        array=np.ma.masked_array([59.345, 59.346, 59.347]))
@@ -170,7 +170,7 @@ The `hdf_file` class within the `flightdataaccessor.file` module provides a high
    >>> print alt_rad
    Altitude Radio 0.5Hz 1.50secs
    >>> print type(alt_rad)
-   <class 'flightdataaccessor.parameter.Parameter'>
+   <class 'flightdataaccessor.datatypes.parameter.Parameter'>
    >>> # Delete a parameter from a file.
    >>> del hdf['Altitude Radio']
    >>> print hdf.keys()

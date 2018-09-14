@@ -11,7 +11,7 @@ import unittest
 from datetime import datetime
 
 from flightdataaccessor.file import hdf_file
-from flightdataaccessor.parameter import Parameter
+from flightdataaccessor.datatypes.parameter import Parameter
 
 TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 TEMP_DIR_PATH = os.path.join(TEST_DATA_DIR_PATH, 'temp')
