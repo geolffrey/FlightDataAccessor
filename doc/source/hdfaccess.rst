@@ -1,10 +1,10 @@
-hdfaccess Package
+flightdataaccessor Package
 =================
 
-:mod:`hdfaccess` Package
+:mod:`flightdataaccessor` Package
 ------------------------
 
-.. automodule:: hdfaccess.__init__
+.. automodule:: flightdataaccessor.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -12,7 +12,7 @@ hdfaccess Package
 :mod:`file` Module
 ------------------
 
-.. automodule:: hdfaccess.file
+.. automodule:: flightdataaccessor.file
     :members:
     :undoc-members:
     :show-inheritance:
@@ -20,7 +20,7 @@ hdfaccess Package
 :mod:`parameter` Module
 -----------------------
 
-.. automodule:: hdfaccess.parameter
+.. automodule:: flightdataaccessor.parameter
     :members:
     :undoc-members:
     :show-inheritance:
@@ -28,7 +28,7 @@ hdfaccess Package
 :mod:`utils` Module
 -------------------
 
-.. automodule:: hdfaccess.utils
+.. automodule:: flightdataaccessor.utils
     :members:
     :undoc-members:
     :show-inheritance:

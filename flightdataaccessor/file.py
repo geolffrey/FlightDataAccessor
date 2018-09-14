@@ -23,7 +23,7 @@ from flightdatautilities.compression import CompressedFile, ReadOnlyCompressedFi
 from flightdatautilities.filesystem_tools import pretty_size
 from flightdatautilities.patterns import wildcard_match
 
-from hdfaccess.parameter import Parameter
+from flightdataaccessor.parameter import Parameter
 
 
 HDFACCESS_VERSION = 1

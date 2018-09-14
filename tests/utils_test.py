@@ -6,7 +6,7 @@ import numpy as np
 import os
 import unittest
 
-from hdfaccess.utils import concat_hdf, strip_hdf, write_segment
+from flightdataaccessor.utils import concat_hdf, strip_hdf, write_segment
 
 TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 TEMP_DIR_PATH = os.path.join(TEST_DATA_DIR_PATH, 'temp')

@@ -6,7 +6,7 @@
 
 import os
 
-import hdfaccess as pkg
+import flightdataaccessor as pkg
 from setuptools import setup, find_packages
 from requirements import RequirementsParser
 requirements = RequirementsParser()

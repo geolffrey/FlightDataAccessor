@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 import unittest
 
-from hdfaccess.parameter import MappedArray, Parameter
+from flightdataaccessor.parameter import MappedArray, Parameter
 
 
 class TestMappedArray(unittest.TestCase):

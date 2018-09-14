@@ -14,9 +14,9 @@ from math import ceil
 import h5py
 import numpy as np
 
-from hdfaccess.file import hdf_file
-from hdfaccess.parameter import MappedArray
-from hdfaccess.tools.parameter_lists import PARAMETERS_FROM_FILES
+from flightdataaccessor.file import hdf_file
+from flightdataaccessor.parameter import MappedArray
+from flightdataaccessor.tools.parameter_lists import PARAMETERS_FROM_FILES
 from analysis_engine.utils import list_parameters
 from flightdatautilities.patterns import wildcard_match, WILDCARD
 from flightdatautilities import units as ut

@@ -39,7 +39,7 @@ MappedArrays
 .. code-block:: python
 
    >>> import numpy as np
-   >>> from hdfaccess.parameter import MappedArray
+   >>> from flightdataaccessor.parameter import MappedArray
    >>> a = MappedArray([1, 2, 3, 4], values_mapping={1: 'Not Installed', 2: 'ILS Mode Fail',
    3: 'Not Selected', 4: 'ILS Selected'})
    >>> a
@@ -87,7 +87,7 @@ MappedArrays
 Parameters
 ----------
 
-The `Parameter` class within the `hdfaccess.parameter` module represents a parameter's data and associated information.
+The `Parameter` class within the `flightdataaccessor.parameter` module represents a parameter's data and associated information.
 
 A `Parameter` object has the following attributes:
 
@@ -106,7 +106,7 @@ A `Parameter` object has the following attributes:
 .. code-block:: python
 
    >>> import numpy as np
-   >>> from hdfaccess.parameter import Parameter
+   >>> from flightdataaccessor.parameter import Parameter
    >>> param = Parameter('Longitude', frequency=2, offset=0.2375, units='deg',
        description='The east-west position of the aircraft in decimal degrees.',
        array=np.ma.masked_array([59.345, 59.346, 59.347]))
@@ -143,11 +143,11 @@ Hierarchical Data Format (HDF)
 hdf_file
 --------
 
-The `hdf_file` class within the `hdfaccess.file` module provides a high-level interface to HDF files designed for saving and loading flight data. `hdf_file` implements a file-like interface.
+The `hdf_file` class within the `flightdataaccessor.file` module provides a high-level interface to HDF files designed for saving and loading flight data. `hdf_file` implements a file-like interface.
 
 .. code-block:: python
 
-   >>> from hdfaccess.file import hdf_file
+   >>> from flightdataaccessor.file import hdf_file
    >>> # HDF files can be opened using the with statement.
    >>> with hdf_file('flight.hdf5') as hdf:
    >>>     print hdf
@@ -170,7 +170,7 @@ The `hdf_file` class within the `hdfaccess.file` module provides a high-level in
    >>> print alt_rad
    Altitude Radio 0.5Hz 1.50secs
    >>> print type(alt_rad)
-   <class 'hdfaccess.parameter.Parameter'>
+   <class 'flightdataaccessor.parameter.Parameter'>
    >>> # Delete a parameter from a file.
    >>> del hdf['Altitude Radio']
    >>> print hdf.keys()
@@ -215,7 +215,7 @@ The underlying `h5py.File` object can be accessed through `hdf_file`'s hdf attri
 
 .. code-block:: python
 
-   >>> from hdfaccess.file import hdf_file
+   >>> from flightdataaccessor.file import hdf_file
    >>> with hdf_file('flight.hdf5') as hdf:
    >>>     print hdf.hdf
    <HDF5 file "flight.hdf5" (mode r+)>
@@ -363,12 +363,12 @@ When a `Parameter` object is loaded from the HDF file, the entire data and mask 
    >>> from timeit import timeit
    >>> # Loading the parameter for the first time.
    >>> timeit("hdf['Acceleration Normal']",
-              setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')",
+              setup="from flightdataaccessor.file import hdf_file; hdf = hdf_file('flight.hdf5')",
               number=100)
    1.5289490222930908
    >>> # Loading the parameter after it has been cached.
    >>> timeit("hdf['Acceleration Normal']",
-       setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5', cache_param_list=['Acceleration Normal']); hdf['Acceleration Normal']",
+       setup="from flightdataaccessor.file import hdf_file; hdf = hdf_file('flight.hdf5', cache_param_list=['Acceleration Normal']); hdf['Acceleration Normal']",
        number=100)
    0.09475302696228027
 
@@ -383,10 +383,10 @@ Retrieving the contents of a group within `h5py` is much slower than native Pyth
    >>> print len(hdf.keys())
    1043
    >>> timeit("hdf.hdf['series'].keys()",
-              setup="from hdfaccess.file import hdf_file; hdf_file('flight.hdf5')",
+              setup="from flightdataaccessor.file import hdf_file; hdf_file('flight.hdf5')",
               number=100)
    7.203955888748169
    >>> timeit("hdf.keys()",
-              setup="from hdfaccess.file import hdf_file; hdf = hdf_file('flight.hdf5')",
+              setup="from flightdataaccessor.file import hdf_file; hdf = hdf_file('flight.hdf5')",
               number=100)
    0.06666207313537598

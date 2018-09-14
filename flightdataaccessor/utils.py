@@ -10,7 +10,7 @@ import six
 from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.filesystem_tools import copy_file
 
-from hdfaccess.file import hdf_file
+from flightdataaccessor.file import hdf_file
 
 
 def _copy_attrs(source_group, target_group, deidentify=False):

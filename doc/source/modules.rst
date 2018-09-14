@@ -1,7 +1,7 @@
-hdfaccess
+flightdataaccessor
 =========
 
 .. toctree::
    :maxdepth: 4
 
-   hdfaccess
+   flightdataaccessor
