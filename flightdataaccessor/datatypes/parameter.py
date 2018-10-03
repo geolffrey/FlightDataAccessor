@@ -335,8 +335,8 @@ masked_%(name)s(values = %(sdata)s,
 class Parameter(object):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
                  offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
-                 units=None, data_type=None, lfl=None, source_name=None,
-                 description='', submasks=None):
+                 unit=None, data_type=None, source=None, source_name=None,
+                 description='', submasks=None, limits=None):
         '''
         :param name: Parameter name
         :type name: String
@@ -385,14 +385,15 @@ class Parameter(object):
         self.frequency = float(frequency)
         self.offset = offset
         self.arinc_429 = arinc_429
-        self.units = units
+        self.unit = unit
         self.data_type = data_type
-        self.lfl = lfl
+        self.source = source
         self.source_name = source_name
         self.description = description
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
         self.submasks = submasks or {}
+        self.limits = limits
 
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
