@@ -1,6 +1,6 @@
 # Tasks to perform:
-# [ ] Cache parameters
-# [ ] Support for array slice
+# [x] Cache parameters
+# [x] Support for array slice
 # [ ] Modification of "old" format file will update the old format attributes preserving data types etc.
 
 import base64
@@ -164,7 +164,11 @@ class FlightDataFile(Compatibility):
         :returns: sorted list of parameter names.
         :rtype: list of str
         """
-        if subset and subset not in ('lfl', 'derived'):
+        # backwards compatibility
+        if subset == 'lfl':
+            subset = 'source'
+
+        if subset and subset not in ('source', 'derived'):
             raise ValueError('Unknown parameter subset: %s.' % subset)
         category = subset + '_names' if subset else 'names'
         category = 'valid_' + category if valid_only else category
@@ -174,7 +178,10 @@ class FlightDataFile(Compatibility):
             else:
                 for name in self.keys():  # (populates top-level name cache.)
                     attrs = self.data[name].attrs
-                    lfl = bool(attrs.get('lfl'))
+                    if self.version >= self.VERSION:
+                        lfl = bool(attrs.get('source', True))
+                    else:
+                        lfl = bool(attrs.get('lfl', True))
                     append = not any((
                         valid_only and bool(attrs.get('invalid')),
                         not lfl and subset == 'lfl',
@@ -229,7 +236,6 @@ class FlightDataFile(Compatibility):
         if 'submasks' in attrs and 'submasks' in group:
             submask_map = attrs['submasks']
             if submask_map.strip():
-                print submask_map
                 submask_map = simplejson.loads(submask_map)
                 for sub_name, index in submask_map.items():
                     kwargs['submasks'][sub_name] = group['submasks'][slice(None), index]
@@ -291,13 +297,11 @@ class FlightDataFile(Compatibility):
             try:
                 parameter = copy.deepcopy(parameter)
             except Exception:
-                print parameter.name, parameter.source
                 attr_names = [
                     'name', 'array', 'source', 'offset', 'unit', 'arinc_429', 'invalid', 'invalidity_reason', 'limits',
                     'data_type', 'source_name', 'submasks'
                 ]
                 attrs = [[a, type(getattr(parameter, a)), getattr(parameter, a)] for a in attr_names]
-                print attrs
                 copy.deepcopy(attrs)
                 raise
 

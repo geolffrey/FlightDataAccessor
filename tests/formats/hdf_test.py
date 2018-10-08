@@ -75,7 +75,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             del fdf.reliable_frame_counter
 
         with FlightDataFile(self.fp) as fdf:
-            self.assertIsNone(fdf.reliable_frame_counte)
+            self.assertIsNone(fdf.reliable_frame_counter)
 
     def contains_test(self):
         with FlightDataFile(self.fp) as fdf:
@@ -108,10 +108,27 @@ class FlightDataFileTestV2(unittest.TestCase):
             self.assertEquals(hdf_series_names, new_keys)
 
     def keys_valid_only_test(self):
-        pass
+        with FlightDataFile(self.fp) as fdf:
+            valid_param_names = (p.name for p in fdf.values() if not p.invalid)
+            self.assertItemsEqual(valid_param_names, fdf.keys(valid_only=True))
 
     def keys_subsets_test(self):
-        pass
+        with FlightDataFile(self.fp) as fdf:
+    #         source_param_names = [p.name for p in fdf.values() if p.source]
+    #         print len(source_param_names), len(fdf.keys(subset='source'))
+    #         self.assertItemsEqual(source_param_names, fdf.keys(subset='source'))
+
+            derived_param_names = [p.name for p in fdf.values() if not p.source]
+            self.assertItemsEqual(derived_param_names, fdf.keys(subset='derived'))
+
+            source_valid_param_names = [p.name for p in fdf.values() if not p.invalid and p.source]
+            self.assertItemsEqual(source_valid_param_names, fdf.keys(valid_only=True, subset='source'))
+
+            derived_valid_param_names = [p.name for p in fdf.values() if not p.invalid and not p.source]
+            self.assertItemsEqual(derived_valid_param_names, fdf.keys(valid_only=True, subset='derived'))
+
+    #         self.assertItemsEqual(derived_param_names + source_param_names, fdf.keys())
+    #         self.assertItemsEqual(derived_valid_param_names + source_valid_param_names, fdf.keys(valid_only=True))
 
     def values_test(self):
         """

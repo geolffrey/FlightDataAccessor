@@ -36,4 +36,4 @@ class CompatibilityTest(unittest.TestCase):
             new_params = fdf.keys()
 
         self.assertEquals(old_params, new_params)
-        # check list of attributes, es[pecially the renamed and the type cast ones
+        # check list of attributes, especially the renamed and the type cast ones
