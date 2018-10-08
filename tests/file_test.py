@@ -319,7 +319,6 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(self.masked_param_frequency, param.frequency)
         self.assertEqual(self.masked_param_supf_offset, param.offset)
         self.assertEqual({}, param.submasks)
-        
 
     def test_len(self):
         '''
@@ -333,14 +332,14 @@ class TestHdfFile(unittest.TestCase):
         '''
         self.assertEqual(sorted(self.hdf_file.keys()),
                          sorted([self.param_name, self.masked_param_name]))
-    
+
     def test_lfl_keys(self):
         '''
         Depends upon HDF creation in self.setUp().
         '''
         self.assertEqual(sorted(self.hdf_file.lfl_keys()),
                          sorted([u'TEST_PARAM10']))
-    
+
     def test_derived_keys(self):
         '''
         Depends upon HDF creation in self.setUp().

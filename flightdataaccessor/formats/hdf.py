@@ -184,7 +184,7 @@ class FlightDataFile(Compatibility):
                         lfl = bool(attrs.get('lfl', True))
                     append = not any((
                         valid_only and bool(attrs.get('invalid')),
-                        not lfl and subset == 'lfl',
+                        not lfl and subset == 'source',
                         lfl and subset == 'derived',
                     ))
                     if append:
@@ -283,12 +283,12 @@ class FlightDataFile(Compatibility):
         """Load parameter and handle special cases"""
         # TODO: load_submasks
         if name not in self.keys(valid_only):
-            raise KeyError("%s" % name)
+            raise KeyError(name)
 
         parameter = self.load_parameter(name, load_submasks=load_submasks)
         if _slice:
-            slice_start = int((_slice.start or 0) * frequency)
-            slice_stop = int((_slice.stop or len(data)) * frequency)
+            slice_start = int((_slice.start or 0) * parameter.frequency)
+            slice_stop = int((_slice.stop or parameter.array.size) * parameter.frequency)
             _slice = slice(slice_start, slice_stop)
             array = parameter.array[_slice]
             parameter = copy.deepcopy(parameter)
@@ -318,6 +318,8 @@ class FlightDataFile(Compatibility):
 
         param_group.create_dataset('data', data=parameter.array.data, **self.DATASET_KWARGS)
         if getattr(parameter, 'submasks', None):
+            if 'submasks' in param_group:
+                del param_group['submasks']
             if 'mask' in param_group:
                 del param_group['mask']
 
