@@ -12,6 +12,7 @@ import six
 import traceback
 
 from collections import defaultdict
+from deprecated import deprecated
 import numpy as np
 from numpy.ma import in1d, MaskedArray, masked, zeros
 
@@ -399,18 +400,37 @@ class Parameter(object):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
 
     @property
+    @deprecated(reason='Please use `source` instead')
+    def lfl(self):
+        return self.source
+
+    @lfl.setter
+    @deprecated(reason='Please use `source` instead')
+    def lfl(self, s):
+        self.source = s
+
+    @property
+    @deprecated(reason='Please use `source` instead')
+    def units(self):
+        return self.unit
+
+    @property
+    @deprecated(reason='Please use `frequency` instead')
     def sample_rate(self):
         return self.frequency
 
     @sample_rate.setter
+    @deprecated(reason='Please use `frequency` instead')
     def sample_rate(self, v):
         self.frequency = v
 
     @property
+    @deprecated(reason='Please use `frequency` instead')
     def hz(self):
         return self.frequency
 
     @hz.setter
+    @deprecated(reason='Please use `frequency` instead')
     def hz(self, v):
         self.frequency = v
 
