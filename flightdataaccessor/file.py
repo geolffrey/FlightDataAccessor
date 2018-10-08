@@ -700,7 +700,7 @@ class hdf_file(object):    # rare case of lower case?!
             if kwargs['invalid'] and 'invalidity_reason' in attrs:
                 kwargs['invalidity_reason'] = attrs['invalidity_reason']
 
-        keys = ('arinc_429', 'data_type', 'description', 'lfl', 'source_name', 'units')
+        keys = ('arinc_429', 'data_type', 'description', 'source', 'source_name', 'units')
         kwargs.update((key, attrs[key]) for key in keys if key in attrs)
 
         parameter = Parameter(name, array, **kwargs)
