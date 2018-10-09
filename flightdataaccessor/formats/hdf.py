@@ -106,7 +106,7 @@ class FlightDataFile(Compatibility):
         if self.file.attrs.get('version', 0) >= self.VERSION:
             return value
         else:
-            if name in {'reliable_frame_counter', 'reliable_subframe_counter' 'superframe_present'}:
+            if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
                 return None if value is None else bool(value)
             elif name in {'achieved_flight_record', 'aircraft_info'}:
                 return pickle.loads(value)

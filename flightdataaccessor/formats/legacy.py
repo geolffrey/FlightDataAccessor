@@ -1,6 +1,17 @@
 from deprecated import deprecated
 
 
+REMOVE_GLOBAL_ATTRIBUTES = [
+    'achieved_flight_record', 'aircraft_info', 'tailmark', 'starttime', 'endtime',
+]
+
+RENAME_GLOBAL_ATTRIBUTES = {
+    'analysis_version': 'version_analyzer',
+    'hdfaccess_version': 'version',
+    'start_timestamp': 'timestamp',
+}
+
+
 class Compatibility(object):
     """Support for legacy properties and methods"""
 
@@ -67,7 +78,8 @@ class Compatibility(object):
         with self.__class__(filename) as new_fdf:
             new_fdf.set_parameters(self.values())
             for name, value in self.file.attrs.items():
-                if name == 'version':
+                if name in REMOVE_GLOBAL_ATTRIBUTES or name == 'version':
                     continue
 
+                name = RENAME_GLOBAL_ATTRIBUTES.get(name, name)
                 new_fdf.file.attrs.create(name, value)
