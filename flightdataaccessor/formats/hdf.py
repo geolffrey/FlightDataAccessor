@@ -101,7 +101,7 @@ class FlightDataFile(Compatibility):
 
     def __getattr__(self, name):
         """Retrieve global file attribute handling special cases."""
-        value = self.hdf.attrs.get(name)  # FIXME: raise AttributeError if missing?
+        value = self.file.attrs.get(name)  # FIXME: raise AttributeError if missing?
         # Handle backwards compatibility for older versions:
         if self.file.attrs.get('version', 0) >= self.VERSION:
             return value
@@ -128,7 +128,7 @@ class FlightDataFile(Compatibility):
         if value is not None:
             # Handle backwards compatibility for older versions:
             if self.file.attrs.get('version', 0) >= self.VERSION:
-                self.hdf.attrs[name] = value
+                self.file.attrs[name] = value
             else:
                 if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
                     value = int(value)
@@ -138,13 +138,13 @@ class FlightDataFile(Compatibility):
                     value = base64.encodestring(zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode('ascii')))
                 elif name in {'arinc'} and value not in {'717', '767'}:
                     raise ValueError('Unknown ARINC standard: %s.' % value)
-                self.hdf.attrs[name] = value
+                self.file.attrs[name] = value
 
-        elif name in self.hdf.attrs:
-            del self.hdf.attrs[name]
+        elif name in self.file.attrs:
+            del self.file.attrs[name]
 
     def __delattr__(self, name):
-        del self.hdf.attrs[name]
+        del self.file.attrs[name]
 
     def __contains__(self, name):
         """Whether a parameter exists in the flight data file."""
@@ -219,73 +219,93 @@ class FlightDataFile(Compatibility):
             group = self.data.create_group(name)
         return group
 
-    def load_parameter(self, name, load_submasks=False):
-        """Load parameter from cache or the file and store in cache"""
-        if name in self.parameter_cache:
-            return self.parameter_cache[name]
-
-        group = self.data[name]
+    def load_submasks(self, parameter):
+        group = self.data[parameter.name]
         attrs = group.attrs
-        data = group['data'][:]
-        name = name.split('/')[-1]
 
-        kwargs = {}
-        kwargs['frequency'] = attrs.get('frequency', 1)
-
-        kwargs['submasks'] = {}
-        if 'submasks' in attrs and 'submasks' in group:
+        submasks = {}
+        if 'submasks' in attrs and 'submasks' in group.keys():
             submask_map = attrs['submasks']
             if submask_map.strip():
                 submask_map = simplejson.loads(submask_map)
                 for sub_name, index in submask_map.items():
-                    kwargs['submasks'][sub_name] = group['submasks'][slice(None), index]
-                mask = merge_masks(list(kwargs['submasks'].values()))
+                    submasks[sub_name] = group['submasks'][slice(None), index]
 
-            if 'mask' in group:
-                old_mask = group['mask'][slice(None)]
-                if np.any(mask != old_mask):
-                    kwargs['submasks']['legacy'] = old_mask
-                    mask |= old_mask
+        parameter.submasks = submasks
+        return parameter
+
+    def load_parameter(self, name, load_submasks=False):
+        """Load parameter from cache or the file and store in cache"""
+        if name in self.parameter_cache:
+            parameter = self.parameter_cache[name]
+
         else:
-            if 'mask' in group:
-                mask = group['mask']
+            group = self.data[name]
+            attrs = group.attrs
+            data = group['data'][:]
+            name = name.split('/')[-1]
+
+            kwargs = {}
+            kwargs['frequency'] = attrs.get('frequency', 1)
+
+            kwargs['submasks'] = {}
+            if 'submasks' in attrs and 'submasks' in group:
+                submask_map = attrs['submasks']
+                if submask_map.strip():
+                    submask_map = simplejson.loads(submask_map)
+                    for sub_name, index in submask_map.items():
+                        kwargs['submasks'][sub_name] = group['submasks'][slice(None), index]
+                    mask = merge_masks(list(kwargs['submasks'].values()))
+
+                if 'mask' in group:
+                    old_mask = group['mask'][slice(None)]
+                    if np.any(mask != old_mask):
+                        kwargs['submasks']['legacy'] = old_mask
+                        mask |= old_mask
             else:
-                mask = np.zeros(data.size)
+                if 'mask' in group:
+                    mask = group['mask']
+                else:
+                    mask = np.zeros(data.size)
 
-        array = np.ma.masked_array(data, mask=mask)
+            array = np.ma.masked_array(data, mask=mask)
 
-        if 'values_mapping' in attrs:
-            values_mapping = attrs['values_mapping']
-            if values_mapping.strip():
-                mapping = simplejson.loads(values_mapping)
-                kwargs['values_mapping'] = mapping
+            if 'values_mapping' in attrs:
+                values_mapping = attrs['values_mapping']
+                if values_mapping.strip():
+                    mapping = simplejson.loads(values_mapping)
+                    kwargs['values_mapping'] = mapping
 
-        if 'values_mapping' not in kwargs and data.dtype == np.int_:
-            # Force float for non-values_mapped types.
-            array = array.astype(np.float_)
+            if 'values_mapping' not in kwargs and data.dtype == np.int_:
+                # Force float for non-values_mapped types.
+                array = array.astype(np.float_)
 
-        # backwards compatibility
-        kwargs['source'] = attrs.get('source', bool(attrs.get('lfl', True)))
-        kwargs['offset'] = attrs.get('offset', attrs.get('supf_offset', 0))
-        kwargs['unit'] = attrs.get('unit', attrs.get('units'))
+            # backwards compatibility
+            kwargs['source'] = attrs.get('source', bool(attrs.get('lfl', True)))
+            kwargs['offset'] = attrs.get('offset', attrs.get('supf_offset', 0))
+            kwargs['unit'] = attrs.get('unit', attrs.get('units'))
 
-        kwargs['arinc_429'] = bool(attrs.get('arinc_429', False))
-        kwargs['invalid'] = bool(attrs.get('invalid', False))
-        kwargs['invalidity_reason'] = attrs.get('invalidity_reason', None)
-        kwargs['limits'] = attrs.get('limits', None)
-        kwargs['data_type'] = attrs.get('data_type', None)
-        kwargs['source_name'] = attrs.get('source_name', None)
-        parameter = Parameter(name, array, **kwargs)
-        self.parameter_cache[name] = parameter
+            kwargs['arinc_429'] = bool(attrs.get('arinc_429', False))
+            kwargs['invalid'] = bool(attrs.get('invalid', False))
+            kwargs['invalidity_reason'] = attrs.get('invalidity_reason', None)
+            kwargs['limits'] = attrs.get('limits', None)
+            kwargs['data_type'] = attrs.get('data_type', None)
+            kwargs['source_name'] = attrs.get('source_name', None)
+            parameter = Parameter(name, array, **kwargs)
+            self.parameter_cache[name] = parameter
+
+        if load_submasks:
+            parameter = self.load_submasks(parameter)
+
         return parameter
 
     def get_parameter(self, name, valid_only=False, _slice=None, load_submasks=False, copy_param=True):
         """Load parameter and handle special cases"""
-        # TODO: load_submasks
         if name not in self.keys(valid_only):
             raise KeyError(name)
 
         parameter = self.load_parameter(name, load_submasks=load_submasks)
+
         if _slice:
             slice_start = int((_slice.start or 0) * parameter.frequency)
             slice_stop = int((_slice.stop or parameter.array.size) * parameter.frequency)

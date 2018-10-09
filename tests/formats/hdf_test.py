@@ -3,6 +3,7 @@
 #  1. test modify v2 file to use v2 attributes and 'series'
 #  2. test modify v3 file to use v3 attributes and top level parameters
 
+import json
 import os
 import shutil
 import unittest
@@ -194,7 +195,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         fdf.close()
         # h5py raises ValueError on access to a closed file
         with self.assertRaises(ValueError):
-            fdf.hdf.keys()
+            fdf.file.keys()
 
     def get_parameter_test(self):
         """Compare the content of the Numpy array before and after a Parameter is stored"""
@@ -241,7 +242,12 @@ class FlightDataFileTestV2(unittest.TestCase):
             self.assertIn('Airspeed', fdf.parameter_cache)
 
     def get_parameter_load_submasks_test(self):
-        pass
+        """Ensure the submasks are loaded correctly and cached"""
+
+        with FlightDataFile(self.fp) as fdf:
+            airs = fdf.get_parameter('Airspeed', load_submasks=True)
+            self.assertItemsEqual(airs.submasks.keys(), json.loads(fdf.data['Airspeed'].attrs['submasks']).keys())
+            self.assertItemsEqual(fdf.parameter_cache['Airspeed'].submasks.keys(), airs.submasks.keys())
 
     def get_parameter_copy_test(self):
         """Get parameter with copy_param twice, the copies should differ"""
