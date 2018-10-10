@@ -4,6 +4,13 @@ import numpy as np
 SAMPLES_PER_BUCKET = 2
 
 
+def masked_invalid(data):
+    try:
+        return np.ma.masked_invalid(data)
+    except TypeError:
+        return data # isfinite not supported for input type, e.g. string
+
+
 def downsample(data, bucket_size, point_size=1):
     '''
     Data-processing helper for downsampling consecutive data.  bucket_size is number of consecutive points to coalesce
@@ -23,13 +30,13 @@ def downsample(data, bucket_size, point_size=1):
 
     # unfortunately, numpy can't deal with irregular array sizes, so we need to split the data set
     remainder = len(data) % bucket_size
-    regular_part = np.ma.masked_invalid(data[:len(data) - remainder])
+    regular_part = masked_invalid(data[:len(data) - remainder])
 
     # first calculate the indexes of all the numbers we want
     minimums = regular_part.reshape(-1, bucket_size).argmin(axis=1)
     maximums = regular_part.reshape(-1, bucket_size).argmax(axis=1)
     if remainder:
-        remainder_part = np.ma.masked_invalid(data[len(data) - remainder:])
+        remainder_part = masked_invalid(data[len(data) - remainder:])
         minimums = np.concatenate((minimums, [remainder_part.argmin()]))
         maximums = np.concatenate((maximums, [remainder_part.argmax()]))
 
