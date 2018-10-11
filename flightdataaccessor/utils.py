@@ -96,9 +96,9 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     with hdf_file(hdf_path) as hdf, hdf_file(dest, create=True) as hdf_dest:
         _copy_attrs(hdf.hdf, hdf_dest.hdf, deidentify=deidentify)  # Copy top-level attrs.
         params = hdf.get_params(params_to_keep)
-        for param_name, param in params.items():
-            hdf_dest[param_name] = param
-    return params.keys()
+        for param in params:
+            hdf_dest[param.name] = param
+    return [p.name for p in params]
 
 
 def write_segment(source, segment, dest, boundary, submasks=None):

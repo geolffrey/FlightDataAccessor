@@ -33,6 +33,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     def getitem_test(self):
+        """Ensure the name of retrieved parameter is correct"""
         with FlightDataFile(self.fp) as fdf:
             airs = fdf['Heading']
             self.assertEquals(airs.name, 'Heading')
@@ -72,6 +73,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             self.assertEqual(fdf.new_attr, 123)
 
     def delattr_test(self):
+        """Ensure removed attribute returns None"""
         with FlightDataFile(self.fp) as fdf:
             del fdf.reliable_frame_counter
 
@@ -79,6 +81,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             self.assertIsNone(fdf.reliable_frame_counter)
 
     def contains_test(self):
+        """Ensure `in` operator works for the object"""
         with FlightDataFile(self.fp) as fdf:
             self.assertTrue('Airspeed' in fdf)
 
@@ -234,6 +237,7 @@ class FlightDataFileTestV2(unittest.TestCase):
                 fdf.get_parameter('Airspeed', valid_only=True)
 
     def get_parameter_slice_test(self):
+        """Ensure the parameter is cached"""
         with FlightDataFile(self.fp) as fdf:
             airspeed = fdf.get_parameter('Airspeed', _slice=slice(0, 100))
             # array size is correct
@@ -243,7 +247,6 @@ class FlightDataFileTestV2(unittest.TestCase):
 
     def get_parameter_load_submasks_test(self):
         """Ensure the submasks are loaded correctly and cached"""
-
         with FlightDataFile(self.fp) as fdf:
             airs = fdf.get_parameter('Airspeed', load_submasks=True)
             self.assertItemsEqual(airs.submasks.keys(), json.loads(fdf.data['Airspeed'].attrs['submasks']).keys())
@@ -251,7 +254,6 @@ class FlightDataFileTestV2(unittest.TestCase):
 
     def get_parameter_copy_test(self):
         """Get parameter with copy_param twice, the copies should differ"""
-
         with FlightDataFile(self.fp) as fdf:
             param1 = fdf.get_parameter('Airspeed', copy_param=True)
             param2 = fdf.get_parameter('Airspeed', copy_param=True)
@@ -259,7 +261,6 @@ class FlightDataFileTestV2(unittest.TestCase):
 
     def set_parameter_test(self):
         """Set parameter, compare with raw data in the file"""
-
         array = np.ma.arange(1000)
         param = Parameter('Test', array=array)
         with FlightDataFile(self.fp) as fdf:

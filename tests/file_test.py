@@ -33,6 +33,7 @@ class TestHdfFile(unittest.TestCase):
         param_group.attrs['supf_offset'] = self.param_supf_offset
         param_group.attrs['arinc_429'] = self.param_arinc_429
         param_group.attrs['lfl'] = 1
+        param_group.attrs['invalid'] = 0
         self.param_data = np.arange(100)
         param_group.create_dataset('data', data=self.param_data)
         self.masked_param_name = 'TEST_PARAM11'
@@ -44,14 +45,14 @@ class TestHdfFile(unittest.TestCase):
         self.param_mask = [bool(random.randint(0, 1)) for x in range(len(self.param_data))]
         masked_param_group.create_dataset('data', data=self.param_data)
         masked_param_group.create_dataset('mask', data=self.param_mask)
-        self.masked_param_submask_arrays = np.array([[False, True],
-                                                     [True, False],
-                                                     [False, False]])
+        self.masked_param_submask_arrays = np.column_stack([self.param_mask, self.param_mask])
         self.masked_param_submask_map = {'mask1': 0, 'mask2': 1}
         masked_param_group.attrs['submasks'] = \
             simplejson.dumps(self.masked_param_submask_map)
         masked_param_group.create_dataset(
             'submasks', data=self.masked_param_submask_arrays)
+        masked_param_group.attrs['lfl'] = 0
+        masked_param_group.attrs['invalid'] = 0
 
         hdf.close()
         self.hdf_file = hdf_file(self.hdf_path)
@@ -118,7 +119,7 @@ class TestHdfFile(unittest.TestCase):
             # check it's open
             self.assertFalse(hdf.hdf.id is None)
             hdf['sample'] = Parameter('sample', np.array(range(10)))
-            self.assertEqual(hdf['sample'].array.data.tolist(), list(range(10)))
+            np.testing.assert_almost_equal(hdf['sample'].array.data, list(range(10)))
             self.assertTrue(hasattr(hdf['sample'].array, 'mask'))
 
             hdf['masked sample'] = Parameter('masked sample', np.ma.array(range(10)))
@@ -157,7 +158,7 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(param.arinc_429, self.param_arinc_429)
         param = params['TEST_PARAM11']
         self.assertEqual(param.offset, self.masked_param_supf_offset)
-        self.assertEqual(param.arinc_429, None)
+        self.assertEqual(param.arinc_429, False)
         # Test retrieving single specified parameter.
         params = hdf_file.get_params(param_names=['TEST_PARAM10'])
         self.assertTrue(len(params) == 1)
@@ -206,13 +207,12 @@ class TestHdfFile(unittest.TestCase):
         '''
         set_param_data = self.hdf_file.__setitem__
         hdf_file = self.hdf_file
-        series = hdf_file.hdf['series']
         # Create new parameter with np.array.
         name1 = 'TEST_PARAM1'
-        array = np.arange(100)
+        array = np.arange(100, dtype=np.float_)
         set_param_data(name1, Parameter(name1, array))
-        self.assertTrue(np.all(series[name1]['data'].value == array))
-        self.assertFalse('arinc_429' in series[name1].attrs)
+        self.assertTrue(np.all(hdf_file.data[name1]['data'][:] == array))
+        self.assertFalse('arinc_429' in hdf_file.data[name1].attrs)
         # Create new parameter with np.ma.masked_array.
         name2 = 'TEST_PARAM2'
         mask = [False] * len(array)
@@ -224,30 +224,28 @@ class TestHdfFile(unittest.TestCase):
                                         frequency=param2_frequency,
                                         offset=param2_offset,
                                         arinc_429=param2_arinc_429))
-        self.assertTrue(np.all(series[name2]['data'].value == array))
-        self.assertTrue(np.all(series[name2]['mask'].value == mask))
-        self.assertEqual(series[name2].attrs['frequency'], param2_frequency)
-        self.assertEqual(series[name2].attrs['supf_offset'], param2_offset)
-        self.assertEqual(series[name2].attrs['arinc_429'], param2_arinc_429)
+        self.assertTrue(np.all(hdf_file.data[name2]['data'].value == array))
+        self.assertEqual(hdf_file.data[name2].attrs['frequency'], param2_frequency)
+        self.assertEqual(hdf_file.data[name2].attrs['offset'], param2_offset)
+        self.assertEqual(hdf_file.data[name2].attrs['arinc_429'], param2_arinc_429)
 
         # Set existing parameter's data with np.array.
         array = np.arange(200)
         set_param_data(name1, Parameter(name1, array))
-        self.assertTrue(np.all(series[name1]['data'].value == array))
+        self.assertTrue(np.all(hdf_file.data[name1]['data'].value == array))
 
         # Set existing parameter's data with np.ma.masked_array.
         mask = [bool(random.randint(0, 1)) for x in range(len(array))]
         masked_array = np.ma.masked_array(data=array, mask=mask)
         set_param_data(name1, Parameter(name1, masked_array))
-        self.assertTrue(np.all(series[name1]['data'].value == array))
-        self.assertTrue(np.all(series[name1]['mask'].value == mask))
+        self.assertTrue(np.all(hdf_file.data[name1]['data'].value == array))
 
         # Save submasks.
         submasks = {'mask1': np.array([False, True, False]),
                     'mask2': np.array([True, False, False])}
         set_param_data(name1, Parameter(name1, masked_array, submasks=submasks))
-        submask_map = simplejson.loads(series[name1].attrs['submasks'])
-        submask_arrays = series[name1]['submasks'][:]
+        submask_map = simplejson.loads(hdf_file.data[name1].attrs['submasks'])
+        submask_arrays = hdf_file.data[name1]['submasks'][:]
         self.assertEqual(submasks['mask1'].tolist(),
                          submask_arrays[:,submask_map['mask1']].tolist())
         self.assertEqual(submasks['mask2'].tolist(),
@@ -267,8 +265,6 @@ class TestHdfFile(unittest.TestCase):
 
         self.hdf_file.set_param(Parameter(name1, masked_array),
                                 save_data=False, save_mask=True)
-        # assert new mask is saved
-        self.assertTrue(np.all(series[name1]['mask'].value == new_mask))
         # asssert data remains same as original array
         self.assertTrue(np.all(series[name1]['data'].value == array))
 
@@ -350,7 +346,7 @@ class TestHdfFile(unittest.TestCase):
     def test_startswith(self):
         params = ('Airspeed Two', 'Airspeed One', 'blah')
         mock_keys = mock.Mock(spec=['keys'], return_value=params)
-        self.hdf_file.keys = mock_keys
+        object.__setattr__(self.hdf_file, 'keys', mock_keys)
 
         self.assertEqual(self.hdf_file.startswith('Airspeed'),
                          ['Airspeed One', 'Airspeed Two'])
@@ -363,7 +359,7 @@ class TestHdfFile(unittest.TestCase):
                   'ILS Localizer Test Tube Inhibit', 'ILS Localizer Beam Anomaly', 'ILS Localizer Engaged']
 
         mock_keys = mock.Mock(spec=['keys'], return_value=params)
-        self.hdf_file.keys = mock_keys
+        object.__setattr__(self.hdf_file, 'keys', mock_keys)
 
         search_key = 'ILS Localizer'
 
@@ -427,16 +423,15 @@ class TestHdfFile(unittest.TestCase):
         # this one will create the file
         hdf = hdf_file(temp, create=True)
         self.assertTrue(os.path.exists(temp))
-        self.assertEqual(hdf.hdfaccess_version, 1)
+        self.assertEqual(hdf.version, hdf.VERSION)
         os.remove(temp)
 
     def test_set_and_get_attributes(self):
         # Test setting a datetime as it's a non-json non-string type.
         self.assertFalse(self.hdf_file.hdf.attrs.get('start_datetime'))
-        self.hdf_file.set_attr('start_datetime', datetime.now())
+        self.hdf_file.set_attr('reloable_frame_counter', False)
         self.assertEqual(self.hdf_file.get_attr('non-existing'), None)
-        self.assertEqual(self.hdf_file.get_attr('non-existing',
-                                                default='default'), 'default')
+        self.assertEqual(self.hdf_file.get_attr('non-existing', default='default'), 'default')
         # ensure that HDF is still working after keyerror raised!
         self.assertTrue('start_datetime' in self.hdf_file.hdf.attrs)
 
@@ -449,17 +444,19 @@ class TestHdfFile(unittest.TestCase):
         hdf_b = hdf_file(temp, create=True)
         self.assertEqual(hdf_b.cache_param_list, [])
         self.assertNotEqual(id(hdf_a.cache_param_list), id(hdf_b.cache_param_list))
-    
+
     def test_set_invalid(self):
         name = 'TEST_PARAM11'
         self.hdf_file.set_invalid(name)
         p = self.hdf_file[name]
         self.assertTrue(p.invalid)
         self.assertEqual(p.invalidity_reason, '')
-        self.assertTrue(p.array.mask.all())
+        # XXX: v3 API does not set the mask
+        # self.assertTrue(p.array.mask.all())
         self.hdf_file.set_invalid(name, 'Unplugged')
         p = self.hdf_file[name]
         self.assertTrue(p.invalid)
         self.assertEqual(p.invalidity_reason, 'Unplugged')
-        self.assertTrue(p.array.mask.all())
+        # XXX: v3 API does not set the mask
+        # self.assertTrue(p.array.mask.all())
         self.assertRaises(KeyError, self.hdf_file.set_invalid, 'WRONG_NAME')

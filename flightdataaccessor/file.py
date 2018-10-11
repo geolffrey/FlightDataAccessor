@@ -26,10 +26,15 @@ from flightdatautilities.patterns import wildcard_match
 from flightdataaccessor.datatypes.parameter import Parameter
 
 
-HDFACCESS_VERSION = 1
+from .formats import hdf
+
+HDFACCESS_VERSION = hdf.CURRENT_VERSION
 
 
-class hdf_file(object):    # rare case of lower case?!
+hdf_file = hdf.FlightDataFile
+
+
+class hdf_file_legacy(object):    # rare case of lower case?!
     """ usage example:
     with hdf_file('path/to/file.hdf5') as hdf:
         print(hdf['Altitude AAL']['data'][:20])
