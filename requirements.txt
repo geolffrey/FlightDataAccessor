@@ -1,4 +1,4 @@
-deprecated
+deprecation
 flightdatautilities
 h5py>=2.0.1
 numpy
