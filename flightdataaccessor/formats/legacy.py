@@ -18,7 +18,7 @@ class Compatibility(object):
     # Legacy functions for handling pickled global attributes:
     @deprecated(details='Use standard attribute read instead')
     def get_attr(self, name, default=None):
-        return getattr(self, name, default)
+        return getattr(self, name, default=default)
 
     @deprecated(details='Use standard attribute assignment instead')
     def set_attr(self, name, value):
@@ -87,7 +87,7 @@ class Compatibility(object):
         if self.file.attrs.get('version') >= self.VERSION:
             raise ValueError('The FlightDataFile is in the latest format!')
 
-        with self.__class__(filename) as new_fdf:
+        with self.__class__(filename, mode='x') as new_fdf:
             new_fdf.set_parameters(self.values())
             for name, value in self.file.attrs.items():
                 if name in REMOVE_GLOBAL_ATTRIBUTES or name == 'version':

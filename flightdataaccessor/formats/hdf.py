@@ -39,15 +39,25 @@ class FlightDataFile(Compatibility):
     VERSION = CURRENT_VERSION
     DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 6}
 
-    def __init__(self, file_path_or_obj, cache_param_list=False, create=False, read_only=False):
+    def __init__(self, file_path_or_obj, mode='a', cache_param_list=False, create=None, read_only=None):
         # FIXME: review the list of arguments
         if h5py.version.hdf5_version_tuple < LIBRARY_VERSION:
             pass  # XXX: Issue a warning?
 
-        if read_only:
-            mode = 'r'
-        else:
-            mode = 'a'
+        if read_only is not None:
+            warnings.warn('`read_only` argument is deprecated. Use `mode` instead', DeprecationWarning)
+            if read_only:
+                mode = 'r'
+
+        if create is not None:
+            warnings.warn('`create` argument is deprecated. Use `mode` instead', DeprecationWarning)
+            if create:
+                mode = 'x'
+            else:
+                mode = 'a'
+
+        if read_only and create:
+            raise ValueError('Creation of a new file in read only mode was requested')
 
         self.parameter_cache = {}
         self.keys_cache = defaultdict(SortedSet)
@@ -60,12 +70,6 @@ class FlightDataFile(Compatibility):
         else:
             # XXX: Handle compressed files transparently?
             self.path = os.path.abspath(file_path_or_obj)
-            if not os.path.exists(self.path):
-                if create:
-                    created = True
-                else:
-                    raise IOError('File not found: %s' % file_path_or_obj)
-
             self.file = h5py.File(file_path_or_obj, mode=mode)
 
         # Handle backwards compatibility for older versions:
@@ -482,9 +486,8 @@ class FlightDataFile(Compatibility):
         if '(*)' in pattern or '(?)' in pattern:
             return wildcard_match(pattern, keys)
         else:
-            PATTERN = pattern.upper()
-            return sorted(
-                filter(lambda k: PATTERN in k.upper(), keys))
+            pattern = pattern.upper()
+            return sorted(k for k in keys if pattern in k.upper())
 
     def startswith(self, term):
         # XXX: is it used?
