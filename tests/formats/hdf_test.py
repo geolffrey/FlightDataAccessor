@@ -217,7 +217,7 @@ class FlightDataFileTestV2(unittest.TestCase):
 
         copy_param=False is required for comparison purposes.
         """
-        with FlightDataFile(self.fp) as fdf:
+        with FlightDataFile(self.fp, cache_param_list=True) as fdf:
             param1 = fdf.get_parameter('Airspeed', copy_param=False)
             self.assertIn(param1.name, fdf.parameter_cache)
             cached = fdf.parameter_cache['Airspeed']
@@ -242,6 +242,11 @@ class FlightDataFileTestV2(unittest.TestCase):
             airspeed = fdf.get_parameter('Airspeed', _slice=slice(0, 100))
             # array size is correct
             self.assertEquals(airspeed.array.size, 100 * airspeed.frequency)
+
+    def get_parameter_slice_cache_test(self):
+        """Ensure the fetched sliced parameter is cached"""
+        with FlightDataFile(self.fp, cache_param_list=True) as fdf:
+            fdf.get_parameter('Airspeed', _slice=slice(0, 100))
             # parameter is cached
             self.assertIn('Airspeed', fdf.parameter_cache)
 
@@ -250,6 +255,11 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp) as fdf:
             airs = fdf.get_parameter('Airspeed', load_submasks=True)
             self.assertItemsEqual(airs.submasks.keys(), json.loads(fdf.data['Airspeed'].attrs['submasks']).keys())
+
+    def get_parameter_load_submasks_cache_test(self):
+        """Ensure the submasks are loaded correctly and cached"""
+        with FlightDataFile(self.fp, cache_param_list=True) as fdf:
+            airs = fdf.get_parameter('Airspeed', load_submasks=True)
             self.assertItemsEqual(fdf.parameter_cache['Airspeed'].submasks.keys(), airs.submasks.keys())
 
     def get_parameter_copy_test(self):
@@ -285,7 +295,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp) as fdf:
             parameters = fdf.get_parameters(parameter_names)
 
-        self.assertItemsEqual(parameter_names, (p.name for p in parameters))
+        self.assertItemsEqual(parameter_names, (p for p in parameters))
 
     def set_parameters_test(self):
         """Ensure all stored parameters are found in the file"""
@@ -311,7 +321,7 @@ class FlightDataFileTestV2(unittest.TestCase):
 
     def parameter_cache_test(self):
         """Ensure cache is populated on parameter access"""
-        with FlightDataFile(self.fp) as fdf:
+        with FlightDataFile(self.fp, cache_param_list=True) as fdf:
             # cache empty
             self.assertFalse(fdf.parameter_cache)
             # access a parameter
