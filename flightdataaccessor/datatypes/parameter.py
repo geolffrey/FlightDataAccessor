@@ -6,22 +6,28 @@ Parameter container class.
 '''
 from __future__ import division
 
+import copy
 import inspect
 import logging
+import math
 import six
 import traceback
 
 from collections import defaultdict
-from deprecation import deprecated
 import numpy as np
 from numpy.ma import in1d, MaskedArray, masked, zeros
 
 from flightdatautilities.array_operations import merge_masks
 from .downsample import SAMPLES_PER_BUCKET, downsample
+from .legacy import Compatibility
 
 
 # The value used to fill in MappedArrays for keys not within values_mapping
 NO_MAPPING = '?'  # only when getting values, setting raises ValueError
+
+
+class MaskError(ValueError):
+    pass
 
 
 class MappedArray(MaskedArray):
@@ -333,7 +339,7 @@ masked_%(name)s(values = %(sdata)s,
                 return super(MappedArray, self).__setitem__(key, mapped_val)
 
 
-class Parameter(object):
+class Parameter(Compatibility):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
                  offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
                  unit=None, data_type=None, source=None, source_name=None,
@@ -381,18 +387,33 @@ class Parameter(object):
         else:
             self.values_mapping = None
             self.array = array
-        self.raw_array = array
+
         # ensure frequency is stored as a float
         self.frequency = float(frequency)
         self.offset = offset
         self.arinc_429 = arinc_429
         self.unit = unit
         self.data_type = data_type
-        self.source = source
+        self.source = source if source else 'lfl'
         self.source_name = source_name
         self.description = description
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
+        # XXX: default submask to handle the case of quick Parameter initialisation: Parameter(name, array)
+        if not submasks:
+            mask = np.ma.getmaskarray(array)
+            if np.any(mask):
+                # XXX: default submask name
+                if self.source == 'lfl':
+                    submask_name = 'padding'
+                elif self.source == 'derived':
+                    submask_name = 'derived'
+                else:
+                    submask_name = 'auto'
+                submasks = {submask_name: mask}
+        else:
+            submasks = copy.copy(submasks)
+
         self.submasks = submasks or {}
         self.limits = limits
 
@@ -400,39 +421,10 @@ class Parameter(object):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
 
     @property
-    @deprecated(details='Please use `source` instead')
-    def lfl(self):
-        return self.source
-
-    @lfl.setter
-    @deprecated(details='Please use `source` instead')
-    def lfl(self, s):
-        self.source = s
-
-    @property
-    @deprecated(details='Please use `source` instead')
-    def units(self):
-        return self.unit
-
-    @property
-    @deprecated(details='Please use `frequency` instead')
-    def sample_rate(self):
-        return self.frequency
-
-    @sample_rate.setter
-    @deprecated(details='Please use `frequency` instead')
-    def sample_rate(self, v):
-        self.frequency = v
-
-    @property
-    @deprecated(details='Please use `frequency` instead')
-    def hz(self):
-        return self.frequency
-
-    @hz.setter
-    @deprecated(details='Please use `frequency` instead')
-    def hz(self, v):
-        self.frequency = v
+    def raw_array(self):
+        if self.values_mapping:
+            return self.array.raw
+        return self.array
 
     def get_array(self, submask=None):
         '''
@@ -452,22 +444,47 @@ class Parameter(object):
         else:
             return MaskedArray(self.array.data, mask=self.submasks[submask].copy())
 
-    def combine_submasks(self):
+    def combine_submasks(self, submasks=None):
         '''
         Combine submasks into a single OR'd mask.
 
         :returns: Combined submask.
         :rtype: np.array
         '''
-        if self.submasks:
-            return merge_masks(list(self.submasks.values()))
+        if submasks is None:
+            submasks = self.submasks
+
+        if submasks:
+            return merge_masks(list(submasks.values()))
         else:
             return self.array.mask
 
+    def validate_mask(self, array=None, submasks=None):
+        """Verify if combined submasks are equivalent to array.mask."""
+        # XXX: should we raise errors?
+        if array is None and submasks is None:
+            array = self.array
+            submasks = self.submasks
+        elif submasks is None:
+            if np.any(np.ma.getmaskarray(array)):
+                raise MaskError('No submasks defined but the array has masked values')
+            # no mask and no submasks
+            return True
+
+        if set(submasks.keys()) != set(self.submasks.keys()):
+            raise MaskError("Submask names don't match the stored submasks")
+        for submask in submasks.values():
+            if len(submask) != len(array):
+                raise MaskError('Submasks must have the same length as the array')
+        if isinstance(array, np.ma.MaskedArray):
+            mask = self.combine_submasks(submasks)
+            if not np.all(mask == np.ma.getmaskarray(array)):
+                raise MaskError('Submasks are not equivalent to array.mask')
+
+        return True
+
     def downsample(self, width, start_offset=None, stop_offset=None, mask=True):
-        '''
-        Downsample data in range to fit in a window of given width.
-        '''
+        """Downsample data in range to fit in a window of given width."""
         start_ix = int(start_offset * self.hz) if start_offset else 0
         stop_ix = int(stop_offset * self.hz) if stop_offset else self.array.size
         sliced = self.array[start_ix:stop_ix]
@@ -484,13 +501,11 @@ class Parameter(object):
             return sliced, bucket_size
 
     def zoom(self, width, start_offset=0, stop_offset=None, mask=True, timestamps=False):
-        '''
-        Zoom out to display the data in range in a window of given width.
+        """Zoom out to display the data in range in a window of given width.
 
         Optionally combine the data with timestamp information (in miliseconds).
 
-        This method is designed for use in data visualisation.
-        '''
+        This method is designed for use in data visualisation."""
         downsampled, bucket_size = self.downsample(width, start_offset=start_offset, stop_offset=stop_offset, mask=mask)
         if not timestamps:
             return downsampled
