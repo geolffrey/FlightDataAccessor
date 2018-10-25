@@ -513,3 +513,49 @@ class Parameter(Compatibility):
         interval = 1000 * (1 if bucket_size is None else bucket_size / SAMPLES_PER_BUCKET) / self.hz
         timestamps = 1000 * (self.offset + start_offset) + interval * np.arange(downsampled.size)
         return np.ma.dstack((timestamps, downsampled))[0]
+
+    def slice(self, sl):
+        """Return a copy of the parameter with all the data sliced to given slice."""
+        clone = copy.copy(self)
+        clone.array = self.array[sl]
+        clone.submasks = {k: v[sl] for k, v in self.submasks.items()}
+        return clone
+
+    def trim(self, start_offset=0, stop_offset=None, superframe_boundary=False, superframe_size=64):
+        """Return a copy of the parameter with all the data trimmed to given window in seconds.
+
+        Optionally align the window to superframe boundaries which is useful for splitting segments.
+        """
+        if stop_offset is None:
+            stop_offset = self.array.size * self.frequency
+        if superframe_boundary:
+            start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
+            stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
+        start_ix = int(start_offset * self.hz) if start_offset else 0
+        stop_ix = int(stop_offset * self.hz) if stop_offset else self.array.size
+        return self.slice(slice(start_ix, stop_ix))
+
+    def expand(self, array, submasks=None):
+        """Expand the parameter array.
+
+        Submasks are allowed to be skipped if the array contains no masked values."""
+        # will fail if no submasks were passed and array has masked items
+        self.validate_mask(array=array, submasks=submasks)
+
+        if submasks is None:
+            submasks = {}
+            for name in self.submasks:
+                submasks[name] = np.zeros(len(array), dtype=np.bool)
+
+        for name, submask in submasks.items():
+            self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
+
+        if isinstance(self.array, MappedArray):
+            # expand with zeros
+            m_array = np.ma.append(self.raw_array, np.zeros(len(array)))
+            self.array = MappedArray(m_array, values_mapping=self.values_mapping)
+            # let MappedArray handle the type conversion
+            self.array[-len(array):] = array
+            print self.array
+        else:
+            self.array = np.ma.append(self.raw_array, array)
