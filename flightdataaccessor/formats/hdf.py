@@ -3,10 +3,12 @@
 # [x] Support for array slice
 # [ ] Modification of "old" format file will update the old format file and parameter attributes preserving data types
 #     etc.
+from __future__ import division
 
 import base64
 import copy
 import json
+import math
 import os
 import pickle
 import re
@@ -30,7 +32,6 @@ from ..datatypes.parameter import Parameter
 
 CURRENT_VERSION = 3
 LIBRARY_VERSION = (1, 10, 1)
-DATASET_OPTIONS = {'compression': 'gzip', 'compression_opts': 6}
 
 
 # XXX: Should subclass container types: https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
@@ -38,77 +39,95 @@ DATASET_OPTIONS = {'compression': 'gzip', 'compression_opts': 6}
 class FlightDataFile(Compatibility):
     VERSION = CURRENT_VERSION
     DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 6}
+    # attributes stored in memory
+    INSTANCE_ATTRIBUTES = {
+        'cache_param_list',
+        'data',
+        'file',
+        'file_mode',
+        'keys_cache',
+        'parameter_cache',
+        'path',
+    }
+    # attributyes stored in HDF file
+    HDF_ATTRIBUTES = {
+        'arinc',  # XXX
+        'dependency_tree',
+        'duration',
+        'frequencies',  # XXX
+        'reliable_frame_counter',
+        'reliable_subframe_counter',
+        'superframe_present',
+        'timestamp',
+        'version',
+        'version_analyzer',
+        'version_cleanser',
+        'version_converter',
+    }
+    ALL_ATTRIBUTES = INSTANCE_ATTRIBUTES | HDF_ATTRIBUTES
 
-    def __init__(self, file_path_or_obj, mode='a', cache_param_list=False, create=None, read_only=None):
-        # FIXME: review the list of arguments
+    def __init__(self, filelike, mode=None, **kwargs):
         if h5py.version.hdf5_version_tuple < LIBRARY_VERSION:
             pass  # XXX: Issue a warning?
 
-        if read_only is not None:
-            warnings.warn('`read_only` argument is deprecated. Use `mode` instead', DeprecationWarning)
-            if read_only:
-                mode = 'r'
+        self.file_mode = self._parse_legacy_options(mode, **kwargs)
+        if self.file_mode is None:
+            self.file_mode = 'r'
 
-        if create is not None:
-            warnings.warn('`create` argument is deprecated. Use `mode` instead', DeprecationWarning)
-            if create:
-                mode = 'x'
-            else:
-                mode = 'a'
-
-        if read_only and create:
-            raise ValueError('Creation of a new file in read only mode was requested')
-
+        self.cache_param_list = []
         self.parameter_cache = {}
         self.keys_cache = defaultdict(SortedSet)
+
         created = False
         # Prepare the file for reading or writing:
-        if isinstance(file_path_or_obj, h5py.File):
-            self.path = os.path.abspath(file_path_or_obj.filename)
-            self.file = file_path_or_obj
+        if isinstance(filelike, h5py.File):
+            self.path = os.path.abspath(filelike.filename)
+            self.file = filelike
             # ...
         else:
             # XXX: Handle compressed files transparently?
-            self.path = os.path.abspath(file_path_or_obj)
-            self.file = h5py.File(file_path_or_obj, mode=mode)
+            self.path = os.path.abspath(filelike)
+            if not os.path.exists(self.path):
+                created = True
+            self.file = h5py.File(filelike, mode=self.file_mode)
 
         # Handle backwards compatibility for older versions:
-        if created or self.file.attrs.get('version', 0) >= self.VERSION:
-            self.data = self.file
+        if created:
             self.version = self.VERSION
+
+        if self.file.attrs.get('version', 0) >= self.VERSION:
+            self.data = self.file
         else:
             if 'series' not in self.file:
+                # XXX: maybe we should raise an error instead, this file contains no data anyway
                 self.file.create_group('series')
             self.data = self.file['series']
-            self.version = self.file.attrs.get('version', 2)
-
-        # FIXME: this is legacy functionality from hdf_file. Is it used? Should we keep it?
-        # this is the list of parameters to cache
-        if cache_param_list is True:
-            cache_param_list = self.keys()
-        elif cache_param_list is False:
-            cache_param_list = []
-        self.cache_param_list = cache_param_list
 
     def __repr__(self):
         # XXX: Make use of six.u(), etc?
         return '<%(class)s [HDF5] (%(state)s, mode %(mode)s, %(size)d bytes, %(count)d parameters) %(path)s>' % {
             'class': self.__class__.__name__,
             'count': len(self),
-            'mode': self.file.mode,
+            'mode': self.file.mode if self.file else '',
             'path': self.path,
             'size': os.path.getsize(self.path),  # FIXME: Pretty size? OSError?
-            'state': 'open' if self.file.id else 'closed',
+            'state': 'open' if self.file else 'closed',
         }
 
     def __str__(self):
         return self.__repr__().lstrip('<').rstrip('>')
 
     def __enter__(self):
+        """Context manager API"""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Context manager API"""
         self.close()
+
+    def __iter__(self):
+        """Iterator API"""
+        return iter(self.keys())
 
     def __getitem__(self, name):
         """Retrieve parameter data from the flight data file."""
@@ -131,29 +150,42 @@ class FlightDataFile(Compatibility):
         return self.delete_parameter(name)
 
     def __getattr__(self, name):
-        """Retrieve global file attribute handling special cases."""
-        value = self.file.attrs.get(name)  # FIXME: raise AttributeError if missing?
+        """Retrieve global file attribute handling special cases.
+
+        Special behaviour: if attribute is one of the standard HDF attributes it will be returned as None if not found
+        in the HDF data.
+        """
+        if name not in self.ALL_ATTRIBUTES | set(self.file.attrs.keys()):
+            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, name))
+        value = self.file.attrs.get(name)
         # Handle backwards compatibility for older versions:
         if self.file.attrs.get('version', 0) >= self.VERSION:
             return value
+
+        # XXX move to legacy?
+        if name == 'version':
+            if value is None:
+                value = self.file.attrs.get('hdfaccess_version')
+            return 2 if value is None else value
+        elif name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
+            return None if value is None else bool(value)
+        elif name in {'achieved_flight_record', 'aircraft_info'}:
+            return pickle.loads(value)
+        elif name in {'dependency_tree'}:
+            return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode('utf-8')) if value else None
         else:
-            if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
-                return None if value is None else bool(value)
-            elif name in {'achieved_flight_record', 'aircraft_info'}:
-                return pickle.loads(value)
-            elif name in {'dependency_tree'}:
-                return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode('utf-8')) if value else None
-            else:
-                return value
+            return value
 
     def __setattr__(self, name, value):
         """Store global file attribute handling special cases.
 
         Attribute names are preserved depending on the format version. The attribute names and formats are converted on
         the fly.
+
+        Special behaviour: all extra attributes are stored in HDF file.
         """
-        if name in ('file', 'path', 'data', 'cache_param_list', 'keys_cache', 'parameter_cache'):
-            # handle __init__ assignments
+        if name in self.INSTANCE_ATTRIBUTES:
+            # Handle attributes that are not stored in HDF file
             return object.__setattr__(self, name, value)
 
         if value is not None:
@@ -166,20 +198,24 @@ class FlightDataFile(Compatibility):
                 elif name in {'achieved_flight_record', 'aircraft_info'}:
                     value = pickle.dumps(value, protocol=0)
                 elif name in {'dependency_tree'}:
-                    value = base64.encodestring(zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode('ascii')))
+                    value = base64.encodestring(
+                        zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode('ascii')))
                 elif name in {'arinc'} and value not in {'717', '767'}:
                     raise ValueError('Unknown ARINC standard: %s.' % value)
+                # XXX should we attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
                 self.file.attrs[name] = value
 
         elif name in self.file.attrs:
             del self.file.attrs[name]
 
     def __delattr__(self, name):
+        if name not in self.file.attrs:
+            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, name))
         del self.file.attrs[name]
 
     def __contains__(self, name):
         """Whether a parameter exists in the flight data file."""
-        return name in self.data
+        return name in self.keys()
 
     def __len__(self):
         """Count of parameters in the flight data file."""
@@ -195,11 +231,7 @@ class FlightDataFile(Compatibility):
         :returns: sorted list of parameter names.
         :rtype: list of str
         """
-        # backwards compatibility
-        if subset == 'lfl':
-            subset = 'source'
-
-        if subset and subset not in ('source', 'derived'):
+        if subset and subset not in ('lfl', 'derived'):
             raise ValueError('Unknown parameter subset: %s.' % subset)
         category = subset + '_names' if subset else 'names'
         category = 'valid_' + category if valid_only else category
@@ -210,14 +242,12 @@ class FlightDataFile(Compatibility):
                 for name in self.keys():  # (populates top-level name cache.)
                     attrs = self.data[name].attrs
                     invalid = bool(attrs.get('invalid'))
-                    if self.version >= self.VERSION:
-                        source = bool(attrs.get('source', True))
-                    else:
-                        source = bool(attrs.get('lfl', True))
+                    # XXX: assume source = 'lfl' by default?
+                    source = attrs.get('source', 'lfl' if attrs.get('lfl', True) else 'derived')
                     append = not any((
                         valid_only and invalid,
-                        subset == 'source' and not source,
-                        subset == 'derived' and source,
+                        subset == 'lfl' and source != 'lfl',
+                        subset == 'derived' and source != 'derived',
                     ))
                     if append:
                         self.keys_cache[category].add(name)
@@ -237,6 +267,7 @@ class FlightDataFile(Compatibility):
         if self.file.id:
             self.file.flush()
             self.file.close()
+            self.file = None
 
     if six.PY2:
         iterkeys = keys
@@ -251,86 +282,77 @@ class FlightDataFile(Compatibility):
             group = self.data.create_group(name)
         return group
 
-    def load_submasks(self, parameter):
-        group = self.data[parameter.name]
+    def load_mask(self, name):
+        group = self.data[name]
         attrs = group.attrs
 
         submasks = {}
-        if 'submasks' in attrs and 'submasks' in group.keys():
+        if 'submasks' in attrs and 'submasks' in group:
             submask_map = attrs['submasks']
             if submask_map.strip():
                 submask_map = simplejson.loads(submask_map)
                 for sub_name, index in submask_map.items():
                     submasks[sub_name] = group['submasks'][slice(None), index]
 
-        parameter.submasks = submasks
-        return parameter
+            mask = merge_masks(list(submasks.values()))
+
+            if 'mask' in group:
+                old_mask = group['mask'][slice(None)]
+                if np.any(mask != old_mask):
+                    submasks['legacy'] = old_mask
+                    mask |= old_mask
+        else:
+            if 'mask' in group:
+                mask = group['mask']
+            else:
+                mask = False
+
+        return mask, submasks
 
     def load_parameter(self, name, load_submasks=False):
         """Load parameter from cache or the file and store in cache"""
         if name in self.parameter_cache:
-            parameter = self.parameter_cache[name]
+            return self.parameter_cache[name]
 
-        else:
-            group = self.data[name]
-            attrs = group.attrs
-            data = group['data'][:]
-            name = name.split('/')[-1]
+        group = self.data[name]
+        attrs = group.attrs
+        data = group['data'][:]
+        name = name.split('/')[-1]
 
-            kwargs = {}
-            kwargs['frequency'] = attrs.get('frequency', 1)
+        kwargs = {}
+        kwargs['frequency'] = attrs.get('frequency', 1)
 
-            submasks = {}
-            if 'submasks' in attrs and 'submasks' in group:
-                submask_map = attrs['submasks']
-                if submask_map.strip():
-                    submask_map = simplejson.loads(submask_map)
-                    for sub_name, index in submask_map.items():
-                        submasks[sub_name] = group['submasks'][slice(None), index]
+        mask, submasks = self.load_mask(name)
+        if load_submasks:
+            kwargs['submasks'] = submasks
 
-                mask = merge_masks(list(submasks.values()))
+        array = np.ma.masked_array(data, mask=mask)
 
-                if 'mask' in group:
-                    old_mask = group['mask'][slice(None)]
-                    if np.any(mask != old_mask):
-                        submasks['legacy'] = old_mask
-                        mask |= old_mask
-            else:
-                if 'mask' in group:
-                    mask = group['mask']
-                else:
-                    mask = False
+        if 'values_mapping' in attrs:
+            values_mapping = attrs['values_mapping']
+            if values_mapping.strip():
+                mapping = simplejson.loads(values_mapping)
+                kwargs['values_mapping'] = mapping
 
-            if load_submasks:
-                kwargs['submasks'] = submasks
+        if 'values_mapping' not in kwargs and data.dtype == np.int_:
+            # Force float for non-values_mapped types.
+            array = array.astype(np.float_)
 
-            array = np.ma.masked_array(data, mask=mask)
+        # backwards compatibility
+        kwargs['source'] = attrs.get('source', 'lfl' if attrs.get('lfl', True) else 'derived')
+        kwargs['offset'] = attrs.get('offset', attrs.get('supf_offset', 0))
+        kwargs['unit'] = attrs.get('unit', attrs.get('units'))
 
-            if 'values_mapping' in attrs:
-                values_mapping = attrs['values_mapping']
-                if values_mapping.strip():
-                    mapping = simplejson.loads(values_mapping)
-                    kwargs['values_mapping'] = mapping
-
-            if 'values_mapping' not in kwargs and data.dtype == np.int_:
-                # Force float for non-values_mapped types.
-                array = array.astype(np.float_)
-
-            # backwards compatibility
-            kwargs['source'] = attrs.get('source', bool(attrs.get('lfl', True)))
-            kwargs['offset'] = attrs.get('offset', attrs.get('supf_offset', 0))
-            kwargs['unit'] = attrs.get('unit', attrs.get('units'))
-
-            kwargs['arinc_429'] = bool(attrs.get('arinc_429', False))
-            kwargs['invalid'] = bool(attrs.get('invalid', False))
-            kwargs['invalidity_reason'] = attrs.get('invalidity_reason', None)
-            kwargs['limits'] = attrs.get('limits', None)
-            kwargs['data_type'] = attrs.get('data_type', None)
-            kwargs['source_name'] = attrs.get('source_name', None)
-            parameter = Parameter(name, array, **kwargs)
-            # FIXME: do we want to keep this condition?
-            if name in self.cache_param_list:
-                self.parameter_cache[name] = parameter
+        kwargs['arinc_429'] = bool(attrs.get('arinc_429', False))
+        kwargs['invalid'] = bool(attrs.get('invalid', False))
+        kwargs['invalidity_reason'] = attrs.get('invalidity_reason', None)
+        kwargs['limits'] = attrs.get('limits', None)
+        kwargs['data_type'] = attrs.get('data_type', None)
+        kwargs['source_name'] = attrs.get('source_name', None)
+        parameter = Parameter(name, array, **kwargs)
+        # FIXME: do we want to keep this condition?
+        if name in self.cache_param_list:
+            self.parameter_cache[name] = parameter
 
         return parameter
 
@@ -362,15 +384,8 @@ class FlightDataFile(Compatibility):
 
         return parameter
 
-    def get_parameter_limits(self, name, default=None):
-        """Returns a parameter's operating limits stored within the groups 'limits' attribute.
-
-        Decodes limits from JSON into dict.
-        """
-        limits = self.data[name].attrs.get('limits')
-        return simplejson.loads(limits) if limits else default
-
     def set_parameter(self, parameter, save_data=True, save_mask=True, save_submasks=True):
+        """Store parameter data"""
         attrs = (
             'source', 'source_name', 'data_type', 'arinc_429', 'frequency', 'offset', 'unit', 'values_mapping',
             'invalid', 'invalidity_reason', 'limits')
@@ -387,7 +402,8 @@ class FlightDataFile(Compatibility):
                 del param_group['data']
             param_group.create_dataset('data', data=np.ma.getdata(parameter.array), **self.DATASET_KWARGS)
 
-        if save_submasks and getattr(parameter, 'submasks', None):
+        # XXX: remove options to save masks or submasks, implement saving individual Parameter data instead
+        if (save_submasks or save_mask) and getattr(parameter, 'submasks', None):
             if 'submasks' in param_group:
                 del param_group['submasks']
             if 'mask' in param_group:
@@ -414,8 +430,11 @@ class FlightDataFile(Compatibility):
                     submask_array = function(submask_length, dtype=np.bool8)
                 submask_arrays.append(submask_array)
 
-            param_group.create_dataset('submasks', data=np.column_stack(submask_arrays), **self.DATASET_KWARGS)
+            if save_mask:
+                parameter.validate_mask()
+
             param_group.attrs['submasks'] = simplejson.dumps(submask_map)
+            param_group.create_dataset('submasks', data=np.column_stack(submask_arrays), **self.DATASET_KWARGS)
 
         for attr in attrs:
             if hasattr(parameter, attr):
@@ -428,7 +447,8 @@ class FlightDataFile(Compatibility):
 
                 param_group.attrs[attr] = value
 
-        self.parameter_cache[parameter.name] = parameter
+        if parameter.name in self.cache_param_list:
+            self.parameter_cache[parameter.name] = parameter
 
         # Update all parameter name caches with updates:
         for key, cache in self.keys_cache.items():
@@ -441,38 +461,68 @@ class FlightDataFile(Compatibility):
                 continue
             self.keys_cache[key].add(parameter.name)
 
-    def set_parameter_limits(self, name, limits):
-        param_group = self.get_or_create(name)
-        param_group.attrs['limits'] = simplejson.dumps(limits)
-
-    def set_parameter_invalid(self, name, reason=''):
-        """Set a parameter to be invalid"""
-        # XXX: originally the parameter was fully masked, should we create a sublask for that?
-        param_group = self.data[name]
-        param_group.attrs['invalid'] = 1
-        param_group.attrs['invalidity_reason'] = reason
-
     def delete_parameter(self, name, ignore=True):
+        """Delete a parameter"""
         if name not in self:
             if ignore:
                 return
             raise KeyError('Parameter not found')
 
+        for key, cache in self.keys_cache.items():
+            cache.discard(name)
         del self.data[name]
 
     def get_parameters(self, names=None, valid_only=False, raise_keyerror=False, _slice=None):
+        """Get multiple parameters"""
         if names is None:
             names = self.keys(valid_only=valid_only)
         return {name: self.get_parameter(name, valid_only=valid_only) for name in names}
 
     def set_parameters(self, parameters):
+        """Set multiple parameters"""
         for parameter in parameters:
             self.set_parameter(parameter)
 
     def delete_parameters(self, names):
+        """Delete multiple parameters"""
         for name in names:
             self.delete_parameter(name)
 
+    def get_matching(self, regex_str):
+        """Get parameters with names matching regex_str"""
+        # XXX: is it used?
+        compiled_regex = re.compile(regex_str)
+        param_names = filter(compiled_regex.match, self.keys())
+        return [self[param_name] for param_name in param_names]
+
+    def trim(self, filename, start_offset=0, stop_offset=None, superframe_boundary=False):
+        """Create a copy of the file trimmed to given range"""
+        superframe_size = 64 if self.superframe_present else 4
+        if stop_offset is None:
+            stop_offset = self.duration
+        if superframe_boundary:
+            start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
+            stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
+        with self.__class__(filename, mode='x') as new_fdf:
+            for name in self.keys():
+                parameter = self.get_parameter(name, load_submasks=True)
+                new_fdf.set_parameter(
+                    parameter.trim(
+                        start_offset=start_offset, stop_offset=stop_offset, superframe_boundary=superframe_boundary,
+                        superframe_size=superframe_size))
+            for name, value in self.file.attrs.items():
+                name = self.prepare_attribute_name(name)
+                if name in ('version', None):
+                    # XXX version is set in the __init__()
+                    continue
+
+                if name == 'duration':
+                    value = stop_offset - start_offset
+                elif name == 'timestamp' and self.timestamp is not None:
+                    value = self.timestamp + start_offset
+                new_fdf.file.attrs.create(name, value)
+
+    # XXX are the below methods used? Does it make sense to keep them in the API?
     def search(self, pattern, lfl_keys_only=False):
         """Searches for param using wildcard matching
 
@@ -494,9 +544,22 @@ class FlightDataFile(Compatibility):
         """Searches for keys which start with the term. Case sensitive"""
         return sorted(x for x in self.keys() if x.startswith(term))
 
-    def get_matching(self, regex_str):
-        """Get parameters with names matching regex_str"""
-        # XXX: is it used?
-        compiled_regex = re.compile(regex_str)
-        param_names = filter(compiled_regex.match, self.keys())
-        return [self[param_name] for param_name in param_names]
+    def get_parameter_limits(self, name, default=None):
+        """Return a parameter's operating limits stored within the groups 'limits' attribute.
+
+        Decodes limits from JSON into dict.
+        """
+        limits = self.data[name].attrs.get('limits')
+        return simplejson.loads(limits) if limits else default
+
+    def set_parameter_limits(self, name, limits):
+        """Set parameter limits"""
+        param_group = self.get_or_create(name)
+        param_group.attrs['limits'] = simplejson.dumps(limits)
+
+    def set_parameter_invalid(self, name, reason=''):
+        """Set a parameter to be invalid"""
+        # XXX: originally the parameter was fully masked, should we create a sublask for that?
+        param_group = self.data[name]
+        param_group.attrs['invalid'] = 1
+        param_group.attrs['invalidity_reason'] = reason

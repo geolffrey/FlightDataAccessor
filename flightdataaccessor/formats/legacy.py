@@ -1,3 +1,5 @@
+import warnings
+
 from deprecation import deprecated
 
 
@@ -18,7 +20,7 @@ class Compatibility(object):
     # Legacy functions for handling pickled global attributes:
     @deprecated(details='Use standard attribute read instead')
     def get_attr(self, name, default=None):
-        return getattr(self, name, default=default)
+        return getattr(self, name, default)
 
     @deprecated(details='Use standard attribute assignment instead')
     def set_attr(self, name, value):
@@ -62,13 +64,13 @@ class Compatibility(object):
     def valid_param_names(self):
         return self.keys(valid_only=True)
 
-    @deprecated(details="Use `keys(valid_only=True, subset='source')` instead")
+    @deprecated(details="Use `keys(valid_only=True, subset='lfl')` instead")
     def valid_lfl_param_names(self):
-        return self.keys(valid_only=True, subset='source')
+        return self.keys(valid_only=True, subset='lfl')
 
-    @deprecated(details="Use `keys(subset='source')` instead")
+    @deprecated(details="Use `keys(subset='lfl')` instead")
     def lfl_keys(self):
-        return self.keys(subset='source')
+        return self.keys(subset='lfl')
 
     @deprecated(details="Use `keys(subset='derived')` instead")
     def derived_keys(self):
@@ -83,15 +85,43 @@ class Compatibility(object):
     def hdf(self):
         return self.file  # FIXME: What about accessing ['series']?
 
+    def _parse_legacy_options(self, mode, **options):
+        create = options.get('create', None)
+        read_only = options.get('read_only', None)
+        cache_param_list = options.get('cache_param_list', None)
+
+        if create is not None:
+            warnings.warn('`create` argument is deprecated. Use `mode` instead', DeprecationWarning)
+        if read_only is not None:
+            warnings.warn('`read_only` argument is deprecated. Use `mode` instead', DeprecationWarning)
+        if cache_param_list is not None:
+            warnings.warn('`cache_param_list` argument is deprecated. Use `cache` instead', DeprecationWarning)
+
+        if read_only and create:
+            raise ValueError('Creation of a new file in read only mode was requested')
+
+        if cache_param_list is True:
+            self.cache_param_list = self.keys()
+        elif cache_param_list:
+            self.cache_param_list = cache_param_list
+
+        if mode:
+            return mode
+        if read_only:
+            return 'r'
+        if create:
+            return 'x'
+
+    def prepare_attribute_name(self, name):
+        """Convert attribute name to new naming convention or None if removed"""
+        name = RENAME_GLOBAL_ATTRIBUTES.get(name, name)
+        if name in REMOVE_GLOBAL_ATTRIBUTES:
+            name = None
+        return name
+
     def upgrade(self, filename):
+        """Upgrade the file to new format"""
         if self.file.attrs.get('version') >= self.VERSION:
             raise ValueError('The FlightDataFile is in the latest format!')
 
-        with self.__class__(filename, mode='x') as new_fdf:
-            new_fdf.set_parameters(self.values())
-            for name, value in self.file.attrs.items():
-                if name in REMOVE_GLOBAL_ATTRIBUTES or name == 'version':
-                    continue
-
-                name = RENAME_GLOBAL_ATTRIBUTES.get(name, name)
-                new_fdf.file.attrs.create(name, value)
+        self.trim(filename)

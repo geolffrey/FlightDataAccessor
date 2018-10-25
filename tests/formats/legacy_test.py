@@ -27,21 +27,22 @@ class CompatibilityTest(unittest.TestCase):
 
         Check if everything is in right place afterwards.
         """
-        with FlightDataFile(self.old_fp) as fdf:
-            # load file in "old" format
-            old_params = fdf.keys()
-            fdf.upgrade(self.new_fp)
+        with FlightDataFile(self.old_fp) as old_fdf:
+            old_fdf.upgrade(self.new_fp)
 
-        with FlightDataFile(self.new_fp) as fdf:
-            # load the upgraded file
-            global_attr_names = fdf.file.attrs.keys()
-            for attr_name in REMOVE_GLOBAL_ATTRIBUTES:
-                self.assertNotIn(attr_name, global_attr_names)
+            with FlightDataFile(self.new_fp) as new_fdf:
+                self.assertEquals(new_fdf.version, FlightDataFile.VERSION)
+                old_global_attr_names = old_fdf.file.attrs.keys()
+                new_global_attr_names = new_fdf.file.attrs.keys()
+                for old_attr_name in old_global_attr_names:
+                    if old_attr_name in REMOVE_GLOBAL_ATTRIBUTES:
+                        self.assertNotIn(old_attr_name, new_global_attr_names)
+                    elif old_attr_name in RENAME_GLOBAL_ATTRIBUTES:
+                        new_attr_name = RENAME_GLOBAL_ATTRIBUTES[old_attr_name]
+                        self.assertNotIn(old_attr_name, new_global_attr_names)
+                        self.assertIn(new_attr_name, new_global_attr_names)
 
-            for old_attr_name, new_attr_name in RENAME_GLOBAL_ATTRIBUTES.items():
-                self.assertNotIn(old_attr_name, global_attr_names)
-                self.assertIn(new_attr_name, global_attr_names)
-
-            new_params = fdf.keys()
-
-        self.assertEquals(old_params, new_params)
+                for parameter in old_fdf.values():
+                    self.assertIn(parameter.name, new_fdf)
+                    if parameter.submasks:
+                        self.assertTrue(new_fdf[parameter.name].submasks)
