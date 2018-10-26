@@ -533,12 +533,24 @@ class Parameter(Compatibility):
         """
         if stop_offset is None:
             stop_offset = self.array.size * self.frequency
+
+        unmasked_start_offset = start_offset
+        unmasked_stop_offset = stop_offset
         if superframe_boundary:
             start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
             stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
         start_ix = int(start_offset * self.hz) if start_offset else 0
         stop_ix = int(stop_offset * self.hz) if stop_offset else self.array.size
-        return self.slice(slice(start_ix, stop_ix))
+        clone = self.slice(slice(start_ix, stop_ix))
+
+        # mask the areas outside of requested slice
+        if unmasked_start_offset != start_offset or unmasked_stop_offset != stop_offset:
+            padding = np.zeros(len(clone.array))
+            padding[unmasked_start_offset - start_offset:] = True
+            padding[:stop_offset - unmasked_stop_offset] = True
+            clone.update_submask('padding', padding)
+
+        return clone
 
     def expand(self, array, submasks=None):
         """Expand the parameter array.
@@ -561,6 +573,18 @@ class Parameter(Compatibility):
             self.array = MappedArray(m_array, values_mapping=self.values_mapping)
             # let MappedArray handle the type conversion
             self.array[-len(array):] = array
-            print self.array
         else:
             self.array = np.ma.append(self.raw_array, array)
+
+    def update_submask(self, name, mask, merge=True):
+        """Update a submask.
+
+        If merge is True the submask is updated (logical OR) with the passed value, otherwise it's replaced.
+        Parameter.array.mask is updated automatically to stay in sync.
+
+        If submask with given name does not exist, it will be created."""
+        if name not in self.submasks:
+            self.submasks[name] = mask
+        else:
+            self.submasks[name] |= mask
+        self.array.mask = self.combine_submasks()

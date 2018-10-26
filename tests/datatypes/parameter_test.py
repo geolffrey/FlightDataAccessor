@@ -266,6 +266,18 @@ masked_array(data = [False False  True False False],
 
 
 class TestParameter(unittest.TestCase):
+    def get_parameter(self, frequency=1):
+        array = np.ma.arange(100)
+        mask = np.zeros(100, dtype=np.bool)
+        mask[:3] = [1, 1, 0]
+        array.mask = mask
+        mask1 = np.ma.zeros(100, dtype=np.bool)
+        mask1[:3] = [1, 0, 0]
+        mask2 = np.ma.zeros(100, dtype=np.bool)
+        mask2[:3] = [1, 1, 0]
+        submasks = {'mask1': mask1, 'mask2': mask2}
+        return Parameter('Test', array=array, submasks=submasks, frequency=frequency)
+
     def test_parameter(self):
         p_name = 'param'
         p = Parameter(p_name)
@@ -342,18 +354,6 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.get_array('mask2').raw.tolist(), [None, None, 3])
         self.assertTrue(isinstance(p.get_array('mask1'), MappedArray))
 
-    def get_parameter(self, frequency=1):
-        array = np.ma.arange(100)
-        mask = np.zeros(100, dtype=np.bool)
-        mask[:3] = [1, 1, 0]
-        array.mask = mask
-        mask1 = np.ma.zeros(100, dtype=np.bool)
-        mask1[:3] = [1, 0, 0]
-        mask2 = np.ma.zeros(100, dtype=np.bool)
-        mask2[:3] = [1, 1, 0]
-        submasks = {'mask1': mask1, 'mask2': mask2}
-        return Parameter('Test', array=array, submasks=submasks, frequency=frequency)
-
     def test_validate_mask(self):
         """Mask validation."""
         p = self.get_parameter()
@@ -427,6 +427,8 @@ class TestParameter(unittest.TestCase):
         self.assertEquals(p2.array.size, 32)
         self.assertEquals(p2.submasks['mask1'].size, 32)
         self.assertEquals(p2.submasks['mask2'].size, 32)
+        self.assertTrue(np.all(p2.array.mask[:5]))
+        self.assertTrue(np.all(p2.array.mask[-10:]))
 
         p = self.get_parameter(frequency=2)
         p2 = p.trim(start_offset=10, stop_offset=20, superframe_boundary=True)
@@ -434,6 +436,8 @@ class TestParameter(unittest.TestCase):
         self.assertEquals(p2.array.size, 100)
         self.assertEquals(p2.submasks['mask1'].size, 100)
         self.assertEquals(p2.submasks['mask2'].size, 100)
+        self.assertTrue(np.all(p2.array.mask[:20]))
+        self.assertTrue(np.all(p2.array.mask[-40:]))
 
     def test_expand(self):
         """Expand parameter without a mask."""
@@ -492,6 +496,16 @@ class TestParameter(unittest.TestCase):
         array.mask[0] = False
         with self.assertRaises(ValueError):
             p.expand(array, submasks=p.submasks)
+
+    def test_update_submask(self):
+        """Update a submask and ensure the mask is in sync."""
+        p = self.get_parameter()
+        old_mask = p.submasks['mask1'].copy()
+        mask = old_mask.copy()
+        mask[3] = True
+        p.update_submask('mask1', mask)
+        self.assertFalse(np.all(mask == old_mask))
+        self.assertTrue(p.validate_mask())
 
 
 if __name__ == '__main__':
