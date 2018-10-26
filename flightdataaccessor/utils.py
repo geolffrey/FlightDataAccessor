@@ -45,7 +45,7 @@ def concat_hdf(hdf_paths, dest=None):
     # copy hdf to temp area to build upon
     hdf_master_path = copy_file(hdf_paths[0])
 
-    with hdf_file(hdf_master_path) as hdf_master:
+    with hdf_file(hdf_master_path, mode='a') as hdf_master:
         master_keys = hdf_master.keys()
         for hdf_path in hdf_paths[1:]:
             with hdf_file(hdf_path) as hdf:
@@ -96,9 +96,9 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     with hdf_file(hdf_path) as hdf, hdf_file(dest, create=True) as hdf_dest:
         _copy_attrs(hdf.hdf, hdf_dest.hdf, deidentify=deidentify)  # Copy top-level attrs.
         params = hdf.get_params(params_to_keep)
-        for param in params:
+        for param in params.values():
             hdf_dest[param.name] = param
-    return [p.name for p in params]
+    return params.keys()
 
 
 def write_segment(source, segment, dest, boundary, submasks=None):
@@ -233,6 +233,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
                 #logging.debug("Finished writing segment: %s", dest_hdf)
 
     return dest
+
 
 def segment_boundaries(segment, boundary):
     '''
