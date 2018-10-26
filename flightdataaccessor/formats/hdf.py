@@ -7,18 +7,16 @@ from __future__ import division
 
 import base64
 import copy
-import json
 import math
 import os
-import pickle
 import re
+import warnings
 import zlib
 
 import h5py
 import numpy as np
 import simplejson
 import six
-import warnings
 
 from collections import defaultdict
 from sortedcontainers import SortedSet
@@ -50,11 +48,13 @@ class FlightDataFile(Compatibility):
         'path',
     }
     # attributyes stored in HDF file
+    DYNAMIC_HDF_ATTRIBUTES = {
+        'duration',
+        'frequencies',
+    }
     HDF_ATTRIBUTES = {
         'arinc',  # XXX
         'dependency_tree',
-        'duration',
-        'frequencies',  # XXX
         'reliable_frame_counter',
         'reliable_subframe_counter',
         'superframe_present',
@@ -169,8 +169,6 @@ class FlightDataFile(Compatibility):
             return 2 if value is None else value
         elif name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
             return None if value is None else bool(value)
-        elif name in {'achieved_flight_record', 'aircraft_info'}:
-            return pickle.loads(value)
         elif name in {'dependency_tree'}:
             return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode('utf-8')) if value else None
         else:
@@ -193,10 +191,14 @@ class FlightDataFile(Compatibility):
             if self.file.attrs.get('version', 0) >= self.VERSION:
                 self.file.attrs[name] = value
             else:
+                if name in self.DYNAMIC_HDF_ATTRIBUTES:
+                    warnings.warn(
+                        '%s is calculated automatically on close(). Manually assigned value will be overwritten.' %
+                        name, DeprecationWarning,
+                    )
+
                 if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
                     value = int(value)
-                elif name in {'achieved_flight_record', 'aircraft_info'}:
-                    value = pickle.dumps(value, protocol=0)
                 elif name in {'dependency_tree'}:
                     value = base64.encodestring(
                         zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode('ascii')))
@@ -264,8 +266,14 @@ class FlightDataFile(Compatibility):
             yield name, self[name]
 
     def close(self):
-        if self.file.id:
-            self.file.flush()
+        # XXX: raise IOError if no file?
+        if self.file is not None and self.file.id:
+            if self.file.mode == 'r+':
+                self.file.flush()
+                durations = np.array([p.duration for p in self.values()])
+                self.duration = np.nanmax(durations) if np.any(durations) else 0
+                self.frequencies = sorted({p.frequency for p in self.values()})
+
             self.file.close()
             self.file = None
 
@@ -395,6 +403,8 @@ class FlightDataFile(Compatibility):
                 'save_mask argument is deprecated. Parameter mask is combined from submasks to ensure consistency',
                 DeprecationWarning,
             )
+
+        parameter.validate_mask()
         param_group = self.get_or_create(parameter.name)
 
         if save_data:
@@ -430,9 +440,6 @@ class FlightDataFile(Compatibility):
                     submask_array = function(submask_length, dtype=np.bool8)
                 submask_arrays.append(submask_array)
 
-            if save_mask:
-                parameter.validate_mask()
-
             param_group.attrs['submasks'] = simplejson.dumps(submask_map)
             param_group.create_dataset('submasks', data=np.column_stack(submask_arrays), **self.DATASET_KWARGS)
 
@@ -443,7 +450,7 @@ class FlightDataFile(Compatibility):
                     continue
 
                 if attr == 'values_mapping':
-                    value = json.dumps(value)
+                    value = simplejson.dumps(value)
 
                 param_group.attrs[attr] = value
 
@@ -453,9 +460,7 @@ class FlightDataFile(Compatibility):
         # Update all parameter name caches with updates:
         for key, cache in self.keys_cache.items():
             cache.discard(parameter.name)
-            if not cache:
-                continue  # don't add to the cache if it is empty.
-            if parameter.source and 'derived' in key or not parameter.source and 'source' in key:
+            if parameter.source == 'derived' and 'derived' in key or not parameter.source != 'derived' and 'lfl' in key:
                 continue
             if parameter.invalid and key.startswith('valid'):
                 continue

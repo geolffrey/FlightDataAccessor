@@ -268,8 +268,34 @@ class FlightDataFileTestV2(unittest.TestCase):
 
         self.assertEquals(param_names, hdf_series_names)
 
+    def duration_test(self):
+        """Verify that file duration is calculated automatically on close."""
+        with FlightDataFile(self.fp) as fdf:
+            airs = fdf['Airspeed']
+
+        with FlightDataFile(self.fp + '-copy', 'x') as fdf:
+            # copy first 100s of data
+            fdf['Airspeed'] = airs.trim(0, 100)
+
+        with FlightDataFile(self.fp + '-copy') as fdf:
+            self.assertEquals(fdf.duration, 100)
+
+    def frequencies_test(self):
+        """Verify that file frequencies is calculated automatically on close."""
+        with FlightDataFile(self.fp) as fdf:
+            airs = fdf['Airspeed']
+            accel = fdf['Acceleration Normal']
+
+        with FlightDataFile(self.fp + '-copy', 'x') as fdf:
+            # copy first 100s of data
+            fdf['Airspeed'] = airs
+            fdf['Acceleration Normal'] = accel
+
+        with FlightDataFile(self.fp + '-copy') as fdf:
+            np.testing.assert_array_equal(sorted(fdf.frequencies), sorted([airs.frequency, accel.frequency]))
+
     def close_test(self):
-        """Verify that HDF file is closed on FlightDataFile.close()"""
+        """Verify that HDF file is closed on FlightDataFile.close()."""
         fdf = FlightDataFile(self.fp)
         fdf.keys()
 

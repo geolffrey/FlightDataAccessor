@@ -421,6 +421,11 @@ class Parameter(Compatibility):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
 
     @property
+    def duration(self):
+        """Calculate the duration of data."""
+        return len(self.array) / self.frequency
+
+    @property
     def raw_array(self):
         if self.values_mapping:
             return self.array.raw
