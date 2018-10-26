@@ -498,9 +498,9 @@ class Parameter(Compatibility):
         if sliced.size <= width:
             return sliced, None
 
-        bucket_size = SAMPLES_PER_BUCKET * sliced.size // width
+        bucket_size = sliced.size // width
         if bucket_size > 1:
-            downsampled = downsample(sliced, bucket_size)
+            downsampled = downsample(sliced, width)
             return downsampled, bucket_size
         else:
             return sliced, bucket_size
