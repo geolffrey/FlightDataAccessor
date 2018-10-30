@@ -500,16 +500,20 @@ class FlightDataFile(Compatibility):
         param_names = filter(compiled_regex.match, self.keys())
         return [self[param_name] for param_name in param_names]
 
-    def trim(self, filename, start_offset=0, stop_offset=None, superframe_boundary=False):
+    def trim(
+            self, filename, start_offset=0, stop_offset=None, superframe_boundary=False, parameter_list=None,
+            deidentify=False):
         """Create a copy of the file trimmed to given range"""
+        if parameter_list is None:
+            parameter_list = self.keys()
         superframe_size = 64 if self.superframe_present else 4
         if stop_offset is None:
             stop_offset = self.duration
         if superframe_boundary:
             start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
             stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
-        with self.__class__(filename, mode='x') as new_fdf:
-            for name in self.keys():
+        with FlightDataFile(filename, mode='x') as new_fdf:
+            for name in parameter_list:
                 parameter = self.get_parameter(name, load_submasks=True)
                 new_fdf.set_parameter(
                     parameter.trim(
@@ -517,8 +521,8 @@ class FlightDataFile(Compatibility):
                         superframe_size=superframe_size))
             for name, value in self.file.attrs.items():
                 name = self.prepare_attribute_name(name)
-                if name in ('version', None):
-                    # XXX version is set in the __init__()
+                if name is None or name == 'version' or deidentify and name in ('aircraft_info', 'tailmark'):
+                    # XXX version is set in the __init__() and should not be copied from the source
                     continue
 
                 if name == 'duration':
@@ -526,6 +530,26 @@ class FlightDataFile(Compatibility):
                 elif name == 'timestamp' and self.timestamp is not None:
                     value = self.timestamp + start_offset
                 new_fdf.file.attrs.create(name, value)
+
+    def concatenate(self, paths):
+        """Concatenate compatible FDF files.
+
+        ValueError is raised in case any incompatibility is found on parameter level.
+        """
+        for path in paths:
+            with FlightDataFile(path) as fdf:
+                # sanity checks
+                if set(fdf.keys()) != set(self.keys()):
+                    raise ValueError('The parameter list in concatenated file must be identical')
+                for to_append in fdf.values():
+                    parameter = self[to_append.name]
+                    if not parameter.is_compatible(to_append):
+                        raise ValueError('The parameters in concatenated file must be identical')
+
+                for to_append in fdf.values():
+                    parameter = self[to_append.name]
+                    parameter.extend(to_append)
+                    self[parameter.name] = parameter
 
     # XXX are the below methods used? Does it make sense to keep them in the API?
     def search(self, pattern, lfl_keys_only=False):

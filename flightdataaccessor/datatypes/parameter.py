@@ -470,7 +470,7 @@ class Parameter(Compatibility):
         if array is None and submasks is None:
             array = self.array
             submasks = self.submasks
-        elif submasks is None:
+        elif not submasks:
             if np.any(np.ma.getmaskarray(array)):
                 raise MaskError('No submasks defined but the array has masked values')
             # no mask and no submasks
@@ -552,10 +552,30 @@ class Parameter(Compatibility):
 
         return clone
 
-    def expand(self, array, submasks=None):
-        """Expand the parameter array.
+    def is_compatible(self, parameter):
+        """Check if another parameter is compatible with this one."""
+        return (
+            self.name == parameter.name
+            and self.frequency == parameter.frequency
+            and self.offset == parameter.offset
+            and self.unit == parameter.unit
+        )
+
+    def extend(self, data, submasks=None):
+        """Extend the parameter array.
 
         Submasks are allowed to be skipped if the array contains no masked values."""
+        if isinstance(data, Parameter):
+            if not self.is_compatible(data):
+                raise ValueError('Parameter passed to extend() is not compatible')
+            if submasks:
+                raise MaskError('`submasks` argument is not accepted if a Parameter is passed to extend()')
+            data.validate_mask()
+            array = data.array
+            submasks = data.submasks
+        else:
+            array = data
+
         # will fail if no submasks were passed and array has masked items
         self.validate_mask(array=array, submasks=submasks)
 
@@ -568,7 +588,7 @@ class Parameter(Compatibility):
             self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
 
         if isinstance(self.array, MappedArray):
-            # expand with zeros
+            # extend with zeros
             m_array = np.ma.append(self.raw_array, np.zeros(len(array)))
             self.array = MappedArray(m_array, values_mapping=self.values_mapping)
             # let MappedArray handle the type conversion

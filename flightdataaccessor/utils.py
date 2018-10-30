@@ -7,10 +7,12 @@ import os
 import shutil
 import six
 
+from deprecation import deprecated
+
 from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.filesystem_tools import copy_file
 
-from flightdataaccessor.file import hdf_file
+from flightdataaccessor.formats.hdf import FlightDataFile
 
 
 def _copy_attrs(source_group, target_group, deidentify=False):
@@ -26,6 +28,7 @@ def _copy_attrs(source_group, target_group, deidentify=False):
         target_group.attrs[key] = value
 
 
+@deprecated(details='Use FlightDataFile.concatenate() instead')
 def concat_hdf(hdf_paths, dest=None):
     '''
     Takes in a list of HDF file paths and concatenates the parameter
@@ -45,31 +48,8 @@ def concat_hdf(hdf_paths, dest=None):
     # copy hdf to temp area to build upon
     hdf_master_path = copy_file(hdf_paths[0])
 
-    with hdf_file(hdf_master_path, mode='a') as hdf_master:
-        master_keys = hdf_master.keys()
-        for hdf_path in hdf_paths[1:]:
-            with hdf_file(hdf_path) as hdf:
-                # check that all parameters match (avoids mismatching array lengths)
-                param_keys = hdf.keys()
-                assert set(param_keys) == set(master_keys)
-                logging.debug("Copying parameters from file %s", hdf_path)
-                for param_name in param_keys:
-                    param = hdf[param_name]
-                    master_param = hdf_master[param_name]
-                    assert param.frequency == master_param.frequency
-                    assert param.offset == master_param.offset
-                    assert param.units == master_param.units
-                    # join arrays together
-                    master_param.array = np.ma.concatenate(
-                        (master_param.raw_array, param.raw_array))
-                    # re-save parameter
-                    hdf_master[param_name] = master_param
-                # extend the master's duration
-                hdf_master.duration += hdf.duration
-            #endwith
-            logging.debug("Completed extending parameters from %s", hdf_path)
-        #endfor
-    #endwith
+    with FlightDataFile(hdf_master_path, mode='a') as fdf_master:
+        fdf_master.concatenate(hdf_paths[1:])
 
     if dest:
         shutil.move(hdf_master_path, dest)
@@ -78,6 +58,7 @@ def concat_hdf(hdf_paths, dest=None):
         return hdf_master_path
 
 
+@deprecated(details='Use FlightDataFile.trim() instead')
 def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     '''
     Strip an HDF file of all parameters apart from those in params_to_keep.
@@ -93,12 +74,12 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     :return: all parameters names within the output hdf file
     :rtype: [str]
     '''
-    with hdf_file(hdf_path) as hdf, hdf_file(dest, create=True) as hdf_dest:
-        _copy_attrs(hdf.hdf, hdf_dest.hdf, deidentify=deidentify)  # Copy top-level attrs.
-        params = hdf.get_params(params_to_keep)
-        for param in params.values():
-            hdf_dest[param.name] = param
-    return params.keys()
+    with FlightDataFile(hdf_path) as hdf:
+        hdf.trim(dest, parameter_list=params_to_keep, deidentify=deidentify)
+
+    # XXX: filter the param_to_keep list to the list of existing parameters
+    with FlightDataFile(dest) as hdf:
+        return list(set(params_to_keep) & set(hdf.keys()))
 
 
 def write_segment(source, segment, dest, boundary, submasks=None):
@@ -142,7 +123,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
         shutil.copy(source, dest)
         return dest
 
-    with hdf_file(source) as source_hdf:
+    with FlightDataFile(source) as source_hdf:
         if supf_stop_secs is None:
             supf_stop_secs = source_hdf.duration
 
@@ -154,7 +135,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
             shutil.copy(source, dest)
             return dest
 
-        with hdf_file(dest, create=True) as dest_hdf:
+        with FlightDataFile(dest, mode='w') as dest_hdf:
             logging.debug("Write Segment: Duration %.2fs to be written to %s",
                           segment_duration, dest)
 

@@ -422,7 +422,7 @@ class TestParameter(unittest.TestCase):
         Number of samples dependent on sample rate."""
         p = self.get_parameter(frequency=.5)
         p2 = p.trim(start_offset=10, stop_offset=20, superframe_boundary=True)
-        # the window is implicitely expanded to superframe boundaries, which is 64 seconds wide, in this case
+        # the window is implicitely extended to superframe boundaries, which is 64 seconds wide, in this case
         # start_offset=0, stop_offset=64
         self.assertEquals(p2.array.size, 32)
         self.assertEquals(p2.submasks['mask1'].size, 32)
@@ -439,63 +439,100 @@ class TestParameter(unittest.TestCase):
         self.assertTrue(np.all(p2.array.mask[:20]))
         self.assertTrue(np.all(p2.array.mask[-40:]))
 
-    def test_expand(self):
-        """Expand parameter without a mask."""
+    def test_extend(self):
+        """Extend parameter without a mask."""
         p = self.get_parameter()
-        p.expand(p.array.data)
+        p.extend(p.array.data)
         self.assertEquals(p.array.size, 200)
         self.assertEquals(p.submasks['mask1'].size, 200)
         self.assertEquals(p.submasks['mask2'].size, 200)
 
-    def test_expand_multistate_int(self):
-        """Expand multistate parameter with a list of integers."""
+    def test_extend_multistate_int(self):
+        """Extend multistate parameter with a list of integers."""
         array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool_),
             'mask2': np.array([1, 1, 0], dtype=np.bool_),
         }, values_mapping=values_mapping)
-        p.expand([1, 2, 3])
+        p.extend([1, 2, 3])
         np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
 
-    def test_expand_multistate_str(self):
-        """Expand multistate parameter with a list of valid strings."""
+    def test_extend_multistate_str(self):
+        """Extend multistate parameter with a list of valid strings."""
         array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool_),
             'mask2': np.array([1, 1, 0], dtype=np.bool_),
         }, values_mapping=values_mapping)
-        p.expand(['One', 'Two', 'Three'])
+        p.extend(['One', 'Two', 'Three'])
         np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
 
-    def test_expand_multistate_mapped(self):
-        """Expand multistate parameter with a MappedArray."""
+    def test_extend_multistate_mapped(self):
+        """Extend multistate parameter with a MappedArray."""
         array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool_),
             'mask2': np.array([1, 1, 0], dtype=np.bool_),
         }, values_mapping=values_mapping)
-        p.expand(MappedArray([1, 2, 3], values_mapping=values_mapping))
+        p.extend(MappedArray([1, 2, 3], values_mapping=values_mapping))
         np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
 
-    def test_expand_with_mask(self):
-        """Expand parameter array with a mask."""
+    def test_extend_with_mask(self):
+        """Extend parameter array with a mask."""
         p = self.get_parameter()
-        p.expand(p.array, submasks=p.submasks)
+        p.extend(p.array, submasks=p.submasks)
         self.assertEquals(p.array.size, 200)
         self.assertEquals(p.submasks['mask1'].size, 200)
         self.assertEquals(p.submasks['mask2'].size, 200)
 
-    def test_expand_failures(self):
-        """Test failures to expand parameter array."""
+    def test_extend_parameter(self):
+        """Extend parameter with another parameter."""
+        p = self.get_parameter()
+        p.extend(p)
+        self.assertEquals(p.array.size, 200)
+        self.assertEquals(p.submasks['mask1'].size, 200)
+        self.assertEquals(p.submasks['mask2'].size, 200)
+
+        with self.assertRaises(ValueError):
+            # submasks argument is invalid when extending with a Parameter
+            p.extend(p, submasks=p.submasks)
+
+    def test_extend_failures(self):
+        """Test failures to extend parameter array."""
         p = self.get_parameter()
         array = p.array.copy()
         # break the mask: the combined submasks give different mask
         array.mask[0] = False
         with self.assertRaises(ValueError):
-            p.expand(array, submasks=p.submasks)
+            p.extend(array, submasks=p.submasks)
+
+    def test_is_compatible(self):
+        """Test compatibility checks between parameters."""
+        p1 = self.get_parameter()
+        p2 = self.get_parameter()
+        self.assertTrue(p1.is_compatible(p2))
+        self.assertTrue(p2.is_compatible(p1))
+
+        p2.name = p2.name + 'X'
+        self.assertFalse(p1.is_compatible(p2))
+        self.assertFalse(p2.is_compatible(p1))
+
+        p2 = self.get_parameter(frequency=2)
+        self.assertFalse(p1.is_compatible(p2))
+        self.assertFalse(p2.is_compatible(p1))
+
+        p2 = self.get_parameter()
+        p2.unit = 'unknown'
+        self.assertFalse(p1.is_compatible(p2))
+        self.assertFalse(p2.is_compatible(p1))
+
+        p2 = self.get_parameter()
+        p2.offset += 0.25
+        self.assertFalse(p1.is_compatible(p2))
+        self.assertFalse(p2.is_compatible(p1))
 
     def test_update_submask(self):
         """Update a submask and ensure the mask is in sync."""
