@@ -6,6 +6,7 @@ import numpy as np
 import os
 import shutil
 import six
+import warnings
 
 from deprecation import deprecated
 
@@ -82,6 +83,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
         return list(set(params_to_keep) & set(hdf.keys()))
 
 
+@deprecated(details='Use FlightDataFile.trim() instead')
 def write_segment(source, segment, dest, boundary, submasks=None):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by
@@ -103,7 +105,8 @@ def write_segment(source, segment, dest, boundary, submasks=None):
     :type dest: str
     :param supf_boundary: Split on superframe boundaries, masking data outside of the segment.
     :type supf_boundary: bool
-    :param submasks: Collection of submask names to write. The default value of None writes all submasks, while an empty collection will result in no submasks being written.
+    :param submasks: Collection of submask names to write. The default value of None writes all submasks, while an empty
+        collection will result in no submasks being written.
     :type submasks: collection (tuple/list/set) or None
     :return: path to output hdf file containing specified segment.
     :rtype: str
@@ -116,102 +119,19 @@ def write_segment(source, segment, dest, boundary, submasks=None):
             "File '%s' already exists, write_segments will delete file.", dest)
         os.remove(dest)
 
-    supf_start_secs, supf_stop_secs, array_start_secs, array_stop_secs = segment_boundaries(segment, boundary)
+    if submasks:
+        warnings.warn(
+            'Selection of submasks was requested which is not supported. All submasks will be saved instead',
+            DeprecationWarning)
 
-    if supf_start_secs == 0 and supf_stop_secs is None:
-        logging.debug("Write Segment: Segment is not being sliced, file will be copied.")
-        shutil.copy(source, dest)
-        return dest
-
-    with FlightDataFile(source) as source_hdf:
-        if supf_stop_secs is None:
-            supf_stop_secs = source_hdf.duration
-
-        segment_duration = supf_stop_secs - supf_start_secs
-
-        if source_hdf.duration == segment_duration:
-            logging.debug("Write Segment: Segment duration is equal to whole "
-                          "duration, file will be copied.")
-            shutil.copy(source, dest)
-            return dest
-
-        with FlightDataFile(dest, mode='w') as dest_hdf:
-            logging.debug("Write Segment: Duration %.2fs to be written to %s",
-                          segment_duration, dest)
-
-            for group_name in source_hdf.hdf.keys():  # Copy top-level groups.
-                if group_name == 'series':
-                    continue  # Avoid copying parameter datasets.
-                source_hdf.hdf.copy(group_name, dest_hdf.hdf)
-                logging.debug("Copied group '%s' between '%s' and '%s'.",
-                              group_name, source, dest)
-
-            _copy_attrs(source_hdf.hdf, dest_hdf.hdf)  # Copy top-level attrs.
-
-            #Q: Could this be too short if we change the start and stop a bit further down???
-            dest_hdf.duration = segment_duration  # Overwrite duration.
-
-            supf_slice = slice(supf_start_secs, supf_stop_secs)
-
-            for param_name in source_hdf.keys():
-
-                #Q: Why not always pad masked values to the next superframe
-
-                param = source_hdf.get_param(
-                    param_name, _slice=supf_slice, load_submasks=True)
-                if ((param.hz * 64) % 1) != 0:
-                    raise ValueError(
-                        "Parameter '%s' does not record a consistent number of "
-                        "values every superframe. Check the LFL definition."
-                        % param_name)
-
-                if submasks is not None and param.submasks:
-                    # if param does not have submasks, or no submasks match,
-                    # write the original mask
-                    mask_subset = {k: v for k, v in param.submasks.items() if k in submasks}
-                    if mask_subset and len(param.submasks) != len(mask_subset):
-                        submask_arrays = list(six.itervalues(mask_subset))
-                        if 'padding' in submasks and 'padding' not in param.submasks:
-                            # padding submask from initial processing does not exist
-                            # in this case include the original array mask
-                            submask_arrays += [param.array.mask]
-                        param.array.mask = merge_masks(submask_arrays)
-                    param.submasks = mask_subset
-
-                param.array = param.raw_array
-
-                param_start_index = int(array_start_secs * param.hz)
-                param_stop_index = int(len(param.array) -
-                                       (array_stop_secs * param.hz))
-
-                array_size = int(segment_duration * param.hz)
-                if param.array.size < array_size:
-                    # There's not enough data in the input
-                    # The input data was not aligned to 4s or 64s
-                    # we need to pad the arrays to have the expected number of
-                    # samples
-                    param_stop_index = param.array.size
-                    padding_size = array_size - param_stop_index
-                    param.array = np.ma.concatenate((
-                        param.array,
-                        np.ma.zeros(padding_size, dtype=param.array.dtype)))
-
-                    for sub_name, submask in param.submasks.items():
-                        param.submasks[sub_name] = np.ma.concatenate((
-                            submask,
-                            np.ma.ones(padding_size, dtype=submask.dtype)))
-
-                # Mask data outside of split.
-                param.array[:param_start_index] = np.ma.masked
-                param.array[param_stop_index:] = np.ma.masked
-
-                for submask in param.submasks.values():
-                    submask[:param_start_index] = True
-                    submask[param_stop_index:] = True
-
-                # save modified parameter back to file
-                dest_hdf[param_name] = param
-                #logging.debug("Finished writing segment: %s", dest_hdf)
+    with FlightDataFile(source) as fdf:
+        if not fdf.superframe_present and boundary not in (1, 4):
+            # boundary in subframes
+            warnings.warn(
+                'Alignment to %d subframes was requested. Alignment to 64 subframes is supported only for data '
+                'with superframes otherwise alignment to 4 subframes is used. Default alignment will be used instead.'
+                % boundary, DeprecationWarning)
+        fdf.trim(dest, start_offset=segment.start, stop_offset=segment.stop, superframe_boundary=boundary != 1)
 
     return dest
 

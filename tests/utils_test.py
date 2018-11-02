@@ -360,7 +360,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         def test_hdf(dest):
             with h5py.File(dest, 'r') as hdf_file:
                 # 'IVV' - 1Hz parameter.
-                ivv_group = hdf_file['series']['IVV']
+                ivv_group = hdf_file['IVV']
                 self.assertEqual(ivv_group.attrs['frequency'],
                                  self.ivv_frequency)
                 self.assertEqual(ivv_group.attrs['offset'],
@@ -368,20 +368,17 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 ivv_result = ivv_group['data'][:]
                 self.assertTrue(all(ivv_result == self.ivv_data))
                 # 'WOW' - 4Hz parameter.
-                wow_group = hdf_file['series']['WOW']
+                wow_group = hdf_file['WOW']
                 self.assertEqual(wow_group.attrs['frequency'],
                                  self.wow_frequency)
                 wow_result = wow_group['data'][:]
                 self.assertTrue(all(wow_result == self.wow_data))
                 # 'DME' - 0.25Hz parameter.
-                dme_group = hdf_file['series']['DME']
+                dme_group = hdf_file['DME']
                 self.assertEqual(dme_group.attrs['frequency'],
                                  self.dme_frequency)
                 dme_result = dme_group['data'][:]
                 self.assertTrue(all(dme_result == self.dme_data))
-                # Test mask is written.
-                dme_mask_result = dme_group['mask'][:]
-                self.assertTrue(all(dme_mask_result == self.dme_mask))
                 self.assertEqual(hdf_file.attrs['duration'], self.data_secs)
 
         segment = slice(None)
