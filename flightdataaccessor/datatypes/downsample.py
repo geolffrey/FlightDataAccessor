@@ -1,7 +1,5 @@
 import numpy as np
 
-from analysis_engine import library
-
 
 SAMPLES_PER_BUCKET = 2
 
@@ -13,6 +11,38 @@ def masked_invalid(data):
         return data  # isfinite not supported for input type, e.g. string
 
 
+# XXX: copy-paste from analysis_engine.library. Needs to be sorted out with FlightDataAnalyzer refactoring to create a
+# utilities package with common functionality used by many repositories
+def most_common_value(array, threshold=None):
+    '''
+    Find the most repeating non-negative valid value within an array. Works
+    with mapped arrays too as well as arrays of strings.
+
+    :param array: Array to count occurrences of values within
+    :type array: np.ma.array
+    :param threshold: return None if number of most common value occurrences is
+        less than this
+    :type threshold: float
+    :returns: most common value in array
+    '''
+    if isinstance(array, np.ma.MaskedArray):
+        array = array.compressed()
+    values, counts = np.unique(array, return_counts=True)
+    if not counts.size:
+        return None
+
+    i = np.argmax(counts)
+    value, count = values[i], counts[i]
+
+    if threshold is not None and count < array.size * threshold:
+        return None
+
+    if hasattr(array, 'values_mapping'):
+        return array.values_mapping[value]
+    else:
+        return value
+
+
 def downsample_most_common_value(data, width):
     """Downsample non numeric data.
 
@@ -21,6 +51,7 @@ def downsample_most_common_value(data, width):
 
     The returned array has one sample per bucket.
     """
+    # XXX: move the functionality to independent package: FlightDataUtilities?
     from .parameter import MappedArray
 
     array = np.ma.asarray(data)
@@ -30,14 +61,14 @@ def downsample_most_common_value(data, width):
     regular_part = masked_invalid(array[:len(array) - remainder])
     samples = []
     for bucket in regular_part.reshape(-1, bucket_size):
-        value = library.most_common_value(bucket)
+        value = most_common_value(bucket)
         if value is None:
             value = np.ma.masked
         samples.append(value)
 
     if remainder:
         remainder_part = masked_invalid(array[len(array) - remainder:])
-        value = library.most_common_value(remainder_part)
+        value = most_common_value(remainder_part)
         if value is None:
             value = np.ma.masked
         samples.append(value)

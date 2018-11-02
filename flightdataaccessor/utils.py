@@ -2,15 +2,12 @@ from __future__ import print_function
 
 import argparse
 import logging
-import numpy as np
 import os
 import shutil
-import six
 import warnings
 
 from deprecation import deprecated
 
-from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.filesystem_tools import copy_file
 
 from flightdataaccessor.formats.hdf import FlightDataFile
@@ -75,12 +72,12 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     :return: all parameters names within the output hdf file
     :rtype: [str]
     '''
-    with FlightDataFile(hdf_path) as hdf:
-        hdf.trim(dest, parameter_list=params_to_keep, deidentify=deidentify)
+    with FlightDataFile(hdf_path) as fdf:
+        fdf.trim(dest, parameter_list=params_to_keep, deidentify=deidentify)
 
     # XXX: filter the param_to_keep list to the list of existing parameters
-    with FlightDataFile(dest) as hdf:
-        return list(set(params_to_keep) & set(hdf.keys()))
+    with FlightDataFile(dest) as fdf:
+        return list(set(params_to_keep) & set(fdf.keys()))
 
 
 @deprecated(details='Use FlightDataFile.trim() instead')
@@ -170,16 +167,16 @@ def revert_masks(hdf_path, params=None, delete_derived=False):
     :type params: [str] or None
     :type delete_derived: bool
     '''
-    with hdf_file(hdf_path) as hdf:
+    with FlightDataFile(hdf_path, mode='a') as fdf:
         if not params:
-            params = hdf.keys() if delete_derived else hdf.lfl_keys()
+            params = fdf.keys() if delete_derived else fdf.lfl_keys()
 
         for param_name in params:
-            param = hdf.get_param(param_name, load_submasks=True)
+            param = fdf.get_param(param_name, load_submasks=True)
 
             if not param.lfl:
                 if delete_derived:
-                    del hdf[param_name]
+                    del fdf[param_name]
                 continue
 
             if 'padding' not in param.submasks:
@@ -188,7 +185,7 @@ def revert_masks(hdf_path, params=None, delete_derived=False):
             param.array = param.get_array(submask='padding')
             param.submasks = {'padding': param.submasks['padding']}
             param.invalid = False
-            hdf[param_name] = param
+            fdf[param_name] = param
 
 
 if __name__ == '__main__':
