@@ -12,7 +12,7 @@ def masked_invalid(data):
 
 
 # XXX: copy-paste from analysis_engine.library. Needs to be sorted out with FlightDataAnalyzer refactoring to create a
-# utilities package with common functionality used by many repositories
+# utilities package with common functionality used by many repositories to avoid cross-dependencies.
 def most_common_value(array, threshold=None):
     '''
     Find the most repeating non-negative valid value within an array. Works
