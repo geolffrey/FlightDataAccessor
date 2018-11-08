@@ -113,7 +113,13 @@ class TestMappedArray(unittest.TestCase):
 
         # check __repr__ and __str__ work
         self.assertEqual((ma == 'two').__str__(), '[False False  True False False]')
-        self.assertEqual((ma == 'two').__repr__(), '''\
+        if float(np.version.short_version.rsplit('.',1)[0]) >= 1.15:
+            self.assertEqual((ma == 'two').__repr__(), '''\
+masked_array(data=[False, False,  True, False, False],
+             mask=False,
+       fill_value=True)''')
+        else:
+            self.assertEqual((ma == 'two').__repr__(), '''\
 masked_array(data = [False False  True False False],
              mask = False,
        fill_value = True)
