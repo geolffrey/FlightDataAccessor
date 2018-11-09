@@ -464,7 +464,7 @@ class hdf_file(object):    # rare case of lower case?!
         stream = self.hdf.attrs.get('stream')
         return bool(stream) if stream is not None else None
 
-    @superframe_present.setter
+    @stream.setter
     def stream(self, stream):
         '''
         Mutator for the root-level 'stream' attribute. If stream is None the
