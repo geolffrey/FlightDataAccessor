@@ -453,9 +453,37 @@ class hdf_file(object):    # rare case of lower case?!
             self.hdf.attrs['start_timestamp'] = timestamp
 
     @property
+    def stream(self):
+        '''
+        Whether or not the HDF file was created with streamed data.
+
+        Accessor for the root-level 'stream' attribute.
+
+        :rtype: bool or None
+        '''
+        stream = self.hdf.attrs.get('stream')
+        return bool(stream) if stream is not None else None
+
+    @superframe_present.setter
+    def stream(self, stream):
+        '''
+        Mutator for the root-level 'stream' attribute. If stream is None the
+        'stream' attribute will be deleted.
+
+        :param stream: Flag indicating whether the file was streamed
+        :type stream: bool
+        :rtype: None
+        '''
+        if stream is None:  # Cannot store None as an HDF attribute.
+            if 'stream' in self.hdf.attrs:
+                del self.hdf.attrs['stream']
+        else:
+            self.hdf.attrs['stream'] = 1 if stream else 0
+
+    @property
     def superframe_present(self):
         '''
-        Whether or the frame which was used to create the HDF file had a
+        Whether or not the frame which was used to create the HDF file had a
         superframe counter.
 
         Accessor for the root-level 'superframe_present' attribute.
