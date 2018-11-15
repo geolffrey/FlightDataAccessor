@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import base64
 import collections
+import copy
 import logging
 import h5py
 import numpy as np
@@ -16,6 +17,7 @@ import pytz
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from deprecation import deprecated
 
 from sortedcontainers import SortedSet
 
@@ -31,10 +33,16 @@ from .formats import hdf
 HDFACCESS_VERSION = hdf.CURRENT_VERSION
 
 
-hdf_file = hdf.FlightDataFile
+@deprecated(details='Use FlightDataFile() instead')
+def hdf_file(*args, **kwargs):
+    if 'mode' not in kwargs:
+        kwargs = copy.copy(kwargs)
+        kwargs['mode'] = 'a'
+
+    return hdf.FlightDataFile(*args, **kwargs)
 
 
-class hdf_file_legacy(object):    # rare case of lower case?!
+class HdfFileLegacy(object):
     """ usage example:
     with hdf_file('path/to/file.hdf5') as hdf:
         print(hdf['Altitude AAL']['data'][:20])
@@ -572,9 +580,9 @@ class hdf_file_legacy(object):    # rare case of lower case?!
         if '(*)' in pattern or '(?)' in pattern:
             return wildcard_match(pattern, keys)
         else:
-            PATTERN = pattern.upper()
+            pattern = pattern.upper()
             return sorted(
-                filter(lambda k: PATTERN in k.upper(), keys))
+                filter(lambda k: pattern in k.upper(), keys))
 
     def startswith(self, term):
         '''
@@ -810,8 +818,7 @@ class hdf_file_legacy(object):    # rare case of lower case?!
             # Get array length for expanding booleans.
             submask_length = 0
             for submask_array in param.submasks.values():
-                if (submask_array is None or
-                        type(submask_array) in (bool, np.bool8)):
+                if (submask_array is None or type(submask_array) in (bool, np.bool8)):
                     continue
                 submask_length = max(submask_length, len(submask_array))
 

@@ -266,16 +266,19 @@ masked_array(data = [False False  True False False],
 
 
 class TestParameter(unittest.TestCase):
-    def get_parameter(self, frequency=1):
+    def get_parameter(self, frequency=1, with_mask=True):
         array = np.ma.arange(100)
         mask = np.zeros(100, dtype=np.bool)
-        mask[:3] = [1, 1, 0]
-        array.mask = mask
-        mask1 = np.ma.zeros(100, dtype=np.bool)
-        mask1[:3] = [1, 0, 0]
-        mask2 = np.ma.zeros(100, dtype=np.bool)
-        mask2[:3] = [1, 1, 0]
-        submasks = {'mask1': mask1, 'mask2': mask2}
+        if with_mask:
+            mask[:3] = [1, 1, 0]
+            array.mask = mask
+            mask1 = np.ma.zeros(100, dtype=np.bool)
+            mask1[:3] = [1, 0, 0]
+            mask2 = np.ma.zeros(100, dtype=np.bool)
+            mask2[:3] = [1, 1, 0]
+            submasks = {'mask1': mask1, 'mask2': mask2}
+        else:
+            submasks = {}
         return Parameter('Test', array=array, submasks=submasks, frequency=frequency)
 
     def test_parameter(self):
@@ -420,24 +423,42 @@ class TestParameter(unittest.TestCase):
         """Trim parameter to a window in seconds.
 
         Number of samples dependent on sample rate."""
-        p = self.get_parameter(frequency=.5)
+        p = self.get_parameter(frequency=.5, with_mask=False)
         p2 = p.trim(start_offset=10, stop_offset=20, superframe_boundary=True)
         # the window is implicitely extended to superframe boundaries, which is 64 seconds wide, in this case
         # start_offset=0, stop_offset=64
         self.assertEquals(p2.array.size, 32)
-        self.assertEquals(p2.submasks['mask1'].size, 32)
-        self.assertEquals(p2.submasks['mask2'].size, 32)
+        # unrequested edges are masked
         self.assertTrue(np.all(p2.array.mask[:5]))
-        self.assertTrue(np.all(p2.array.mask[-10:]))
+        self.assertTrue(np.all(p2.array.mask[10:]))
+        # requested data is not masked
+        self.assertFalse(np.any(p2.array.mask[5:10]))
 
-        p = self.get_parameter(frequency=2)
+    def test_trim_superframe_boundary_padding(self):
+        p = self.get_parameter(frequency=2, with_mask=False)
         p2 = p.trim(start_offset=10, stop_offset=20, superframe_boundary=True)
+        # because the array size is 100 which is only 50 seconds, the whole data is returned and padded at the end to
+        # complete superframes
+        # result data has size greater than the original due to superframe padding
+        self.assertEquals(p2.array.size, 128)
+        # padding submask is added
+        self.assertTrue('padding' in p2.submasks)
+        # unrequested edges are masked
+        self.assertTrue(np.all(p2.array.mask[:20]))
+        self.assertTrue(np.all(p2.array.mask[40:]))
+        # requested data is not masked
+        self.assertFalse(np.any(p2.array.mask[20:40]))
+
+    def test_trim_superframe_boundary_no_padding(self):
+        p = self.get_parameter(frequency=2, with_mask=False)
+        p2 = p.trim(start_offset=10, stop_offset=20, pad=False, superframe_boundary=True)
         # because the array size is 100 which is only 50 seconds, the whole data is returned
         self.assertEquals(p2.array.size, 100)
-        self.assertEquals(p2.submasks['mask1'].size, 100)
-        self.assertEquals(p2.submasks['mask2'].size, 100)
+        # unrequested edges are masked
         self.assertTrue(np.all(p2.array.mask[:20]))
-        self.assertTrue(np.all(p2.array.mask[-40:]))
+        self.assertTrue(np.all(p2.array.mask[40:]))
+        # requested data is not masked
+        self.assertFalse(np.any(p2.array.mask[20:40]))
 
     def test_extend(self):
         """Extend parameter without a mask."""

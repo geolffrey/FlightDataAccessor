@@ -38,8 +38,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         param = Parameter('Test', array=np.ma.arange(100))
         with FlightDataFile(self.fp) as fdf:
             # read-only (default), assignment fails
-            # XXX: raise consistent errors!
-            with self.assertRaises(ValueError):
+            with self.assertRaises(IOError):
                 fdf['Test'] = param
             with self.assertRaises(IOError):
                 fdf.reliable_frame_counter = not fdf.reliable_frame_counter
@@ -480,7 +479,18 @@ class FlightDataFileTestV2(unittest.TestCase):
             fdf['Airspeed']
             self.assertIn('Airspeed', fdf.parameter_cache)
 
-    def trim_test(self):
+    def trim_full_test(self):
+        """Trim the file to first 100 seconds."""
+        with FlightDataFile(self.fp) as fdf:
+            duration = fdf.duration
+            fdf.trim(self.fp + '-trim')
+
+        with FlightDataFile(self.fp + '-trim') as fdf:
+            self.assertEquals(fdf.duration, duration)
+            for parameter in fdf.values():
+                self.assertEquals(len(parameter.array), math.floor(duration * parameter.frequency))
+
+    def trim_slice_test(self):
         """Trim the file to first 100 seconds."""
         with FlightDataFile(self.fp) as fdf:
             fdf.trim(self.fp + '-trim', stop_offset=100)
@@ -490,7 +500,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             for parameter in fdf.values():
                 self.assertEquals(len(parameter.array), math.floor(100 * parameter.frequency))
 
-    def trim_superframe_boundary_test(self):
+    def trim_slice_superframe_boundary_test(self):
         """Trim the file to first 100 seconds aligned to superframes."""
         with FlightDataFile(self.fp) as fdf:
             fdf.trim(self.fp + '-trim', stop_offset=100, superframe_boundary=True)

@@ -83,7 +83,7 @@ class MappedArray(MaskedArray):
         '''
         '''
         # Update the reverse mappings in self.state
-        if key == 'values_mapping':
+        if key == 'values_mapping' and value:
             self.state = defaultdict(list)
             for k, v in value.items():
                 self.state[v].append(k)
@@ -343,7 +343,7 @@ class Parameter(Compatibility):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
                  offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
                  unit=None, data_type=None, source=None, source_name=None,
-                 description='', submasks=None, limits=None):
+                 description='', submasks=None, limits=None, **kwargs):
         '''
         :param name: Parameter name
         :type name: String
@@ -375,7 +375,7 @@ class Parameter(Compatibility):
         :param submasks: Default value is None to avoid kwarg default being mutable.
         '''
         self.name = name
-        if values_mapping is not None:
+        if values_mapping and not isinstance(array, MappedArray):
             self.values_mapping = {}
             for value, state in values_mapping.items():
                 try:
@@ -383,10 +383,11 @@ class Parameter(Compatibility):
                 except ValueError:
                     value = float(value)
                 self.values_mapping[value] = state
-            self.array = MappedArray(array, values_mapping=self.values_mapping)
-        else:
-            self.values_mapping = None
-            self.array = array
+            array = MappedArray(array, values_mapping=self.values_mapping)
+        elif isinstance(array, MappedArray) and array.values_mapping:
+            self.values_mapping = array.values_mapping
+
+        self.array = array
 
         # ensure frequency is stored as a float
         self.frequency = float(frequency)
@@ -412,7 +413,7 @@ class Parameter(Compatibility):
                     submask_name = 'auto'
                 submasks = {submask_name: mask}
         else:
-            submasks = copy.copy(submasks)
+            submasks = {k: np.array(v, dtype=np.bool) for k, v in submasks.items()}
 
         self.submasks = submasks or {}
         self.limits = limits
@@ -427,7 +428,7 @@ class Parameter(Compatibility):
 
     @property
     def raw_array(self):
-        if self.values_mapping:
+        if hasattr(self, 'values_mapping'):
             return self.array.raw
         return self.array
 
@@ -526,7 +527,7 @@ class Parameter(Compatibility):
         clone.submasks = {k: v[sl] for k, v in self.submasks.items()}
         return clone
 
-    def trim(self, start_offset=0, stop_offset=None, superframe_boundary=False, superframe_size=64):
+    def trim(self, start_offset=0, stop_offset=None, pad=True, superframe_boundary=False, superframe_size=64):
         """Return a copy of the parameter with all the data trimmed to given window in seconds.
 
         Optionally align the window to superframe boundaries which is useful for splitting segments.
@@ -542,12 +543,24 @@ class Parameter(Compatibility):
         start_ix = int(start_offset * self.hz) if start_offset else 0
         stop_ix = int(stop_offset * self.hz) if stop_offset else self.array.size
         clone = self.slice(slice(start_ix, stop_ix))
+        if pad and stop_ix > self.array.size:
+            # more data was requested than available and padding was requested
+            # ensure that the clone has a padding submask
+            clone.update_submask('padding', np.zeros(clone.array.size, dtype=np.bool))
+            padding = np.ma.zeros(stop_ix - self.array.size, dtype=np.bool)
+            padding.mask = True
+            padding_submasks = {k: np.zeros(padding.size, dtype=np.bool) for k in self.submasks}
+            padding_submasks['padding'] = np.ones(padding.size, dtype=np.bool)
+            clone.extend(padding, submasks=padding_submasks)
 
         # mask the areas outside of requested slice
-        if unmasked_start_offset != start_offset or unmasked_stop_offset != stop_offset:
-            padding = np.zeros(len(clone.array))
-            padding[unmasked_start_offset - start_offset:] = True
-            padding[:stop_offset - unmasked_stop_offset] = True
+        if unmasked_start_offset > start_offset or stop_offset > unmasked_stop_offset:
+            requested_duration = unmasked_stop_offset - unmasked_start_offset
+            padding = np.zeros(len(clone.array), dtype=np.bool)
+            padding_at_start = unmasked_start_offset * self.frequency
+            padding_at_end = padding_at_start + requested_duration * self.frequency
+            padding[:padding_at_start] = True
+            padding[padding_at_end:] = True
             clone.update_submask('padding', padding)
 
         return clone

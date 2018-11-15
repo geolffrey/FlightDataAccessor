@@ -7,8 +7,11 @@ from __future__ import division
 
 import base64
 import copy
+import datetime
+import functools
 import math
 import os
+import pytz
 import re
 import warnings
 import zlib
@@ -30,6 +33,28 @@ from ..datatypes.parameter import Parameter
 
 CURRENT_VERSION = 3
 LIBRARY_VERSION = (1, 10, 1)
+
+
+def require_open(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.file is None:
+            raise IOError('HDF file is not open')
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+def require_rw(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.file is None:
+            raise IOError('HDF file is not open')
+        if self.file.mode != 'r+':
+            raise IOError('Mofdification of file open in read-only mode was requested')
+        return func(self, *args, **kwargs)
+
+    return wrapper
 
 
 # XXX: Should subclass container types: https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
@@ -129,6 +154,7 @@ class FlightDataFile(Compatibility):
         """Iterator API"""
         return iter(self.keys())
 
+    @require_open
     def __getitem__(self, name):
         """Retrieve parameter data from the flight data file."""
         if name not in self:
@@ -136,12 +162,14 @@ class FlightDataFile(Compatibility):
 
         return self.get_parameter(name)
 
+    @require_rw
     def __setitem__(self, name, parameter):
         """Update parameter data in the flight data file."""
         if name != parameter.name:
             raise ValueError('Parameter name must be the same as the key!')
         return self.set_parameter(parameter)
 
+    @require_rw
     def __delitem__(self, name):
         """Remove a parameter from the flight data file."""
         if name not in self:
@@ -149,6 +177,7 @@ class FlightDataFile(Compatibility):
 
         return self.delete_parameter(name)
 
+    @require_open
     def __getattr__(self, name):
         """Retrieve global file attribute handling special cases.
 
@@ -174,29 +203,16 @@ class FlightDataFile(Compatibility):
         else:
             return value
 
-    def __setattr__(self, name, value):
-        """Store global file attribute handling special cases.
-
-        Attribute names are preserved depending on the format version. The attribute names and formats are converted on
-        the fly.
-
-        Special behaviour: all extra attributes are stored in HDF file.
-        """
-        if name in self.INSTANCE_ATTRIBUTES:
-            # Handle attributes that are not stored in HDF file
-            return object.__setattr__(self, name, value)
-
+    @require_open
+    def set_source_attribute(self, name, value):
         if value is not None:
             # Handle backwards compatibility for older versions:
             if self.file.attrs.get('version', 0) >= self.VERSION:
-                self.file.attrs[name] = value
+                try:
+                    self.file.attrs[name] = value
+                except TypeError:
+                    pass
             else:
-                if name in self.DYNAMIC_HDF_ATTRIBUTES:
-                    warnings.warn(
-                        '%s is calculated automatically on close(). Manually assigned value will be overwritten.' %
-                        name, DeprecationWarning,
-                    )
-
                 if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
                     value = int(value)
                 elif name in {'dependency_tree'}:
@@ -210,15 +226,38 @@ class FlightDataFile(Compatibility):
         elif name in self.file.attrs:
             del self.file.attrs[name]
 
+    def __setattr__(self, name, value):
+        """Store global file attribute handling special cases.
+
+        Attribute names are preserved depending on the format version. The attribute names and formats are converted on
+        the fly.
+
+        Special behaviour: all extra attributes are stored in HDF file.
+        """
+        if name in self.INSTANCE_ATTRIBUTES:
+            # Handle attributes that are not stored in HDF file
+            return object.__setattr__(self, name, value)
+
+        if name in self.DYNAMIC_HDF_ATTRIBUTES:
+            warnings.warn(
+                '%s is calculated automatically on close(). Manually assigned value will be overwritten.' %
+                name, DeprecationWarning,
+            )
+
+        return self.set_source_attribute(name, value)
+
+    @require_rw
     def __delattr__(self, name):
         if name not in self.file.attrs:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, name))
         del self.file.attrs[name]
 
+    @require_open
     def __contains__(self, name):
         """Whether a parameter exists in the flight data file."""
         return name in self.keys()
 
+    @require_open
     def __len__(self):
         """Count of parameters in the flight data file."""
         return len(self.keys())
@@ -392,6 +431,7 @@ class FlightDataFile(Compatibility):
 
         return parameter
 
+    @require_rw
     def set_parameter(self, parameter, save_data=True, save_mask=True, save_submasks=True):
         """Store parameter data"""
         attrs = (
@@ -404,7 +444,8 @@ class FlightDataFile(Compatibility):
                 DeprecationWarning,
             )
 
-        parameter.validate_mask()
+        if hasattr(parameter, 'validate_mask'):
+            parameter.validate_mask()
         param_group = self.get_or_create(parameter.name)
 
         if save_data:
@@ -466,6 +507,7 @@ class FlightDataFile(Compatibility):
                 continue
             self.keys_cache[key].add(parameter.name)
 
+    @require_rw
     def delete_parameter(self, name, ignore=True):
         """Delete a parameter"""
         if name not in self:
@@ -483,6 +525,7 @@ class FlightDataFile(Compatibility):
             names = self.keys(valid_only=valid_only)
         return {name: self.get_parameter(name, valid_only=valid_only) for name in names}
 
+    @require_rw
     def set_parameters(self, parameters):
         """Set multiple parameters"""
         for parameter in parameters:
@@ -519,8 +562,8 @@ class FlightDataFile(Compatibility):
                 parameter = self.get_parameter(name, load_submasks=True)
                 new_fdf.set_parameter(
                     parameter.trim(
-                        start_offset=start_offset, stop_offset=stop_offset, superframe_boundary=superframe_boundary,
-                        superframe_size=superframe_size))
+                        start_offset=start_offset, stop_offset=stop_offset, pad=True,
+                        superframe_boundary=superframe_boundary, superframe_size=superframe_size))
             for name, value in self.file.attrs.items():
                 name = self.prepare_attribute_name(name)
                 if name is None or name == 'version' or deidentify and name in ('aircraft_info', 'tailmark'):
@@ -533,6 +576,7 @@ class FlightDataFile(Compatibility):
                     value = self.timestamp + start_offset
                 new_fdf.file.attrs.create(name, value)
 
+    @require_rw
     def concatenate(self, paths):
         """Concatenate compatible FDF files.
 
@@ -548,10 +592,19 @@ class FlightDataFile(Compatibility):
                     if not parameter.is_compatible(to_append):
                         raise ValueError('The parameters in concatenated file must be identical')
 
+        for path in paths:
+            with FlightDataFile(path) as fdf:
                 for to_append in fdf.values():
                     parameter = self[to_append.name]
                     parameter.extend(to_append)
                     self[parameter.name] = parameter
+
+    def get(self, name, default=None, **kwargs):
+        """Dictionary like .get operator. Additional kwargs are passed into the get_param method."""
+        try:
+            return self.get_parameter(name, **kwargs)
+        except KeyError:
+            return default
 
     # XXX are the below methods used? Does it make sense to keep them in the API?
     def search(self, pattern, lfl_keys_only=False):
@@ -583,14 +636,62 @@ class FlightDataFile(Compatibility):
         limits = self.data[name].attrs.get('limits')
         return simplejson.loads(limits) if limits else default
 
+    def get_param_arinc_429(self, name):
+        """Returns a parameter's ARINC 429 flag."""
+        arinc_429 = bool(self.data[name].attrs.get('arinc_429'))
+        return arinc_429
+
+    # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
+    # Maybe move to legacy instead?
+    @require_rw
     def set_parameter_limits(self, name, limits):
         """Set parameter limits"""
         param_group = self.get_or_create(name)
         param_group.attrs['limits'] = simplejson.dumps(limits)
 
+    @require_rw
     def set_parameter_invalid(self, name, reason=''):
         """Set a parameter to be invalid"""
-        # XXX: originally the parameter was fully masked, should we create a sublask for that?
+        # XXX: originally the parameter was fully masked, should we create a submask for that?
         param_group = self.data[name]
         param_group.attrs['invalid'] = 1
         param_group.attrs['invalidity_reason'] = reason
+
+    @property
+    def start_datetime(self):
+        '''
+        The start datetime of the data stored within the HDF file.
+
+        Converts the root-level 'start_timestamp' attribute from a timestamp to
+        a datetime.
+
+        :returns: Start datetime if 'start_timestamp' is set, otherwise None.
+        :rtype: datetime or None
+        '''
+        timestamp = self.hdf.attrs.get('start_timestamp')
+        if timestamp:
+            return datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.utc)
+        else:
+            return None
+
+    @start_datetime.setter
+    def start_datetime(self, start_datetime):
+        '''
+        Converts start_datetime to a timestamp and saves as 'start_timestamp'
+        root-level attribute. If start_datetime is None the 'start_timestamp'
+        attribute will be deleted.
+
+        :param start_datetime: The datetime at the beginning of this file's data.
+        :type start_datetime: datetime or timestamp
+        :rtype: None
+        '''
+        if start_datetime is None:
+            if 'start_timestamp' in self.hdf.attrs:
+                del self.hdf.attrs['start_timestamp']
+        else:
+            if isinstance(start_datetime, datetime):
+                epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+                timestamp = (start_datetime - epoch).total_seconds()
+            else:
+                timestamp = start_datetime
+            self.hdf.attrs['start_timestamp'] = timestamp
