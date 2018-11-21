@@ -3,15 +3,16 @@ import warnings
 from deprecation import deprecated
 
 
-REMOVE_GLOBAL_ATTRIBUTES = [
+REMOVED_GLOBAL_ATTRIBUTES = [
     'achieved_flight_record', 'aircraft_info', 'tailmark', 'starttime', 'endtime',
 ]
 
-RENAME_GLOBAL_ATTRIBUTES = {
+RENAMED_GLOBAL_ATTRIBUTES = {
     'analysis_version': 'version_analyzer',
     'hdfaccess_version': 'version',
     'start_timestamp': 'timestamp',
 }
+LEGACY_GLOBAL_ATTRIBUTES = {v: k for k, v in RENAMED_GLOBAL_ATTRIBUTES.items()}
 
 
 class Compatibility(object):
@@ -112,11 +113,19 @@ class Compatibility(object):
         if create:
             return 'x'
 
-    def prepare_attribute_name(self, name):
-        """Convert attribute name to new naming convention or None if removed"""
-        name = RENAME_GLOBAL_ATTRIBUTES.get(name, name)
-        if name in REMOVE_GLOBAL_ATTRIBUTES:
-            name = None
+    def source_attribute_name(self, name):
+        """Convert attribute name to old naming convention.
+
+        When accessing data in old format we want to know legacy attribute names.
+        When accessing data in new format and a removed parameter is requested, None is returned to indicate that the
+        attribute is not supported any more.
+        """
+        if self.version == self.VERSION:
+            if name in REMOVED_GLOBAL_ATTRIBUTES:
+                return None
+            return name
+
+        name = LEGACY_GLOBAL_ATTRIBUTES.get(name, name)
         return name
 
     def upgrade(self, filename):

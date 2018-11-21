@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from flightdataaccessor.formats.hdf import FlightDataFile
-from flightdataaccessor.formats.legacy import REMOVE_GLOBAL_ATTRIBUTES, RENAME_GLOBAL_ATTRIBUTES
+from flightdataaccessor.formats.legacy import REMOVED_GLOBAL_ATTRIBUTES, RENAMED_GLOBAL_ATTRIBUTES
 
 
 class CompatibilityTest(unittest.TestCase):
@@ -35,10 +35,10 @@ class CompatibilityTest(unittest.TestCase):
                 old_global_attr_names = old_fdf.file.attrs.keys()
                 new_global_attr_names = new_fdf.file.attrs.keys()
                 for old_attr_name in old_global_attr_names:
-                    if old_attr_name in REMOVE_GLOBAL_ATTRIBUTES:
+                    if old_attr_name in REMOVED_GLOBAL_ATTRIBUTES:
                         self.assertNotIn(old_attr_name, new_global_attr_names)
-                    elif old_attr_name in RENAME_GLOBAL_ATTRIBUTES:
-                        new_attr_name = RENAME_GLOBAL_ATTRIBUTES[old_attr_name]
+                    elif old_attr_name in RENAMED_GLOBAL_ATTRIBUTES:
+                        new_attr_name = RENAMED_GLOBAL_ATTRIBUTES[old_attr_name]
                         self.assertNotIn(old_attr_name, new_global_attr_names)
                         self.assertIn(new_attr_name, new_global_attr_names)
 

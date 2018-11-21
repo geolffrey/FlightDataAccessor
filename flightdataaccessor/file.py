@@ -29,17 +29,19 @@ from flightdataaccessor.datatypes.parameter import Parameter
 
 
 from .formats import hdf
+from .formats import compatibility
 
+# XXX: refactor dependent code and remove
 HDFACCESS_VERSION = hdf.CURRENT_VERSION
 
 
-@deprecated(details='Use FlightDataFile() instead')
+@deprecated(details='Use formats.compatibility.open() or format classes instead')
 def hdf_file(*args, **kwargs):
     if 'mode' not in kwargs:
         kwargs = copy.copy(kwargs)
         kwargs['mode'] = 'a'
 
-    return hdf.FlightDataFile(*args, **kwargs)
+    return compatibility.open(*args, **kwargs)
 
 
 class HdfFileLegacy(object):
