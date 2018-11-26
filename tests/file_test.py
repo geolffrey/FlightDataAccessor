@@ -288,7 +288,6 @@ class TestHdfFile(unittest.TestCase):
 
     def test_lfl_keys(self):
         with hdf_file(self.hdf_path) as fdf:
-            print fdf.lfl_keys(), fdf.derived_keys(), fdf.keys()
             self.assertEqual(sorted(fdf.lfl_keys()), ['TEST_PARAM10'])
 
     def test_derived_keys(self):

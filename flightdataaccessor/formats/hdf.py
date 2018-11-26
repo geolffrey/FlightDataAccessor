@@ -7,12 +7,8 @@ from __future__ import division
 
 import base64
 import copy
-import datetime
 import functools
-import math
 import os
-import pytz
-import re
 import warnings
 import zlib
 
@@ -25,7 +21,6 @@ from collections import defaultdict
 from sortedcontainers import SortedSet
 
 from flightdatautilities.array_operations import merge_masks
-from flightdatautilities.patterns import wildcard_match
 
 from ..datatypes.parameter import Parameter
 from .base import FlightDataFormat
@@ -35,7 +30,7 @@ from .legacy import Compatibility
 LIBRARY_VERSION = (1, 10, 1)
 CURRENT_VERSION = 3
 PARAMETER_ATTRIBUTES = (
-    'arinc_429', 'data_type', 'frequency', 'invalid', 'invalidity_reason', 'limits' 'offset', 'source', 'source_name',
+    'arinc_429', 'data_type', 'frequency', 'invalid', 'invalidity_reason', 'limits', 'offset', 'source', 'source_name',
     'unit', 'values_mapping',
 )
 
@@ -72,8 +67,8 @@ class FlightDataFile(FlightDataFormat, Compatibility):
         'cache_param_list',
         'data',
         'file',
-        'file_mode',
         'keys_cache',
+        'mode',
         'parameter_cache',
         'path',
     }
@@ -90,26 +85,17 @@ class FlightDataFile(FlightDataFormat, Compatibility):
         if h5py.version.hdf5_version_tuple < LIBRARY_VERSION:
             pass  # XXX: Issue a warning?
 
-        self.file_mode = self._parse_legacy_options(mode, **kwargs)
-        if self.file_mode is None:
-            self.file_mode = 'r'
+        mode = self._parse_legacy_options(mode, **kwargs)
+        if mode is None:
+            mode = 'r'
 
         self.parameter_cache = {}
         self.cache_param_list = []
         self.keys_cache = defaultdict(SortedSet)
 
-        created = False
-        # Prepare the file for reading or writing:
-        if isinstance(filelike, h5py.File):
-            self.path = os.path.abspath(filelike.filename)
-            self.file = filelike
-            # ...
-        else:
-            # XXX: Handle compressed files transparently?
-            self.path = os.path.abspath(filelike)
-            if not os.path.exists(self.path):
-                created = True
-            self.file = h5py.File(filelike, mode=self.file_mode)
+        self.path = None
+        self.file = None
+        created = self.open(filelike, mode=mode)
 
         # Handle backwards compatibility for older versions:
         if created:
@@ -139,6 +125,7 @@ class FlightDataFile(FlightDataFormat, Compatibility):
 
     def __enter__(self):
         """Context manager API"""
+        self.open()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -176,6 +163,33 @@ class FlightDataFile(FlightDataFormat, Compatibility):
             return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode('utf-8')) if value else None
         else:
             return value
+
+    def open(self, source=None, mode='r'):
+        # Prepare the file for reading or writing:
+        if self.file is not None:
+            return
+
+        if source is None:
+            # reopen the file from the stored path and mode
+            return self.open(self.path, self.mode)
+
+        created = False
+
+        if isinstance(source, h5py.File):
+            self.path = os.path.abspath(source.filename)
+            self.file = source
+        else:
+            # XXX: Handle compressed files transparently?
+            self.path = os.path.abspath(source)
+            if not os.path.exists(self.path):
+                created = True
+            self.file = h5py.File(source, mode=mode)
+            if mode == 'x':
+                # save mode for reopen
+                self.mode = 'a'
+            else:
+                self.mode = mode
+        return created
 
     @require_rw
     def set_source_attribute(self, name, value):
@@ -502,6 +516,7 @@ class FlightDataFile(FlightDataFormat, Compatibility):
         """Get information if parameter is invalid"""
         param_group = self.data[name]
         return bool(param_group.attrs.get('invalid', False))
+
     def get_parameter_limits(self, name, default=None):
         """Return a parameter's operating limits stored within the groups 'limits' attribute.
 

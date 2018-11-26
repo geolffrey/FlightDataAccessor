@@ -231,8 +231,6 @@ class FlightDataFormat(object):
             self, target=None, start_offset=0, stop_offset=None, superframe_boundary=False, parameter_list=None,
             deidentify=False, target_class=None):
         """Create a copy of the object trimmed to given range"""
-        from .compatibility import open as open_fdf
-
         if target is None:
             target = self.__class__
 
@@ -247,7 +245,7 @@ class FlightDataFormat(object):
             start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
             stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
 
-        with open_fdf(target, mode='x') as new_fdf:
+        with compatibility.open(target, mode='x') as new_fdf:
             for name in parameter_list:
                 parameter = self.get_parameter(name, load_submasks=True)
                 new_fdf.set_parameter(
@@ -383,3 +381,10 @@ class FlightDataFormat(object):
             else:
                 timestamp = start_datetime
             self.timestamp = timestamp
+
+    def upgrade(self, target=None):
+        """Return a copy of self."""
+        if target is None:
+            target = type(self)
+
+        return self.trim(target)

@@ -27,5 +27,8 @@ __platforms__ = ['OS Independent']
 __license__ = 'Open Software License (OSL-3.0)'
 __keywords__ = ['hdf', 'numpy', 'flight', 'data']
 
+
+from .formats.compatibility import open
+
 ################################################################################
 # vim:et:ft=python:nowrap:sts=4:sw=4:ts=4

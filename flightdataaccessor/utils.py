@@ -4,13 +4,14 @@ import argparse
 import logging
 import os
 import shutil
+import tempfile
 import warnings
 
 from deprecation import deprecated
 
 from flightdatautilities.filesystem_tools import copy_file
 
-from flightdataaccessor.formats.hdf import FlightDataFile
+import flightdataaccessor
 
 
 def _copy_attrs(source_group, target_group, deidentify=False):
@@ -26,8 +27,8 @@ def _copy_attrs(source_group, target_group, deidentify=False):
         target_group.attrs[key] = value
 
 
-@deprecated(details='Use FlightDataFile.concatenate() instead')
-def concat_hdf(hdf_paths, dest=None):
+@deprecated(details='Use FlightDataFormat.concatenate() instead')
+def concat_hdf(sources, dest=None):
     '''
     Takes in a list of HDF file paths and concatenates the parameter
     datasets which match the path 'series/<Param Name>/data'. The first file
@@ -43,20 +44,28 @@ def concat_hdf(hdf_paths, dest=None):
     :return: path to concatenated hdf file.
     :rtype: str
     '''
-    # copy hdf to temp area to build upon
-    hdf_master_path = copy_file(hdf_paths[0])
+    target = dest if dest is not None else None
+    if isinstance(sources[0], str):
+        # the frst source needs to be upgraded first
+        if target is None:
+            f, target = tempfile.mkstemp()
+            os.fdopen(f, 'w').close()
+            os.unlink(target)
 
-    with FlightDataFile(hdf_master_path, mode='a') as fdf_master:
-        fdf_master.concatenate(hdf_paths[1:])
+        with flightdataaccessor.open(sources[0]) as fdf_master:
+            fdf_master.upgrade(target)
 
-    if dest:
-        shutil.move(hdf_master_path, dest)
-        return dest
-    else:
-        return hdf_master_path
+        if dest is None:
+            # the first source is the concatenation target
+            shutil.copy(target, sources[0])
+
+    with flightdataaccessor.open(target, mode='a') as fdf:
+        fdf.concatenate(sources[1:])
+
+    return target
 
 
-@deprecated(details='Use FlightDataFile.trim() instead')
+@deprecated(details='Use FlightDataFormat.trim() instead')
 def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     '''
     Strip an HDF file of all parameters apart from those in params_to_keep.
@@ -72,15 +81,15 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     :return: all parameters names within the output hdf file
     :rtype: [str]
     '''
-    with FlightDataFile(hdf_path) as fdf:
+    with flightdataaccessor.open(hdf_path) as fdf:
         fdf.trim(dest, parameter_list=params_to_keep, deidentify=deidentify)
 
     # XXX: filter the param_to_keep list to the list of existing parameters
-    with FlightDataFile(dest) as fdf:
+    with flightdataaccessor.open(dest) as fdf:
         return list(set(params_to_keep) & set(fdf.keys()))
 
 
-@deprecated(details='Use FlightDataFile.trim() instead')
+@deprecated(details='Use FlightDataFormat.trim() instead')
 def write_segment(source, segment, dest, boundary, submasks=None):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by
@@ -121,7 +130,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
             'Selection of submasks was requested which is not supported. All submasks will be saved instead',
             DeprecationWarning)
 
-    with FlightDataFile(source) as fdf:
+    with flightdataaccessor.open(source) as fdf:
         if not fdf.superframe_present and boundary not in (1, 4):
             # boundary in subframes
             warnings.warn(
@@ -167,7 +176,7 @@ def revert_masks(hdf_path, params=None, delete_derived=False):
     :type params: [str] or None
     :type delete_derived: bool
     '''
-    with FlightDataFile(hdf_path, mode='a') as fdf:
+    with flightdataaccessor.open(hdf_path, mode='a') as fdf:
         if not params:
             params = fdf.keys() if delete_derived else fdf.lfl_keys()
 

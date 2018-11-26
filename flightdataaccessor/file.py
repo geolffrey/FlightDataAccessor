@@ -35,13 +35,7 @@ from .formats import compatibility
 HDFACCESS_VERSION = hdf.CURRENT_VERSION
 
 
-@deprecated(details='Use formats.compatibility.open() or format classes instead')
-def hdf_file(*args, **kwargs):
-    if 'mode' not in kwargs:
-        kwargs = copy.copy(kwargs)
-        kwargs['mode'] = 'a'
-
-    return compatibility.open(*args, **kwargs)
+hdf_file = deprecated(details='Use formats.compatibility.open() or format classes instead')(compatibility.open)
 
 
 class HdfFileLegacy(object):

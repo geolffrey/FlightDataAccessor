@@ -128,9 +128,9 @@ class Compatibility(object):
         name = LEGACY_GLOBAL_ATTRIBUTES.get(name, name)
         return name
 
-    def upgrade(self, filename):
+    def upgrade(self, target):
         """Upgrade the file to new format"""
         if self.file.attrs.get('version') >= self.VERSION:
             raise ValueError('The FlightDataFile is in the latest format!')
 
-        self.trim(filename)
+        return self.trim(target)

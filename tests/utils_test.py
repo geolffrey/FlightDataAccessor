@@ -100,13 +100,13 @@ class TestConcatHDF(unittest.TestCase):
         if dest:
             self.assertEqual(dest, out_path)
         with h5py.File(out_path, 'r') as hdf_out_file:
-            series = hdf_out_file
-            self.assertEqual(series.attrs['frame_type'], '737-3C')
+            series = hdf_out_file['series']
             param = series['PARAM']
             self.assertEqual(param.attrs['frequency'], 8)
             data_result = param['data'][:]
             data_expected_result = np.concatenate((self.hdf_data_1, self.hdf_data_2))
             np.testing.assert_array_equal(data_result, data_expected_result)
+            # self.assertEqual(hdf_out_file.attrs['frame_type'], '737-3C')
             self.assertEqual(hdf_out_file.attrs['duration'], 50)
 
     def tearDown(self):
@@ -135,20 +135,22 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         '''
         strip_hdf(self.hdf_path, [], self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            self.assertEqual(list(hdf_file.keys()), [])
+            series = hdf_file['series']
+            self.assertEqual(list(series.keys()), [])
 
     def test_strip_hdf_ivv(self):
         params_to_keep = ['IVV']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            self.assertEqual(list(hdf_file.keys()), params_to_keep)
+            series = hdf_file['series']
+            self.assertEqual(list(series.keys()), params_to_keep)
             # Ensure datasets are unchanged.
-            self.assertTrue(all(hdf_file['IVV']['data'][:] == self.ivv_data))
-            # self.assertTrue(all(hdf_file['series']['IVV']['mask'][:] == self.ivv_mask))
+            self.assertTrue(all(series['IVV']['data'][:] == self.ivv_data))
+            # self.assertTrue(all(series['series']['IVV']['mask'][:] == self.ivv_mask))
             # Ensure attributes are unchanged.
-            self.assertEqual(hdf_file['IVV'].attrs['offset'],
+            self.assertEqual(series['IVV'].attrs['offset'],
                              self.ivv_supf_offset)
-            self.assertEqual(hdf_file['IVV'].attrs['frequency'],
+            self.assertEqual(series['IVV'].attrs['frequency'],
                              self.ivv_frequency)
 
     def test_strip_hdf_dme_wow(self):
@@ -159,7 +161,8 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         params_to_keep = ['DME', 'WOW']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            self.assertEqual(list(hdf_file.keys()), params_to_keep)
+            series = hdf_file['series']
+            self.assertEqual(list(series.keys()), params_to_keep)
 
 
 class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
@@ -323,7 +326,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
 
         with h5py.File(dest, 'r') as hdf_file:
             # 'IVV' - 1Hz parameter.
-            ivv_group = hdf_file['IVV']
+            series = hdf_file['series']
+            ivv_group = series['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
             self.assertEqual(ivv_group.attrs['offset'], self.ivv_supf_offset)
@@ -333,7 +337,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 dtype=np.float)
             self.assertItemsEqual(ivv_result, ivv_expected_result)
             # 'WOW' - 4Hz parameter.
-            wow_group = hdf_file['WOW']
+            wow_group = series['WOW']
             self.assertEqual(wow_group.attrs['frequency'],
                              self.wow_frequency)
             wow_result = wow_group['data'][:]
@@ -342,7 +346,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 dtype=np.float)
             self.assertTrue(list(wow_result), list(wow_expected_result))
             # 'DME' - 0.25Hz parameter.
-            dme_group = hdf_file['DME']
+            dme_group = series['DME']
             self.assertEqual(dme_group.attrs['frequency'],
                              self.dme_frequency)
             dme_result = dme_group['data'][:]
@@ -360,7 +364,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         def test_hdf(dest):
             with h5py.File(dest, 'r') as hdf_file:
                 # 'IVV' - 1Hz parameter.
-                ivv_group = hdf_file['IVV']
+                series = hdf_file['series']
+                ivv_group = series['IVV']
                 self.assertEqual(ivv_group.attrs['frequency'],
                                  self.ivv_frequency)
                 self.assertEqual(ivv_group.attrs['offset'],
@@ -368,13 +373,13 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 ivv_result = ivv_group['data'][:]
                 self.assertTrue(all(ivv_result == self.ivv_data))
                 # 'WOW' - 4Hz parameter.
-                wow_group = hdf_file['WOW']
+                wow_group = series['WOW']
                 self.assertEqual(wow_group.attrs['frequency'],
                                  self.wow_frequency)
                 wow_result = wow_group['data'][:]
                 self.assertTrue(all(wow_result == self.wow_data))
                 # 'DME' - 0.25Hz parameter.
-                dme_group = hdf_file['DME']
+                dme_group = series['DME']
                 self.assertEqual(dme_group.attrs['frequency'],
                                  self.dme_frequency)
                 dme_result = dme_group['data'][:]
