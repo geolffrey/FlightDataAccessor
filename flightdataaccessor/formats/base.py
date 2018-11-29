@@ -287,9 +287,7 @@ class FlightDataFormat(object):
         for source in sources:
             with compatibility.open(source) as fdf:
                 for to_append in fdf.values():
-                    parameter = self[to_append.name]
-                    parameter.extend(to_append)
-                    self[parameter.name] = parameter
+                    self.extend_parameter(to_append.name, to_append)
 
     def get(self, name, default=None, **kwargs):
         """Dictionary like .get operator. Additional kwargs are passed into the get_param method."""
@@ -340,6 +338,12 @@ class FlightDataFormat(object):
         """Returns a parameter's ARINC 429 flag."""
         arinc_429 = bool(self.data[name].attrs.get('arinc_429'))
         return arinc_429
+
+    def extend_parameter(self, name, array):
+        """Extend the parameter with additional data."""
+        parameter = self[name]
+        parameter.extend(array)
+        self[parameter.name] = parameter
 
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
     # Maybe move to legacy instead?
