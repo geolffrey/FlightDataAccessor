@@ -285,7 +285,7 @@ class TestParameter(unittest.TestCase):
         p_name = 'param'
         p = Parameter(p_name)
         self.assertEqual(p.name, p_name)
-        self.assertEqual(p.array, [])
+        self.assertItemsEqual(p.array, [])
         self.assertEqual(p.frequency, 1)
         self.assertEqual(p.offset, 0)
         self.assertEqual(p.arinc_429, None)
@@ -366,9 +366,12 @@ class TestParameter(unittest.TestCase):
         self.assertTrue(p.validate_mask(array=p.array, submasks=p.submasks))
         # validate arbitrary array without a mask
         self.assertTrue(p.validate_mask(array=p.array.data))
+
         # fail validation of array with masked items if no corresponding submasks is passed
-        with self.assertRaises(ValueError):
-            self.assertTrue(p.validate_mask(array=p.array))
+        # XXX: for backwards compatibility raising of this exception is disabled in normal mode
+        # TODO: implement strict mode and make it the default after refactoring is complete
+        # with self.assertRaises(ValueError):
+        #     self.assertTrue(p.validate_mask(array=p.array))
 
         # fail validation of array with masked items if submasks passed have different sizes
         with self.assertRaises(ValueError):

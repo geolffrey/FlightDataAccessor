@@ -182,6 +182,7 @@ class FlightDataFormat(object):
         """Store parameter data"""
         if hasattr(parameter, 'validate_mask'):
             parameter.validate_mask()
+
         self.data[parameter.name] = parameter
 
         # Update all parameter name caches with updates:

@@ -335,6 +335,8 @@ class FlightDataFile(FlightDataFormat, Compatibility):
             else:
                 mask = False
 
+        if isinstance(mask, (bool, np.bool_)):
+            mask = np.zeros_like(group['data'], dtype=np.bool8)
         return mask, submasks
 
     def load_parameter(self, name, load_submasks=False):

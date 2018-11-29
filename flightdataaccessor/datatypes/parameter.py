@@ -401,21 +401,15 @@ class Parameter(Compatibility):
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
         # XXX: default submask to handle the case of quick Parameter initialisation: Parameter(name, array)
-        if not submasks:
-            mask = np.ma.getmaskarray(array)
-            if np.any(mask):
-                # XXX: default submask name
-                if self.source == 'lfl':
-                    submask_name = 'padding'
-                elif self.source == 'derived':
-                    submask_name = 'derived'
-                else:
-                    submask_name = 'auto'
-                submasks = {submask_name: mask}
+        if self.source == 'lfl':
+            self.default_submask_name = 'padding'
+        elif self.source == 'derived':
+            self.default_submask_name = 'derived'
         else:
-            submasks = {k: np.array(v, dtype=np.bool) for k, v in submasks.items()}
+            self.default_submask_name = 'auto'
 
-        self.submasks = submasks or {}
+        self.submasks = {k: np.array(v, dtype=np.bool) for k, v in submasks.items()} if submasks else {}
+        self.submasks[self.default_submask_name] = np.ma.getmaskarray(array)
         self.limits = limits
 
     def __repr__(self):
@@ -472,9 +466,9 @@ class Parameter(Compatibility):
             array = self.array
             submasks = self.submasks
         elif not submasks:
-            if np.any(np.ma.getmaskarray(array)):
-                raise MaskError('No submasks defined but the array has masked values')
-            # no mask and no submasks
+            # if np.any(np.ma.getmaskarray(array)):
+            #     raise MaskError('No submasks defined but the array has masked values')
+            # parameter mask will be used as default submask
             return True
 
         if set(submasks.keys()) != set(self.submasks.keys()):
@@ -596,6 +590,9 @@ class Parameter(Compatibility):
             submasks = {}
             for name in self.submasks:
                 submasks[name] = np.zeros(len(array), dtype=np.bool)
+            mask_array = np.ma.getmaskarray(array)
+            if np.any(mask_array):
+                submasks[self.default_submask_name] = mask_array
 
         for name, submask in submasks.items():
             self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
