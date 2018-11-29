@@ -516,7 +516,7 @@ class Parameter(Compatibility):
 
     def slice(self, sl):
         """Return a copy of the parameter with all the data sliced to given slice."""
-        clone = copy.copy(self)
+        clone = copy.deepcopy(self)
         clone.array = self.array[sl]
         clone.submasks = {k: v[sl] for k, v in self.submasks.items()}
         return clone

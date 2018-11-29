@@ -397,21 +397,9 @@ class FlightDataFile(FlightDataFormat, Compatibility):
         if _slice:
             slice_start = int((_slice.start or 0) * parameter.frequency)
             slice_stop = int((_slice.stop or parameter.array.size) * parameter.frequency)
-            _slice = slice(slice_start, slice_stop)
-            array = parameter.array[_slice]
-            parameter = copy.deepcopy(parameter)
-            parameter.array = array
+            return parameter.slice(slice(slice_start, slice_stop))
         elif copy_param:
-            try:
-                parameter = copy.deepcopy(parameter)
-            except Exception:
-                attr_names = [
-                    'name', 'array', 'source', 'offset', 'unit', 'arinc_429', 'invalid', 'invalidity_reason', 'limits',
-                    'data_type', 'source_name', 'submasks'
-                ]
-                attrs = [[a, type(getattr(parameter, a)), getattr(parameter, a)] for a in attr_names]
-                copy.deepcopy(attrs)
-                raise
+            return copy.deepcopy(parameter)
 
         return parameter
 
