@@ -419,7 +419,8 @@ class FlightDataFile(FlightDataFormat, Compatibility):
         if save_data:
             if 'data' in param_group:
                 del param_group['data']
-            param_group.create_dataset('data', data=np.ma.getdata(parameter.array), **self.DATASET_KWARGS)
+            param_group.create_dataset(
+                'data', data=np.ma.getdata(parameter.array), maxshape=(None,), **self.DATASET_KWARGS)
 
         # XXX: remove options to save masks or submasks, implement saving individual Parameter data instead
         if (save_submasks or save_mask) and getattr(parameter, 'submasks', None):
@@ -450,7 +451,9 @@ class FlightDataFile(FlightDataFormat, Compatibility):
                 submask_arrays.append(submask_array)
 
             param_group.attrs['submasks'] = simplejson.dumps(submask_map)
-            param_group.create_dataset('submasks', data=np.column_stack(submask_arrays), **self.DATASET_KWARGS)
+            param_group.create_dataset(
+                'submasks', data=np.column_stack(submask_arrays), maxshape=(None, len(submask_arrays)),
+                **self.DATASET_KWARGS)
 
         for attr in PARAMETER_ATTRIBUTES:
             if hasattr(parameter, attr):
@@ -492,6 +495,34 @@ class FlightDataFile(FlightDataFormat, Compatibility):
         if names is None:
             names = self.keys(valid_only=valid_only)
         return {name: self.get_parameter(name, valid_only=valid_only) for name in names}
+
+    def extend_parameter(self, name, data, submasks=None):
+        """Extend the parameter with additional data."""
+        param_group = self.data[name]
+
+        parameter = self[name]
+        parameter.extend(data, submasks)
+        data_size = parameter.array.size
+
+        # low-level data and submasks extension
+        data = param_group['data']
+        start_index = len(data)
+        data.resize((data_size,))
+        data[start_index:len(parameter.array)] = parameter.array[start_index:len(parameter.array)]
+
+        submask_arrays = []
+        not_empty = (x for x in parameter.submasks.items() if x[1] is not None)
+        for index, (submask_name, submask_array) in enumerate(not_empty):
+            # Expand booleans to be arrays.
+            if type(submask_array) in (bool, np.bool8):
+                function = np.ones if submask_array else np.zeros
+                submask_array = function(submask_length, dtype=np.bool8)
+            submask_arrays.append(submask_array[start_index:len(parameter.array)])
+
+        n_submasks = len(submask_arrays)
+        submasks_data = param_group['submasks']
+        submasks_data.resize((data_size, n_submasks))
+        submasks_data[start_index:len(parameter.array),] = np.column_stack(submask_arrays)
 
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
     # Maybe move to legacy instead?

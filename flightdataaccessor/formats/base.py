@@ -339,10 +339,10 @@ class FlightDataFormat(object):
         arinc_429 = bool(self.data[name].attrs.get('arinc_429'))
         return arinc_429
 
-    def extend_parameter(self, name, array):
+    def extend_parameter(self, name, array, submasks=None):
         """Extend the parameter with additional data."""
         parameter = self[name]
-        parameter.extend(array)
+        parameter.extend(array, submasks)
         self[parameter.name] = parameter
 
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
