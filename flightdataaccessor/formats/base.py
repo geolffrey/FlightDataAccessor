@@ -378,15 +378,15 @@ class FlightDataFormat(Compatibility):
 
         If start_datetime is None the 'timestamp' attribute will be deleted."""
         if start_datetime is None:
-            if 'timestamp' in self.hdf.attrs:
-                del self.timestamp
+            timestamp = None
         else:
-            if isinstance(start_datetime, datetime):
-                epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+            if isinstance(start_datetime, datetime.datetime):
+                epoch = datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)
                 timestamp = (start_datetime - epoch).total_seconds()
             else:
                 timestamp = start_datetime
-            self.timestamp = timestamp
+
+        self.timestamp = timestamp
 
     def upgrade(self, target=None):
         """Return a copy of self."""
