@@ -24,6 +24,7 @@ from sortedcontainers import SortedSet
 from flightdatautilities.patterns import wildcard_match
 
 from . import compatibility
+from .legacy import Compatibility
 
 
 CURRENT_VERSION = 3
@@ -32,7 +33,7 @@ CURRENT_VERSION = 3
 # XXX: Should subclass container types:
 # https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
 @six.python_2_unicode_compatible
-class FlightDataFormat(object):
+class FlightDataFormat(Compatibility):
     FDF_ATTRIBUTES = {
         'arinc',
         'dependency_tree',

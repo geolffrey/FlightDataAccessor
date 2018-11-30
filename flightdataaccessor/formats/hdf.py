@@ -24,7 +24,6 @@ from flightdatautilities.array_operations import merge_masks
 
 from ..datatypes.parameter import Parameter
 from .base import FlightDataFormat
-from .legacy import Compatibility
 
 
 LIBRARY_VERSION = (1, 10, 1)
@@ -59,7 +58,7 @@ def require_rw(func):
 
 # XXX: Should subclass container types: https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
 @six.python_2_unicode_compatible
-class FlightDataFile(FlightDataFormat, Compatibility):
+class FlightDataFile(FlightDataFormat):
     VERSION = CURRENT_VERSION
     DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 6}
     # attributes stored in memory
