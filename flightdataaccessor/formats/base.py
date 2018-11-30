@@ -166,6 +166,9 @@ class FlightDataFormat(Compatibility):
             raise KeyError(name)
 
         parameter = self.load_parameter(name, **kwargs)
+        if isinstance(parameter.array.mask, np.bool8):
+            # ensure the returned mask is always an array
+            parameter.array.mask = np.ma.getmaskarray(parameter.array)
 
         if _slice:
             slice_start = int((_slice.start or 0) * parameter.frequency)
