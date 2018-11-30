@@ -464,8 +464,9 @@ class Parameter(Compatibility):
         # XXX: should we raise errors?
         if array is None and submasks is None:
             array = self.array
-            submasks = self.submasks
-        elif not submasks:
+            submasks = {k: v for k, v in self.submasks.items() if len(v)}
+
+        if not submasks:
             # if np.any(np.ma.getmaskarray(array)):
             #     raise MaskError('No submasks defined but the array has masked values')
             # parameter mask will be used as default submask
