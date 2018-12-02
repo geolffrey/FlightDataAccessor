@@ -182,7 +182,7 @@ class FlightDataFormat(Compatibility):
 
         return parameter
 
-    def set_parameter(self, parameter):
+    def set_parameter(self, parameter, **kwargs):
         """Store parameter data"""
         if hasattr(parameter, 'validate_mask'):
             parameter.validate_mask()
@@ -335,6 +335,8 @@ class FlightDataFormat(Compatibility):
 
         Decodes limits from JSON into dict.
         """
+        if default is None:
+            default = {}
         limits = self[name].limits
         return simplejson.loads(limits) if limits else default
 
