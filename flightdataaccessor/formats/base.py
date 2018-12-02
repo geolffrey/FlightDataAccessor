@@ -335,12 +335,12 @@ class FlightDataFormat(Compatibility):
 
         Decodes limits from JSON into dict.
         """
-        limits = self.data[name].attrs.get('limits')
+        limits = self[name].limits
         return simplejson.loads(limits) if limits else default
 
     def get_param_arinc_429(self, name):
         """Returns a parameter's ARINC 429 flag."""
-        arinc_429 = bool(self.data[name].attrs.get('arinc_429'))
+        arinc_429 = bool(self[name].arinc_429)
         return arinc_429
 
     def extend_parameter(self, name, array, submasks=None):
@@ -353,15 +353,15 @@ class FlightDataFormat(Compatibility):
     # Maybe move to legacy instead?
     def set_parameter_limits(self, name, limits):
         """Set parameter limits"""
-        param_group = self.get_or_create(name)
-        param_group.attrs['limits'] = simplejson.dumps(limits)
+        parameter = self.get_parameter(name)
+        parameter.limits = simplejson.dumps(limits)
 
     def set_parameter_invalid(self, name, reason=''):
         """Set a parameter to be invalid"""
         # XXX: originally the parameter was fully masked, should we create a submask for that?
-        param_group = self.data[name]
-        param_group.attrs['invalid'] = 1
-        param_group.attrs['invalidity_reason'] = reason
+        parameter = self.get_parameter(name)
+        parameter.invalid = 1
+        parameter.invalidity_reason = reason
 
     @property
     def start_datetime(self):
@@ -397,3 +397,14 @@ class FlightDataFormat(Compatibility):
             target = type(self)
 
         return self.trim(target)
+
+    # XXX: do we need it? I's used by "access attribute" methods (inconsistently) and it's use cases are questionable
+    # (access an attribute on a parameter before it is properly instantiated)
+    def get_or_create(self, name):
+        """Return a Parameter, if it does not exist then create it too."""
+        if name in self.keys():
+            parameter = self.data[name]
+        else:
+            parameter = Parameter(name)
+            self.set_parameter(parameter)
+        return parameter
