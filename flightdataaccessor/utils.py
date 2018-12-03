@@ -90,7 +90,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
 
 
 @deprecated(details='Use FlightDataFormat.trim() instead')
-def write_segment(source, segment, dest, boundary, submasks=None):
+def write_segment(source, segment, boundary, part, dest=None, dest_dir=None, submasks=None):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by
     segments, a slice in seconds. Expects the HDF file to contain whole
@@ -120,10 +120,18 @@ def write_segment(source, segment, dest, boundary, submasks=None):
     TODO: Support segmenting parameter masks. Q: Does this mean copying the mask along
     with data? If so, this is already done.
     '''
-    if os.path.isfile(dest):
-        logging.warning(
-            "File '%s' already exists, write_segments will delete file.", dest)
-        os.remove(dest)
+    if dest is None and isinstance(source, str):
+        # write segment to new split file (.001)
+        if dest_dir is None:
+            dest_dir = os.path.dirname(dest) if isinstance(dest, str) else os.path.dirname(source)
+        basename = os.path.basename(source)
+        dest_basename = os.path.splitext(basename)[0] + '.%03d.hdf5' % part
+        dest = os.path.join(dest_dir, dest_basename)
+
+    if isinstance(dest, str):
+        if os.path.isfile(dest):
+            logging.warning("File '%s' already exists, write_segments will delete the file.", dest)
+            os.remove(dest)
 
     if submasks:
         warnings.warn(
@@ -137,9 +145,9 @@ def write_segment(source, segment, dest, boundary, submasks=None):
                 'Alignment to %d subframes was requested. Alignment to 64 subframes is supported only for data '
                 'with superframes otherwise alignment to 4 subframes is used. Default alignment will be used instead.'
                 % boundary, DeprecationWarning)
-        fdf.trim(dest, start_offset=segment.start, stop_offset=segment.stop, superframe_boundary=boundary != 1)
+        result = fdf.trim(dest, start_offset=segment.start, stop_offset=segment.stop, superframe_boundary=boundary != 1)
 
-    return dest
+    return result
 
 
 def segment_boundaries(segment, boundary):

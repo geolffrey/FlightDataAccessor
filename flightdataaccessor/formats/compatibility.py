@@ -3,8 +3,6 @@ Compatibility features.
 """
 import inspect
 
-import contextlib
-
 
 def open(source, **kwargs):
     """Open the source object."""
