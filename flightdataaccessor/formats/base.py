@@ -184,7 +184,7 @@ class FlightDataFormat(Compatibility):
 
     def set_parameter(self, parameter, **kwargs):
         """Store parameter data"""
-        if hasattr(parameter, 'validate_mask'):
+        if not parameter.invalid and hasattr(parameter, 'validate_mask'):
             parameter.validate_mask()
 
         self.data[parameter.name] = parameter
