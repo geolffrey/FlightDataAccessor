@@ -49,13 +49,13 @@ class FlightDataFormat(Compatibility):
 
     def __init__(self, **kwargs):
         super(FlightDataFormat, self).__init__()
-        self.cache_param_list = []
+        self.cache_param_list = kwargs.get('cache_param_list', [])
         self.keys_cache = defaultdict(SortedSet)
         self.data = {}
 
         # FDF attributes
-        self.superframe_present = False
-        self.reliable_frame_counter = False
+        self.superframe_present = kwargs.get('superframe_present', False)
+        self.reliable_frame_counter = kwargs.get('superframe_present', False)
         self.timestamp = None
 
     def __repr__(self):
