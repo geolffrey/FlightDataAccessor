@@ -6,21 +6,24 @@ compatible structure meeting POLARIS pre-analysis specification.
 from __future__ import print_function
 
 import argparse
-import os
+import h5py
 import json
 import logging
+import numpy as np
+import os
+
 from math import ceil
 
-import h5py
-import numpy as np
+from flightdatautilities.patterns import wildcard_match, WILDCARD
+from flightdatautilities import units as ut
+from flightdatautilities.state_mappings import PARAMETER_CORRECTIONS
+
+from analysis_engine.utils import list_parameters
 
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import MappedArray
 from hdfaccess.tools.parameter_lists import PARAMETERS_FROM_FILES
-from analysis_engine.utils import list_parameters
-from flightdatautilities.patterns import wildcard_match, WILDCARD
-from flightdatautilities import units as ut
-from flightdatautilities.state_mappings import PARAMETER_CORRECTIONS
+
 
 LOGGER = logging.getLogger(__name__)
 
