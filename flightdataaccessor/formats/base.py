@@ -242,13 +242,6 @@ class FlightDataFormat(Compatibility):
         if parameter_list is None:
             parameter_list = self.keys()
         superframe_size = 64 if self.superframe_present else 4
-        if start_offset is None:
-            start_offset = 0
-        if stop_offset is None:
-            stop_offset = self.duration
-        if superframe_boundary:
-            start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
-            stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
 
         with compatibility.open(target, mode='x') as new_fdf:
             for name in parameter_list:

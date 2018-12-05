@@ -552,7 +552,7 @@ class Parameter(Compatibility):
         if unmasked_start_offset > start_offset or stop_offset > unmasked_stop_offset:
             requested_duration = unmasked_stop_offset - unmasked_start_offset
             padding = np.zeros(len(clone.array), dtype=np.bool)
-            padding_at_start = unmasked_start_offset * self.frequency
+            padding_at_start = unmasked_start_offset * self.frequency - start_ix
             padding_at_end = padding_at_start + requested_duration * self.frequency
             padding[:padding_at_start] = True
             padding[padding_at_end:] = True
