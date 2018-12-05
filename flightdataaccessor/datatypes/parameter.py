@@ -486,8 +486,8 @@ class Parameter(Compatibility):
 
     def downsample(self, width, start_offset=None, stop_offset=None, mask=True):
         """Downsample data in range to fit in a window of given width."""
-        start_ix = int(start_offset * self.hz) if start_offset else 0
-        stop_ix = int(stop_offset * self.hz) if stop_offset else self.array.size
+        start_ix = int(start_offset * self.frequency) if start_offset else 0
+        stop_ix = int(stop_offset * self.frequency) if stop_offset else self.array.size
         sliced = self.array[start_ix:stop_ix]
         if not mask:
             sliced = sliced.data
@@ -511,7 +511,7 @@ class Parameter(Compatibility):
         if not timestamps:
             return downsampled
 
-        interval = 1000 * (1 if bucket_size is None else bucket_size / SAMPLES_PER_BUCKET) / self.hz
+        interval = 1000 * (1 if bucket_size is None else bucket_size / SAMPLES_PER_BUCKET) / self.frequency
         timestamps = 1000 * (self.offset + start_offset) + interval * np.arange(downsampled.size)
         return np.ma.dstack((timestamps, downsampled))[0]
 
@@ -535,8 +535,8 @@ class Parameter(Compatibility):
         if superframe_boundary:
             start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
             stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
-        start_ix = int(start_offset * self.hz) if start_offset else 0
-        stop_ix = int(stop_offset * self.hz) if stop_offset else self.array.size
+        start_ix = int(start_offset * self.frequency) if start_offset else 0
+        stop_ix = int(stop_offset * self.frequency) if stop_offset else self.array.size
         clone = self.slice(slice(start_ix, stop_ix))
         if pad and stop_ix > self.array.size:
             # more data was requested than available and padding was requested
