@@ -54,6 +54,7 @@ class HDFValidatorHandler(logging.Handler):
         ''' returns the number of warnings and errors logged.'''
         return {'warnings': self.warnings, 'errors': self.errors}
 
+
 VALID_FREQUENCIES = {
     # base 2 frequencies
     0.03125,
@@ -558,7 +559,7 @@ def validate_values_mapping(hdf, parameter, states=False):
             if states and {k: v for k, v in parameter.values_mapping.items() if v != '-'} != states:
                 LOGGER.error("'values_mapping': '%s' does not contain valid states %s, "
                              "the states should be %s.",
-                             parameter.name, parameter.values_mapping, states) 
+                             parameter.name, parameter.values_mapping, states)
         else:
             for pattern, states in PARAMETER_CORRECTIONS.items():
                 found_matches = wildcard_match(pattern, [parameter.name])
