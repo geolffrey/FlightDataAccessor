@@ -90,7 +90,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
 
 
 @deprecated(details='Use FlightDataFormat.trim() instead')
-def write_segment(source, segment, boundary, part, dest=None, dest_dir=None, submasks=None):
+def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4, submasks=None):
     '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by
     segments, a slice in seconds. Expects the HDF file to contain whole

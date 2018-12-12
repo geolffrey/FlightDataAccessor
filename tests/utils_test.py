@@ -185,8 +185,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         Slice has a start and stop.
         '''
         segment = slice(10, 17)
-        dest = write_segment(self.hdf_path, segment, self.out_path,
-                             boundary=4)
+        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4)
         self.assertEqual(dest, self.out_path)
 
         frame_boundary_segment = slice(8, 20)
@@ -230,8 +229,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 frame_boundary_segment.stop - frame_boundary_segment.start)
 
         # Write segment on superframe boundary.
-        dest = write_segment(self.hdf_path, segment, self.out_path,
-                             boundary=64)
+        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=64)
         self.assertEqual(dest, self.out_path)
 
         with h5py.File(dest, 'r') as hdf_file:
@@ -273,8 +271,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         '''
         segment = slice(50, None)
         frame_start = 48  # 48 is nearest frame boundary rounded down
-        dest = write_segment(self.hdf_path, segment, self.out_path,
-                             boundary=4)
+        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4)
         self.assertEqual(dest, self.out_path)
 
         with h5py.File(dest, 'r') as hdf_file:
@@ -321,8 +318,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         Slice has a start and stop.
         '''
         segment = slice(None, 70)
-        dest = write_segment(self.hdf_path, segment, self.out_path,
-                             boundary=4)
+        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4).path
         self.assertEqual(dest, self.out_path)
 
         frame_boundary_segment = slice(None, 72)
@@ -390,12 +386,10 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 self.assertEqual(hdf_file.attrs['duration'], self.data_secs)
 
         segment = slice(None)
-        dest = write_segment(self.hdf_path, segment, self.out_path,
-                             boundary=4)
+        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4).path
         self.assertEqual(dest, self.out_path)
         test_hdf(dest)
-        dest = write_segment(self.hdf_path, segment, self.out_path,
-                             boundary=64)
+        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=64).path
         self.assertEqual(dest, self.out_path)
         test_hdf(dest)
 
