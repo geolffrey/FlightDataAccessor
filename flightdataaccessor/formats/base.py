@@ -9,7 +9,6 @@ from __future__ import division
 
 import copy
 import datetime
-import math
 import pytz
 import re
 
@@ -22,6 +21,8 @@ from collections import defaultdict
 from sortedcontainers import SortedSet
 
 from flightdatautilities.patterns import wildcard_match
+
+from flightdataaccessor.datatypes.parameter import Parameter
 
 from . import compatibility
 from .legacy import Compatibility

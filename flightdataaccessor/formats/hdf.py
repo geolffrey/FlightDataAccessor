@@ -144,7 +144,10 @@ class FlightDataFile(FlightDataFormat):
         # Handle backwards compatibility for older versions:
         legacy = self.file.attrs.get('version', 0) >= self.VERSION
         if legacy:
-            return self.file.attrs.get(name)
+            value = self.file.attrs.get(name)
+            if isinstance(value, bytes):
+                value = value.decode('utf-8')
+            return value
 
         # XXX move to legacy?
         if name == 'version':
@@ -161,6 +164,8 @@ class FlightDataFile(FlightDataFormat):
         elif name in {'dependency_tree'}:
             return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode('utf-8')) if value else None
         else:
+            if isinstance(value, bytes):
+                value = value.decode('utf-8')
             return value
 
     def open(self, source=None, mode='r'):
@@ -275,6 +280,8 @@ class FlightDataFile(FlightDataFormat):
                     invalid = bool(attrs.get('invalid'))
                     # XXX: assume source = 'lfl' by default?
                     source = attrs.get('source', 'lfl' if attrs.get('lfl', True) else 'derived')
+                    if isinstance(source, bytes):
+                        source = source.decode('utf8')
                     append = not any((
                         valid_only and invalid,
                         subset == 'lfl' and source != 'lfl',
@@ -368,7 +375,12 @@ class FlightDataFile(FlightDataFormat):
             array = array.astype(np.float_)
 
         # backwards compatibility
-        kwargs['source'] = attrs.get('source', 'lfl' if attrs.get('lfl', True) else 'derived')
+        source = attrs.get('source')
+        if isinstance(source, bytes):
+            source = source.decode('utf-8')
+        elif source is None:
+            source = 'lfl' if attrs.get('lfl', True) else 'derived'
+        kwargs['source'] = source
         kwargs['offset'] = attrs.get('offset', attrs.get('supf_offset', 0))
         kwargs['unit'] = attrs.get('unit', attrs.get('units'))
 
@@ -515,13 +527,13 @@ class FlightDataFile(FlightDataFormat):
             # Expand booleans to be arrays.
             if type(submask_array) in (bool, np.bool8):
                 function = np.ones if submask_array else np.zeros
-                submask_array = function(submask_length, dtype=np.bool8)
+                submask_array = function(data_size, dtype=np.bool8)
             submask_arrays.append(submask_array[start_index:len(parameter.array)])
 
         n_submasks = len(submask_arrays)
         submasks_data = param_group['submasks']
         submasks_data.resize((data_size, n_submasks))
-        submasks_data[start_index:len(parameter.array),] = np.column_stack(submask_arrays)
+        submasks_data[start_index:len(parameter.array), ] = np.column_stack(submask_arrays)
 
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
     # Maybe move to legacy instead?

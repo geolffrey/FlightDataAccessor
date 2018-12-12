@@ -527,8 +527,10 @@ class Parameter(Compatibility):
 
         Optionally align the window to superframe boundaries which is useful for splitting segments.
         """
+        if start_offset is None:
+            start_offset = 0
         if stop_offset is None:
-            stop_offset = self.array.size * self.frequency
+            stop_offset = self.array.size / self.frequency
 
         unmasked_start_offset = start_offset
         unmasked_stop_offset = stop_offset

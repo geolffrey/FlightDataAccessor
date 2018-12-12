@@ -56,6 +56,9 @@ class TestHdfFile(unittest.TestCase):
         except (IOError, OSError):
             pass
 
+    def assertItemsEqual(self, l1, l2):
+        self.assertEqual(set(l1), set(l2))
+
     def test_dependency_tree(self):
         with hdf_file(self.hdf_path, mode='a') as fdf:
             self.assertEqual(fdf.dependency_tree, None)
@@ -243,7 +246,7 @@ class TestHdfFile(unittest.TestCase):
         with hdf_file(self.hdf_path, mode='a') as fdf:
             self.__test_get_param_data(fdf.get_param)
             param = fdf.get_param(self.masked_param_name, load_submasks=True)
-            expected_submasks = self.masked_param_submask_map.keys()
+            expected_submasks = list(self.masked_param_submask_map.keys())
             # default submask is added
             expected_submasks.append('derived')
             self.assertItemsEqual(expected_submasks, param.submasks.keys())

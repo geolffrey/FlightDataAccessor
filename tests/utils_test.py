@@ -173,6 +173,9 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         self.out_path = os.path.join(TEMP_DIR_PATH,
                                      'hdf_segment.hdf5')
 
+    def assertItemsEqual(self, l1, l2):
+        self.assertEqual(set(l1), set(l2))
+
     @unittest.skip('Rewrite this test to use the API to prepare the test data and to verify it')
     def test_write_segment__start_and_stop(self):
         '''

@@ -20,6 +20,9 @@ from flightdataaccessor.datatypes.parameter import Parameter
 class FlightDataFileTestV2(unittest.TestCase):
     test_fn = 'data/flight_data_v2.hdf5'
 
+    def assertItemsEqual(self, l1, l2):
+        self.assertEqual(set(l1), set(l2))
+
     def get_data_from_hdf(self, hdf):
         '''Return the object storing parameters (depending on version)'''
         return hdf['series']
@@ -211,7 +214,7 @@ class FlightDataFileTestV2(unittest.TestCase):
     def keys_add_test(self):
         """Compare keys() with raw HDF5 keys() before and after adding a parameter."""
         with h5py.File(self.fp, mode='r') as hdf:
-            hdf_series_names = self.get_data_from_hdf(hdf).keys()
+            hdf_series_names = list(self.get_data_from_hdf(hdf).keys())
 
         with FlightDataFile(self.fp, mode='a') as fdf:
             old_keys = fdf.keys()
@@ -226,7 +229,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with h5py.File(self.fp, mode='r') as hdf:
             hdf_series_names = self.get_data_from_hdf(hdf).keys()
             self.assertIn('Test', hdf_series_names)
-            self.assertEquals(hdf_series_names, new_keys)
+            self.assertItemsEqual(hdf_series_names, new_keys)
 
     def values_test(self):
         """
@@ -234,7 +237,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         parameter.
         """
         with h5py.File(self.fp, mode='r') as hdf:
-            hdf_series_names = self.get_data_from_hdf(hdf).keys()
+            hdf_series_names = list(self.get_data_from_hdf(hdf).keys())
 
         with FlightDataFile(self.fp, mode='a') as fdf:
             fdf_param_names = (p.name for p in fdf.values())
@@ -246,7 +249,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             fdf_param_names = (p.name for p in fdf.values())
 
         with h5py.File(self.fp, mode='r') as hdf:
-            hdf_series_names = (self.get_data_from_hdf(hdf).keys())
+            hdf_series_names = list(self.get_data_from_hdf(hdf).keys())
 
         self.assertIn(param.name, hdf_series_names)
 
@@ -480,7 +483,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             self.assertIn('Airspeed', fdf.parameter_cache)
 
     def trim_full_test(self):
-        """Trim the file to first 100 seconds."""
+        """Trim the file without limit (full copy)."""
         with FlightDataFile(self.fp) as fdf:
             duration = fdf.duration
             fdf.trim(self.fp + '-trim')

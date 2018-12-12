@@ -1,9 +1,5 @@
-import json
 import math
-import os
-import shutil
 import unittest
-import tempfile
 
 import numpy as np
 
@@ -12,6 +8,9 @@ from flightdataaccessor.datatypes.parameter import Parameter
 
 
 class FlightDataFormatTest(unittest.TestCase):
+    def assertItemsEqual(self, l1, l2):
+        self.assertEqual(set(l1), set(l2))
+
     def setitem_test(self):
         """__setitem__ is equivalent to set_parameter()"""
         param = Parameter('Test', array=np.ma.arange(100))
@@ -26,12 +25,6 @@ class FlightDataFormatTest(unittest.TestCase):
             fdf['Test'] = param
             param = fdf['Test']
             self.assertEqual(param.name, 'Test')
-
-    def setitem_test(self):
-        """__setitem__ is equivalent to set_parameter()"""
-        param = Parameter('Test', array=np.ma.arange(100))
-        with FlightDataFormat() as fdf:
-            fdf['Test'] = param
 
     def delitem_test(self):
         """__delitem__ is equivalent to delete_parameter()"""

@@ -285,7 +285,7 @@ class TestParameter(unittest.TestCase):
         p_name = 'param'
         p = Parameter(p_name)
         self.assertEqual(p.name, p_name)
-        self.assertItemsEqual(p.array, [])
+        self.assertEqual(p.array, [])
         self.assertEqual(p.frequency, 1)
         self.assertEqual(p.offset, 0)
         self.assertEqual(p.arinc_429, None)
@@ -329,17 +329,18 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.raw_array[2], 9)
 
     def test_combine_submasks(self):
-        p = Parameter('Submasks', submasks={
-            'mask1': np.array([1, 0, 0], dtype=np.bool_),
-            'mask2': np.array([1, 1, 0], dtype=np.bool_),
+        array = np.array([10, 20, 30])
+        p = Parameter('Submasks', array=array, submasks={
+            'mask1': np.array([1, 0, 0], dtype=np.bool8),
+            'mask2': np.array([1, 1, 0], dtype=np.bool8),
         })
         self.assertEqual(p.combine_submasks().tolist(), [1, 1, 0])
 
     def test_get_array(self):
         array = np.ma.array([10, 20, 30], mask=[0, 1, 1])
         p = Parameter('Submasks', array=array, submasks={
-            'mask1': np.array([1, 0, 0], dtype=np.bool_),
-            'mask2': np.array([1, 1, 0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool8),
+            'mask2': np.array([1, 1, 0], dtype=np.bool8),
         })
         self.assertEqual(p.get_array().tolist(), [10, None, None])
         self.assertEqual(p.get_array('mask1').tolist(), [None, 20, 30])
@@ -349,8 +350,8 @@ class TestParameter(unittest.TestCase):
         array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
-            'mask1': np.array([1, 0, 0], dtype=np.bool_),
-            'mask2': np.array([1, 1, 0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool8),
+            'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
         self.assertEqual(p.get_array().raw.tolist(), [1, None, None])
         self.assertEqual(p.get_array('mask1').raw.tolist(), [None, 2, 3])
@@ -476,8 +477,8 @@ class TestParameter(unittest.TestCase):
         array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
-            'mask1': np.array([1, 0, 0], dtype=np.bool_),
-            'mask2': np.array([1, 1, 0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool8),
+            'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
         p.extend([1, 2, 3])
         np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
@@ -487,8 +488,8 @@ class TestParameter(unittest.TestCase):
         array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
-            'mask1': np.array([1, 0, 0], dtype=np.bool_),
-            'mask2': np.array([1, 1, 0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool8),
+            'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
         p.extend(['One', 'Two', 'Three'])
         np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
@@ -498,8 +499,8 @@ class TestParameter(unittest.TestCase):
         array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
-            'mask1': np.array([1, 0, 0], dtype=np.bool_),
-            'mask2': np.array([1, 1, 0], dtype=np.bool_),
+            'mask1': np.array([1, 0, 0], dtype=np.bool8),
+            'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
         p.extend(MappedArray([1, 2, 3], values_mapping=values_mapping))
         np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
