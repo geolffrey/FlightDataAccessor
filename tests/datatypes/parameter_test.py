@@ -43,6 +43,16 @@ class TestMappedArray(unittest.TestCase):
         self.assertTrue(a[1] is np.ma.masked)
         self.assertEqual(a[2], 'three')
 
+    def test_wrong_submasks(self):
+        """Fail setting a parameter with submasks not matching mask in array."""
+        values = [1, 2, 3, 3]
+        mask = [False, True, False, True]
+        sub1 = [False, True, True, True]
+        submasks = {'sub1': sub1}
+        array = np.ma.MaskedArray(values, mask)
+        with self.assertRaises(ValueError):
+            Parameter('Test', array=array, submasks=submasks)
+
     def test_get_slice(self):
         values = [1, 2, 3]
         mask = [False, True, False]
@@ -337,23 +347,23 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.combine_submasks().tolist(), [1, 1, 0])
 
     def test_get_array(self):
-        array = np.ma.array([10, 20, 30], mask=[0, 1, 1])
+        array = np.ma.array([10, 20, 30], mask=[1, 1, 0])
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool8),
             'mask2': np.array([1, 1, 0], dtype=np.bool8),
         })
-        self.assertEqual(p.get_array().tolist(), [10, None, None])
+        self.assertEqual(p.get_array().tolist(), [None, None, 30])
         self.assertEqual(p.get_array('mask1').tolist(), [None, 20, 30])
         self.assertEqual(p.get_array('mask2').tolist(), [None, None, 30])
 
     def test_get_array__mapped(self):
-        array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
+        array = np.ma.array([1, 2, 3], mask=[1, 1, 0])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool8),
             'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
-        self.assertEqual(p.get_array().raw.tolist(), [1, None, None])
+        self.assertEqual(p.get_array().raw.tolist(), [None, None, 3])
         self.assertEqual(p.get_array('mask1').raw.tolist(), [None, 2, 3])
         self.assertEqual(p.get_array('mask2').raw.tolist(), [None, None, 3])
         self.assertTrue(isinstance(p.get_array('mask1'), MappedArray))
@@ -474,36 +484,36 @@ class TestParameter(unittest.TestCase):
 
     def test_extend_multistate_int(self):
         """Extend multistate parameter with a list of integers."""
-        array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
+        array = np.ma.array([1, 2, 3], mask=[1, 1, 0])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool8),
             'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
         p.extend([1, 2, 3])
-        np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
+        np.testing.assert_array_equal([None, None, 'Three', 'One', 'Two', 'Three'], p.array)
 
     def test_extend_multistate_str(self):
         """Extend multistate parameter with a list of valid strings."""
-        array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
+        array = np.ma.array([1, 2, 3], mask=[1, 1, 0])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool8),
             'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
         p.extend(['One', 'Two', 'Three'])
-        np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
+        np.testing.assert_array_equal([None, None, 'Three', 'One', 'Two', 'Three'], p.array)
 
     def test_extend_multistate_mapped(self):
         """Extend multistate parameter with a MappedArray."""
-        array = np.ma.array([1, 2, 3], mask=[0, 1, 1])
+        array = np.ma.array([1, 2, 3], mask=[1, 1, 0])
         values_mapping = {1: 'One', 2: 'Two', 3: 'Three'}
         p = Parameter('Submasks', array=array, submasks={
             'mask1': np.array([1, 0, 0], dtype=np.bool8),
             'mask2': np.array([1, 1, 0], dtype=np.bool8),
         }, values_mapping=values_mapping)
         p.extend(MappedArray([1, 2, 3], values_mapping=values_mapping))
-        np.testing.assert_array_equal(['One', None, None, 'One', 'Two', 'Three'], p.array)
+        np.testing.assert_array_equal([None, None, 'Three', 'One', 'Two', 'Three'], p.array)
 
     def test_extend_with_mask(self):
         """Extend parameter array with a mask."""

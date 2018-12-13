@@ -247,8 +247,6 @@ class TestHdfFile(unittest.TestCase):
             self.__test_get_param_data(fdf.get_param)
             param = fdf.get_param(self.masked_param_name, load_submasks=True)
             expected_submasks = list(self.masked_param_submask_map.keys())
-            # default submask is added
-            expected_submasks.append('derived')
             self.assertItemsEqual(expected_submasks, param.submasks.keys())
             self.assertEqual(
                 self.masked_param_submask_arrays[:, self.masked_param_submask_map['mask1']].tolist(),

@@ -415,8 +415,45 @@ class FlightDataFile(FlightDataFormat):
         return parameter
 
     @require_rw
+    def store_parameter_submasks(self, parameter, param_group=None):
+        """Store parameter submasks in HDF5 file."""
+        if param_group is None:
+            param_group = self.get_or_create(parameter.name)
+        if 'submasks' in param_group:
+            del param_group['submasks']
+        if 'mask' in param_group:
+            del param_group['mask']
+
+        # Get array length for expanding booleans.
+        submask_length = 0
+        for submask_name, submask_array in parameter.submasks.items():
+            if (submask_array is None or type(submask_array) in (bool, np.bool8)):
+                continue
+            submask_length = max(submask_length, len(submask_array))
+
+        # TODO: store array mask in 'legacy' submask if it's not equivalent to the submasks
+
+        submask_map = {}
+        submask_arrays = []
+        not_empty = (x for x in parameter.submasks.items() if x[1] is not None)
+        for index, (submask_name, submask_array) in enumerate(not_empty):
+            submask_map[submask_name] = index
+
+            # Expand booleans to be arrays.
+            if type(submask_array) in (bool, np.bool8):
+                function = np.ones if submask_array else np.zeros
+                submask_array = function(submask_length, dtype=np.bool8)
+            submask_arrays.append(submask_array)
+
+        if submask_map:
+            param_group.attrs['submasks'] = simplejson.dumps(submask_map)
+            param_group.create_dataset(
+                'submasks', data=np.column_stack(submask_arrays), maxshape=(None, len(submask_arrays)),
+                **self.DATASET_KWARGS)
+
+    @require_rw
     def set_parameter(self, parameter, save_data=True, save_mask=True, save_submasks=True):
-        """Store parameter data"""
+        """Store parameter data in HDF5 file."""
         if not save_mask:
             warnings.warn(
                 'save_mask argument is deprecated. Parameter mask is combined from submasks to ensure consistency',
@@ -435,36 +472,7 @@ class FlightDataFile(FlightDataFormat):
 
         # XXX: remove options to save masks or submasks, implement saving individual Parameter data instead
         if (save_submasks or save_mask) and getattr(parameter, 'submasks', None):
-            if 'submasks' in param_group:
-                del param_group['submasks']
-            if 'mask' in param_group:
-                del param_group['mask']
-
-            # Get array length for expanding booleans.
-            submask_length = 0
-            for submask_name, submask_array in parameter.submasks.items():
-                if (submask_array is None or type(submask_array) in (bool, np.bool8)):
-                    continue
-                submask_length = max(submask_length, len(submask_array))
-
-            # TODO: store array mask in 'legacy' submask if it's not equivalent to the submasks
-
-            submask_map = {}
-            submask_arrays = []
-            not_empty = (x for x in parameter.submasks.items() if x[1] is not None)
-            for index, (submask_name, submask_array) in enumerate(not_empty):
-                submask_map[submask_name] = index
-
-                # Expand booleans to be arrays.
-                if type(submask_array) in (bool, np.bool8):
-                    function = np.ones if submask_array else np.zeros
-                    submask_array = function(submask_length, dtype=np.bool8)
-                submask_arrays.append(submask_array)
-
-            param_group.attrs['submasks'] = simplejson.dumps(submask_map)
-            param_group.create_dataset(
-                'submasks', data=np.column_stack(submask_arrays), maxshape=(None, len(submask_arrays)),
-                **self.DATASET_KWARGS)
+            self.store_parameter_submasks(parameter, param_group=param_group)
 
         for attr in PARAMETER_ATTRIBUTES:
             if hasattr(parameter, attr):
@@ -530,10 +538,12 @@ class FlightDataFile(FlightDataFormat):
                 submask_array = function(data_size, dtype=np.bool8)
             submask_arrays.append(submask_array[start_index:len(parameter.array)])
 
-        n_submasks = len(submask_arrays)
-        submasks_data = param_group['submasks']
-        submasks_data.resize((data_size, n_submasks))
-        submasks_data[start_index:len(parameter.array), ] = np.column_stack(submask_arrays)
+        if 'submasks' not in param_group:
+            self.store_parameter_submasks(parameter)
+        else:
+            submasks_data = param_group['submasks']
+            submasks_data.resize((data_size, len(submask_arrays)))
+            submasks_data[start_index:len(parameter.array), ] = np.column_stack(submask_arrays)
 
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
     # Maybe move to legacy instead?

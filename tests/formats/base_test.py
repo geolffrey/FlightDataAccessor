@@ -220,22 +220,6 @@ class FlightDataFormatTest(unittest.TestCase):
         with FlightDataFormat() as fdf:
             fdf.set_parameter(param)
 
-    def set_parameter_wrong_submasks_test(self):
-        """Fail setting a parameter with submasks not matching mask in array."""
-        array = np.ma.arange(100)
-        array.mask = np.zeros(100)
-        array.mask[0] = True
-        array.mask[-1] = True
-        sub1 = np.zeros(100, dtype=np.bool)
-        sub1[0] = True
-        sub2 = np.zeros(100, dtype=np.bool)
-        sub2[1] = True  # difference
-        submasks = {'sub1': sub1, 'sub2': sub2}
-        param = Parameter('Test', array=array, submasks=submasks)
-        with FlightDataFormat() as fdf:
-            with self.assertRaises(ValueError):
-                fdf.set_parameter(param)
-
     def delete_parameter_test(self):
         """Ensure deleted parameter is not found in the file."""
         array = np.ma.arange(100)

@@ -4,7 +4,7 @@
 '''
 Parameter container class.
 '''
-from __future__ import division
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import copy
 import inspect
@@ -12,6 +12,7 @@ import logging
 import math
 import six
 import traceback
+import warnings
 
 from collections import defaultdict
 import numpy as np
@@ -339,7 +340,44 @@ masked_%(name)s(values = %(sdata)s,
                 return super(MappedArray, self).__setitem__(key, mapped_val)
 
 
+class ParameterArray(object):
+    """Array descriptior to control parameter.array assignment.
+
+    The idea is to keep submasks in sync with the array's mask to ensure consistency."""
+    def __get__(self, parameter, objtype=None):
+        return parameter._array
+
+    def __set__(self, parameter, array):
+        """Set array on parent object.
+
+        A rebuild of parent's submasks will be triggered as a side effect."""
+        if parameter.values_mapping and not isinstance(array, MappedArray):
+            values_mapping = {}
+            for value, state in parameter.values_mapping.items():
+                try:
+                    value = int(value)
+                except ValueError:
+                    value = float(value)
+                values_mapping[value] = state
+            array = MappedArray(array, values_mapping=values_mapping)
+        elif isinstance(array, MappedArray) and array.values_mapping:
+            parameter.values_mapping = array.values_mapping
+
+        if np.ma.any(np.ma.getmaskarray(array)):
+            if any(np.any(v) for v in parameter.submasks.values()):
+                warnings.warn(
+                    "Overriding pasrameter's submasks due to masked array assignment."
+                    'Consider using Parameter.set_array(array, submasks) instread.',
+                    DeprecationWarning
+                )
+                parameter.submasks = parameter.submasks_from_array(array)
+
+        parameter._array = array
+
+
 class Parameter(Compatibility):
+    array = ParameterArray()
+
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
                  offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
                  unit=None, data_type=None, source=None, source_name=None,
@@ -375,20 +413,8 @@ class Parameter(Compatibility):
         :param submasks: Default value is None to avoid kwarg default being mutable.
         '''
         self.name = name
-        if values_mapping and not isinstance(array, MappedArray):
-            self.values_mapping = {}
-            for value, state in values_mapping.items():
-                try:
-                    value = int(value)
-                except ValueError:
-                    value = float(value)
-                self.values_mapping[value] = state
-            array = MappedArray(array, values_mapping=self.values_mapping)
-        elif isinstance(array, MappedArray) and array.values_mapping:
-            self.values_mapping = array.values_mapping
 
-        self.array = array
-
+        self.values_mapping = values_mapping
         # ensure frequency is stored as a float
         self.frequency = float(frequency)
         self.offset = offset
@@ -400,6 +426,8 @@ class Parameter(Compatibility):
         self.description = description
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
+        self.limits = limits
+
         # XXX: default submask to handle the case of quick Parameter initialisation: Parameter(name, array)
         if self.source == 'lfl':
             self.default_submask_name = 'padding'
@@ -409,8 +437,9 @@ class Parameter(Compatibility):
             self.default_submask_name = 'auto'
 
         self.submasks = {k: np.array(v, dtype=np.bool) for k, v in submasks.items()} if submasks else {}
-        self.submasks[self.default_submask_name] = np.ma.getmaskarray(array)
-        self.limits = limits
+        if not self.submasks and np.any(np.ma.getmaskarray(array)):
+            self.submasks[self.default_submask_name] = np.ma.getmaskarray(array)
+        self.set_array(array, self.submasks)
 
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
@@ -422,9 +451,14 @@ class Parameter(Compatibility):
 
     @property
     def raw_array(self):
-        if hasattr(self, 'values_mapping'):
+        if getattr(self, 'values_mapping', None):
             return self.array.raw
         return self.array
+
+    def set_array(self, array, submasks):
+        self.validate_mask(array, submasks)
+        self.array = array
+        self.submasks = submasks
 
     def get_array(self, submask=None):
         '''
@@ -436,6 +470,7 @@ class Parameter(Compatibility):
         '''
         if not submask:
             return self.array
+        # FIXME: should we not raise a ValueError instead?
         if submask not in self.submasks:
             return None
         if isinstance(self.array, MappedArray):
@@ -474,7 +509,7 @@ class Parameter(Compatibility):
 
         if set(submasks.keys()) != set(self.submasks.keys()):
             raise MaskError("Submask names don't match the stored submasks")
-        for submask in submasks.values():
+        for submask_name, submask in submasks.items():
             if len(submask) != len(array):
                 raise MaskError('Submasks must have the same length as the array')
         if isinstance(array, np.ma.MaskedArray):
@@ -518,8 +553,7 @@ class Parameter(Compatibility):
     def slice(self, sl):
         """Return a copy of the parameter with all the data sliced to given slice."""
         clone = copy.deepcopy(self)
-        clone.array = self.array[sl]
-        clone.submasks = {k: v[sl] for k, v in self.submasks.items()}
+        clone.set_array(self.array[sl], submasks={k: v[sl] for k, v in self.submasks.items()})
         return clone
 
     def trim(self, start_offset=0, stop_offset=None, pad=True, superframe_boundary=False, superframe_size=64):
@@ -571,33 +605,50 @@ class Parameter(Compatibility):
             and self.unit == parameter.unit
         )
 
-    def extend(self, data, submasks=None):
-        """Extend the parameter array.
+    def submasks_from_array(self, array, submasks=None):
+        """Build submasks compatible with parameter for the passed array of data.
 
-        Submasks are allowed to be skipped if the array contains no masked values."""
+        The idea is to allow expansion of data with an array of values and keep submasks contents consistent.
+        """
+        submasks = {}
+        for name in self.submasks:
+            submasks[name] = np.zeros(len(array), dtype=np.bool)
+        mask_array = np.ma.getmaskarray(array)
+        if np.any(mask_array):
+            submasks[self.default_submask_name] = mask_array
+        return submasks
+
+    def build_array_submasks(self, data, submasks=None):
+        """Build array and submasks from passed data.
+
+        The data is normalised to provide formats compatible with the parameter."""
         if isinstance(data, Parameter):
-            if not self.is_compatible(data):
-                raise ValueError('Parameter passed to extend() is not compatible')
-            if submasks:
-                raise MaskError('`submasks` argument is not accepted if a Parameter is passed to extend()')
-            data.validate_mask()
             array = data.array
             submasks = data.submasks
         else:
             array = data
 
-        # will fail if no submasks were passed and array has masked items
         self.validate_mask(array=array, submasks=submasks)
 
         if submasks is None:
-            submasks = {}
-            for name in self.submasks:
-                submasks[name] = np.zeros(len(array), dtype=np.bool)
-            mask_array = np.ma.getmaskarray(array)
-            if np.any(mask_array):
-                submasks[self.default_submask_name] = mask_array
+            submasks = self.submasks_from_array(array)
+
+        return array, submasks
+
+    def extend(self, data, submasks=None):
+        """Extend the parameter's data."""
+        if isinstance(data, Parameter):
+            if not self.is_compatible(data):
+                raise ValueError('Parameter passed to extend() is not compatible')
+            if submasks:
+                raise MaskError('`submasks` argument is not accepted if a Parameter is passed to extend()')
+
+        array, submasks = self.build_array_submasks(data, submasks=submasks)
 
         for name, submask in submasks.items():
+            if name not in self.submasks:
+                # add an empty submask up to this point
+                self.submasks[name] = np.zeros(len(self.array))
             self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
 
         if isinstance(self.array, MappedArray):
