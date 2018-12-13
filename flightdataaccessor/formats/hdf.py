@@ -3,7 +3,7 @@
 # [x] Support for array slice
 # [ ] Modification of "old" format file will update the old format file and parameter attributes preserving data types
 #     etc.
-from __future__ import division
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import base64
 import copy
@@ -297,8 +297,8 @@ class FlightDataFile(FlightDataFormat):
         if self.file is not None and self.file.id:
             if self.file.mode == 'r+':
                 self.file.flush()
-                durations = np.array([p.duration for p in self.values()])
-                self.duration = np.nanmax(durations) if np.any(durations) else 0
+                durations = [p.duration for p in self.values()]
+                self.duration = np.nanmax(durations) if durations else 0
                 self.frequencies = sorted({p.frequency for p in self.values()})
 
             self.file.close()

@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
 import logging
@@ -8,8 +8,6 @@ import tempfile
 import warnings
 
 from deprecation import deprecated
-
-from flightdatautilities.filesystem_tools import copy_file
 
 import flightdataaccessor
 
