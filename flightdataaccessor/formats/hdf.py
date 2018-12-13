@@ -297,9 +297,9 @@ class FlightDataFile(FlightDataFormat):
         if self.file is not None and self.file.id:
             if self.file.mode == 'r+':
                 self.file.flush()
-                durations = [p.duration for p in self.values()]
+                durations = [self.get_parameter_duration(name) for name in self]
                 self.duration = np.nanmax(durations) if durations else 0
-                self.frequencies = sorted({p.frequency for p in self.values()})
+                self.frequencies = sorted(self.get_parameter_frequency(name) for name in self)
 
             self.file.close()
             self.file = None
@@ -547,6 +547,18 @@ class FlightDataFile(FlightDataFormat):
 
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
     # Maybe move to legacy instead?
+    @require_open
+    def get_parameter_frequency(self, name):
+        """Get frequency of a parameter."""
+        param_group = self.data[name]
+        return param_group.attrs.get('frequency', 1)
+
+    @require_open
+    def get_parameter_duration(self, name):
+        """Get duration of a parameter data is seconds."""
+        param_group = self.data[name]
+        return param_group['data'].len() / param_group.attrs.get('frequency', 1)
+
     @require_open
     def get_parameter_source(self, name):
         """Get information if parameter is invalid"""
