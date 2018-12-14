@@ -366,8 +366,8 @@ class ParameterArray(object):
         if np.ma.any(np.ma.getmaskarray(array)):
             if any(np.any(v) for v in parameter.submasks.values()):
                 warnings.warn(
-                    "Overriding pasrameter's submasks due to masked array assignment."
-                    'Consider using Parameter.set_array(array, submasks) instread.',
+                    "Overriding parameter's submasks due to masked array assignment."
+                    'Consider using Parameter.set_array(array, submasks) instead.',
                     DeprecationWarning
                 )
                 parameter.submasks = parameter.submasks_from_array(array)
@@ -414,7 +414,9 @@ class Parameter(Compatibility):
         '''
         self.name = name
 
-        self.values_mapping = values_mapping
+        if values_mapping or not getattr(self, 'values_mapping', None):
+            self.values_mapping = values_mapping or {}
+
         # ensure frequency is stored as a float
         self.frequency = float(frequency)
         self.offset = offset
@@ -428,7 +430,9 @@ class Parameter(Compatibility):
         self.invalidity_reason = invalidity_reason
         self.limits = limits
 
-        # XXX: default submask to handle the case of quick Parameter initialisation: Parameter(name, array)
+        # A default submask is created when the parameter is populated with MaskedArray which contains masked values
+        # that are incompatible with corresponding submasks or if MaskedArray is passed to parameter without any
+        # submasks.
         if self.source == 'lfl':
             self.default_submask_name = 'padding'
         elif self.source == 'derived':
@@ -507,7 +511,10 @@ class Parameter(Compatibility):
             # parameter mask will be used as default submask
             return True
 
-        if set(submasks.keys()) != set(self.submasks.keys()):
+        # we want to handle "default" submask no matter if already exists or is added
+        old_submask_names = set(self.submasks.keys()) | {self.default_submask_name}
+        new_submask_names = set(submasks.keys()) | {self.default_submask_name}
+        if new_submask_names != old_submask_names:
             raise MaskError("Submask names don't match the stored submasks")
         for submask_name, submask in submasks.items():
             if len(submask) != len(array):
@@ -609,12 +616,16 @@ class Parameter(Compatibility):
         """Build submasks compatible with parameter for the passed array of data.
 
         The idea is to allow expansion of data with an array of values and keep submasks contents consistent.
+
+        The code assumes that array and submasks are validated and we only need to fill the gaps.
         """
-        submasks = {}
+        submasks = submasks or {}
         for name in self.submasks:
-            submasks[name] = np.zeros(len(array), dtype=np.bool)
+            if name not in submasks:
+                submasks[name] = np.zeros(len(array), dtype=np.bool)
+
         mask_array = np.ma.getmaskarray(array)
-        if np.any(mask_array):
+        if np.any(mask_array != self.combine_submasks(submasks)):
             submasks[self.default_submask_name] = mask_array
         return submasks
 
@@ -629,9 +640,7 @@ class Parameter(Compatibility):
             array = data
 
         self.validate_mask(array=array, submasks=submasks)
-
-        if submasks is None:
-            submasks = self.submasks_from_array(array)
+        submasks = self.submasks_from_array(array, submasks)
 
         return array, submasks
 
@@ -645,20 +654,19 @@ class Parameter(Compatibility):
 
         array, submasks = self.build_array_submasks(data, submasks=submasks)
 
-        for name, submask in submasks.items():
+        for name in submasks:
             if name not in self.submasks:
                 # add an empty submask up to this point
-                self.submasks[name] = np.zeros(len(self.array))
+                self.submasks[name] = np.zeros(len(self.array), dtype=np.bool8)
             self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
 
         if isinstance(self.array, MappedArray):
-            # extend with zeros
-            m_array = np.ma.append(self.raw_array, np.zeros(len(array)))
-            self.array = MappedArray(m_array, values_mapping=self.values_mapping)
+            self._array = MappedArray(
+                np.ma.append(self.raw_array, np.zeros(len(array))), values_mapping=self.values_mapping)
             # let MappedArray handle the type conversion
-            self.array[-len(array):] = array
+            self._array[-len(array):] = array
         else:
-            self.array = np.ma.append(self.raw_array, array)
+            self._array = np.ma.append(self.array, array)
 
     def update_submask(self, name, mask, merge=True):
         """Update a submask.

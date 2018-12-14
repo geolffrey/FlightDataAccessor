@@ -21,7 +21,7 @@ class FlightDataFileTestV2(unittest.TestCase):
     test_fn = 'data/flight_data_v2.hdf5'
 
     def assertItemsEqual(self, l1, l2):
-        self.assertEqual(set(l1), set(l2))
+        self.assertEqual(list(l1), list(l2))
 
     def get_data_from_hdf(self, hdf):
         '''Return the object storing parameters (depending on version)'''
@@ -175,7 +175,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp) as fdf:
             lfl_param_names = [p.name for p in fdf.values() if p.source == 'lfl']
             derived_param_names = [p.name for p in fdf.values() if p.source == 'derived']
-            self.assertItemsEqual(derived_param_names + lfl_param_names, fdf.keys())
+            self.assertItemsEqual(sorted(derived_param_names + lfl_param_names), sorted(fdf.keys()))
 
     def keys_valid_only_test(self):
         """Test the consistency of keys cache for valid parameters."""

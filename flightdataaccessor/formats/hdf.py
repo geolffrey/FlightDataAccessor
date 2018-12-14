@@ -188,11 +188,7 @@ class FlightDataFile(FlightDataFormat):
             if not os.path.exists(self.path):
                 created = True
             self.file = h5py.File(source, mode=mode)
-            if mode == 'x':
-                # save mode for reopen
-                self.mode = 'a'
-            else:
-                self.mode = mode
+            self.mode = 'a' if mode == 'x' else mode  # save mode for reopen
         return created
 
     @require_rw

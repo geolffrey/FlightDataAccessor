@@ -1,7 +1,10 @@
 """
 Compatibility features.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import inspect
+import six
 
 
 def open(source, **kwargs):
@@ -9,7 +12,7 @@ def open(source, **kwargs):
     from . import base
     from . import hdf
 
-    if isinstance(source, str):
+    if isinstance(source, six.string_types):
         # path to a file
         return hdf.FlightDataFile(source, **kwargs)
 

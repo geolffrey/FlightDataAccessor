@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import h5py
 import mock
 import numpy as np
@@ -57,7 +59,7 @@ class TestHdfFile(unittest.TestCase):
             pass
 
     def assertItemsEqual(self, l1, l2):
-        self.assertEqual(set(l1), set(l2))
+        self.assertEqual(list(l1), list(l2))
 
     def test_dependency_tree(self):
         with hdf_file(self.hdf_path, mode='a') as fdf:
@@ -340,7 +342,9 @@ class TestHdfFile(unittest.TestCase):
         # check hdf has mapping and integer values stored
         with hdf_file(self.hdf_path, mode='a') as fdf:
             multi_p = fdf['multi']
-            self.assertEqual(str(multi_p.array[:]), "[-- -- -- 'three' '?' 'zero' '?' 'two' -- --]")
+            masked = np.ma.masked
+            self.assertItemsEqual(
+                multi_p.array, [masked, masked, masked, 'three', '?', 'zero', '?', 'two', masked, masked])
             self.assertEqual(multi_p.array.data.dtype, np.int)
             # modify a masked item
             multi_p.array[0] = 'three'
