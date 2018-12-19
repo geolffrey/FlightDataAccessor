@@ -295,7 +295,7 @@ class TestParameter(unittest.TestCase):
         p_name = 'param'
         p = Parameter(p_name)
         self.assertEqual(p.name, p_name)
-        self.assertEqual(p.array, [])
+        self.assertEqual(p.array.size, 0)
         self.assertEqual(p.frequency, 1)
         self.assertEqual(p.offset, 0)
         self.assertEqual(p.arinc_429, None)

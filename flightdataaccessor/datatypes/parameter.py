@@ -351,7 +351,7 @@ class ParameterArray(object):
         """Set array on parent object.
 
         A rebuild of parent's submasks will be triggered as a side effect."""
-        if parameter.values_mapping and not isinstance(array, MappedArray):
+        if getattr(parameter, 'values_mapping', None) and not isinstance(array, MappedArray):
             values_mapping = {}
             for value, state in parameter.values_mapping.items():
                 try:
@@ -360,8 +360,11 @@ class ParameterArray(object):
                     value = float(value)
                 values_mapping[value] = state
             array = MappedArray(array, values_mapping=values_mapping)
+            parameter.values_mapping = array.values_mapping
         elif isinstance(array, MappedArray) and array.values_mapping:
             parameter.values_mapping = array.values_mapping
+        else:
+            array = np.ma.array(array)
 
         if np.ma.any(np.ma.getmaskarray(array)):
             if any(np.any(v) for v in parameter.submasks.values()):
