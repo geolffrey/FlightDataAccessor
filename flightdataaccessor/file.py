@@ -37,6 +37,9 @@ HDFACCESS_VERSION = hdf.CURRENT_VERSION
 
 @deprecated(details='Use formats.compatibility.open() or format classes instead')
 def hdf_file(*args, **kwargs):
+    if 'mode' not in kwargs:
+        # XXX: legacy default mode was 'read+write'
+        kwargs['mode'] = 'r+'
     return compatibility.open(*args, **kwargs)
 
 

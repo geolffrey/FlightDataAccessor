@@ -94,19 +94,7 @@ class FlightDataFile(FlightDataFormat):
 
         self.path = None
         self.file = None
-        created = self.open(filelike, mode=mode)
-
-        # Handle backwards compatibility for older versions:
-        if created:
-            self.version = self.VERSION
-
-        if self.file.attrs.get('version', 0) >= self.VERSION:
-            self.data = self.file
-        else:
-            if 'series' not in self.file:
-                # XXX: maybe we should raise an error instead, this file contains no data anyway
-                self.file.create_group('series')
-            self.data = self.file['series']
+        self.open(filelike, mode=mode)
 
     def __repr__(self):
         # XXX: Make use of six.u(), etc?
@@ -189,12 +177,27 @@ class FlightDataFile(FlightDataFormat):
                 created = True
             self.file = h5py.File(source, mode=mode)
             self.mode = 'a' if mode == 'x' else mode  # save mode for reopen
+
+        # Handle backwards compatibility for older versions:
+        if created:
+            self.version = self.VERSION
+
+        if self.file.attrs.get('version', 0) >= self.VERSION:
+            self.data = self.file
+        else:
+            if 'series' not in self.file:
+                # XXX: maybe we should raise an error instead, this file contains no data anyway
+                self.file.create_group('series')
+            self.data = self.file['series']
+
         return created
 
     @require_rw
     def set_source_attribute(self, name, value):
         """Set attribute stored in HDF file."""
-        name = self.source_attribute_name(name)
+        if name != 'version':
+            name = self.source_attribute_name(name)
+
         if name is None:
             return
 
@@ -299,6 +302,7 @@ class FlightDataFile(FlightDataFormat):
 
             self.file.close()
             self.file = None
+            self.data = None
 
     if six.PY2:
         iterkeys = keys
