@@ -246,18 +246,13 @@ class FlightDataFormat(Compatibility):
 
         with compatibility.open(target, mode='x') as new_fdf:
             for name in parameter_list:
-                parameter = self.get_parameter(name, load_submasks=True)
-                new_fdf.set_parameter(
-                    parameter.trim(
-                        start_offset=start_offset, stop_offset=stop_offset, pad=True,
-                        superframe_boundary=superframe_boundary, superframe_size=superframe_size))
+                new_fdf[name] = self[name].trim(
+                    start_offset=start_offset, stop_offset=stop_offset, pad=True,
+                    superframe_boundary=superframe_boundary, superframe_size=superframe_size)
             for name in self.FDF_ATTRIBUTES:
                 if name is None or name == 'version' or deidentify and name in ('aircraft_info', 'tailmark'):
                     # XXX version is set in the __init__() of the new object and should not be copied from the source
                     continue
-
-                if name == 'duration':
-                    value = stop_offset - start_offset
                 elif name == 'timestamp' and self.timestamp is not None:
                     value = self.timestamp + start_offset
                 else:
@@ -288,7 +283,7 @@ class FlightDataFormat(Compatibility):
                     self.extend_parameter(to_append.name, to_append)
 
     def get(self, name, default=None, **kwargs):
-        """Dictionary like .get operator. Additional kwargs are passed into the get_param method."""
+        """Dictionary like .get operator. Additional kwargs are passed into the get_parameter() method."""
         try:
             return self.get_parameter(name, **kwargs)
         except KeyError:
