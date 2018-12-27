@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import base64
 import collections
-import copy
 import logging
 import h5py
 import numpy as np
@@ -38,8 +37,18 @@ HDFACCESS_VERSION = hdf.CURRENT_VERSION
 @deprecated(details='Use formats.compatibility.open() or format classes instead')
 def hdf_file(*args, **kwargs):
     if 'mode' not in kwargs:
-        # XXX: legacy default mode was 'read+write'
-        kwargs['mode'] = 'r+'
+        create = kwargs.pop('create', None)
+        read_only = kwargs.pop('read_only', None)
+        if read_only and create:
+            raise ValueError('Creation of a new file in read only mode was requested')
+        if read_only:
+            mode = 'r'
+        elif create:
+            mode = 'x'
+        else:
+            # legacy default mode
+            mode = 'r+'
+        kwargs['mode'] = mode
     return compatibility.open(*args, **kwargs)
 
 

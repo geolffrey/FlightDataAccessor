@@ -88,33 +88,6 @@ class Compatibility(object):
     def hdf(self):
         return self.file  # FIXME: What about accessing ['series']?
 
-    def _parse_legacy_options(self, mode, **options):
-        create = options.get('create', None)
-        read_only = options.get('read_only', None)
-        cache_param_list = options.get('cache_param_list', None)
-
-        if create is not None:
-            warnings.warn('`create` argument is deprecated. Use `mode` instead', DeprecationWarning)
-        if read_only is not None:
-            warnings.warn('`read_only` argument is deprecated. Use `mode` instead', DeprecationWarning)
-        if cache_param_list is not None:
-            warnings.warn('`cache_param_list` argument is deprecated. Use `cache` instead', DeprecationWarning)
-
-        if read_only and create:
-            raise ValueError('Creation of a new file in read only mode was requested')
-
-        if cache_param_list is True:
-            self.cache_param_list = self.keys()
-        elif cache_param_list:
-            self.cache_param_list = cache_param_list
-
-        if mode:
-            return mode
-        if read_only:
-            return 'r'
-        if create:
-            return 'x'
-
     def source_attribute_name(self, name):
         """Convert attribute name to old naming convention.
 

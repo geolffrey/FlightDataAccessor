@@ -50,7 +50,7 @@ def require_rw(func):
         if self.file is None:
             raise IOError('HDF file is not open')
         if self.file.mode != 'r+':
-            raise IOError('Mofdification of file open in read-only mode was requested')
+            raise IOError('Modification of file open in read-only mode was requested')
         return func(self, *args, **kwargs)
 
     return wrapper
@@ -78,18 +78,19 @@ class FlightDataFile(FlightDataFormat):
     }
     ALL_ATTRIBUTES = INSTANCE_ATTRIBUTES | FlightDataFormat.FDF_ATTRIBUTES
 
-    def __init__(self, filelike, mode=None, **kwargs):
+    def __init__(self, filelike, mode='r', cache_param_list=None, **kwargs):
         super(FlightDataFormat, self).__init__()
 
         if h5py.version.hdf5_version_tuple < LIBRARY_VERSION:
             pass  # XXX: Issue a warning?
 
-        mode = self._parse_legacy_options(mode, **kwargs)
-        if mode is None:
-            mode = 'r'
-
         self.parameter_cache = {}
-        self.cache_param_list = []
+        if cache_param_list is True:
+            self.cache_param_list = self.keys()
+        elif cache_param_list:
+            self.cache_param_list = cache_param_list
+        else:
+            self.cache_param_list = []
         self.keys_cache = defaultdict(SortedSet)
 
         self.path = None
