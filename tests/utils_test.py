@@ -100,7 +100,7 @@ class TestConcatHDF(unittest.TestCase):
         if dest:
             self.assertEqual(dest, out_path)
         with h5py.File(out_path, 'r') as hdf_out_file:
-            series = hdf_out_file['series']
+            series = hdf_out_file
             param = series['PARAM']
             self.assertEqual(param.attrs['frequency'], 8)
             data_result = param['data'][:]
@@ -135,14 +135,14 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         '''
         strip_hdf(self.hdf_path, [], self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            series = hdf_file['series']
+            series = hdf_file
             self.assertEqual(list(series.keys()), [])
 
     def test_strip_hdf_ivv(self):
         params_to_keep = ['IVV']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            series = hdf_file['series']
+            series = hdf_file
             self.assertEqual(list(series.keys()), params_to_keep)
             # Ensure datasets are unchanged.
             self.assertTrue(all(series['IVV']['data'][:] == self.ivv_data))
@@ -161,7 +161,7 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         params_to_keep = ['DME', 'WOW']
         strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
-            series = hdf_file['series']
+            series = hdf_file
             self.assertEqual(list(series.keys()), params_to_keep)
 
 
@@ -325,7 +325,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
 
         with h5py.File(dest, 'r') as hdf_file:
             # 'IVV' - 1Hz parameter.
-            series = hdf_file['series']
+            series = hdf_file
             ivv_group = series['IVV']
             self.assertEqual(ivv_group.attrs['frequency'],
                              self.ivv_frequency)
@@ -363,7 +363,7 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         def test_hdf(dest):
             with h5py.File(dest, 'r') as hdf_file:
                 # 'IVV' - 1Hz parameter.
-                series = hdf_file['series']
+                series = hdf_file
                 ivv_group = series['IVV']
                 self.assertEqual(ivv_group.attrs['frequency'],
                                  self.ivv_frequency)
