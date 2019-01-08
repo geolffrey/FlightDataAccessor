@@ -244,7 +244,6 @@ class FlightDataFormat(Compatibility):
             parameter_list = self.keys()
 
         superframe_size = 64 if superframe_boundary and self.superframe_present else 4
-        print(superframe_boundary, self.superframe_present, superframe_size)
 
         with compatibility.open(target, mode='x') as new_fdf:
             for name in parameter_list:
