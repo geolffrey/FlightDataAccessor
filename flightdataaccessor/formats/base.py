@@ -56,7 +56,7 @@ class FlightDataFormat(Compatibility):
 
         # FDF attributes
         self.superframe_present = kwargs.get('superframe_present', False)
-        self.reliable_frame_counter = kwargs.get('superframe_present', False)
+        self.reliable_frame_counter = kwargs.get('reliable_frame_counter', False)
         self.timestamp = None
 
     def __repr__(self):
@@ -234,21 +234,24 @@ class FlightDataFormat(Compatibility):
         return [self[param_name] for param_name in param_names]
 
     def trim(
-            self, target=None, start_offset=0, stop_offset=None, superframe_boundary=False, parameter_list=None,
-            deidentify=False, target_class=None):
+            self, target=None, start_offset=0, stop_offset=None, superframe_boundary=True, parameter_list=None,
+            deidentify=False):
         """Create a copy of the object trimmed to given range"""
         if target is None:
             target = self.__class__
 
         if parameter_list is None:
             parameter_list = self.keys()
-        superframe_size = 64 if self.superframe_present else 4
+
+        superframe_size = 64 if superframe_boundary and self.superframe_present else 4
+        print(superframe_boundary, self.superframe_present, superframe_size)
 
         with compatibility.open(target, mode='x') as new_fdf:
             for name in parameter_list:
-                new_fdf[name] = self[name].trim(
-                    start_offset=start_offset, stop_offset=stop_offset, pad=True,
-                    superframe_boundary=superframe_boundary, superframe_size=superframe_size)
+                parameter = self.get_parameter(name, copy_param=False)
+                clone = parameter.trim(
+                    start_offset=start_offset, stop_offset=stop_offset, pad_subframes=superframe_size)
+                new_fdf[name] = clone
             for name in self.FDF_ATTRIBUTES:
                 if name is None or name == 'version' or deidentify and name in ('aircraft_info', 'tailmark'):
                     # XXX version is set in the __init__() of the new object and should not be copied from the source

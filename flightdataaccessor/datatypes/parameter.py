@@ -566,11 +566,11 @@ class Parameter(Compatibility):
         clone.set_array(self.array[sl], submasks={k: v[sl] for k, v in self.submasks.items()})
         return clone
 
-    def trim(self, start_offset=0, stop_offset=None, pad=True, superframe_boundary=False, superframe_size=64):
+    def trim(self, start_offset=0, stop_offset=None, pad_subframes=4):
         """Return a copy of the parameter with all the data trimmed to given window in seconds.
 
-        Optionally align the window to superframe boundaries which is useful for splitting segments.
-        """
+        Optionally align the window to pad_subframes blocks of subframes (defaults to a single frame)which is useful
+        for splitting segments."""
         if start_offset is None:
             start_offset = 0
         if stop_offset is None:
@@ -578,13 +578,13 @@ class Parameter(Compatibility):
 
         unmasked_start_offset = start_offset
         unmasked_stop_offset = stop_offset
-        if superframe_boundary:
-            start_offset = superframe_size * math.floor(start_offset / superframe_size) if start_offset else 0
-            stop_offset = superframe_size * math.ceil(stop_offset / superframe_size)
-        start_ix = int(start_offset * self.frequency) if start_offset else 0
-        stop_ix = int(stop_offset * self.frequency) if stop_offset else self.array.size
+        if pad_subframes:
+            start_offset = pad_subframes * math.floor(start_offset / pad_subframes) if start_offset else 0
+            stop_offset = pad_subframes * math.ceil(stop_offset / pad_subframes)
+        start_ix = math.floor(start_offset * self.frequency) if start_offset else 0
+        stop_ix = math.ceil(stop_offset * self.frequency) if stop_offset else self.array.size
         clone = self.slice(slice(start_ix, stop_ix))
-        if pad and stop_ix > self.array.size:
+        if pad_subframes and stop_ix > self.array.size:
             # more data was requested than available and padding was requested
             # ensure that the clone has a padding submask
             clone.update_submask('padding', np.zeros(clone.array.size, dtype=np.bool))

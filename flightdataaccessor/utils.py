@@ -7,6 +7,8 @@ import shutil
 import tempfile
 import warnings
 
+import six
+
 from deprecation import deprecated
 
 import flightdataaccessor
@@ -43,7 +45,7 @@ def concat_hdf(sources, dest=None):
     :rtype: str
     '''
     target = dest if dest is not None else None
-    if isinstance(sources[0], str):
+    if isinstance(sources[0], six.string_types):
         # the frst source needs to be upgraded first
         if target is None:
             f, target = tempfile.mkstemp()
@@ -118,15 +120,27 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
     TODO: Support segmenting parameter masks. Q: Does this mean copying the mask along
     with data? If so, this is already done.
     '''
-    if dest is None and isinstance(source, str):
-        # write segment to new split file (.001)
-        if dest_dir is None:
-            dest_dir = os.path.dirname(dest) if isinstance(dest, str) else os.path.dirname(source)
-        basename = os.path.basename(source)
-        dest_basename = os.path.splitext(basename)[0] + '.%03d.hdf5' % part
-        dest = os.path.join(dest_dir, dest_basename)
+    # XXX: handle source / dest logic somewhere else
+    if dest is None:
+        if isinstance(source, six.string_types):
+            source_path = source
+        elif hasattr(source, 'path'):
+            source_path = source.path
+        else:
+            source_path = None
 
-    if isinstance(dest, str):
+        if dest_dir is None:
+            dest_dir = os.path.dirname(dest) if isinstance(dest, str) else None
+
+        if source_path:
+            # write segment to new split file (.001)
+            if dest_dir is None:
+                dest_dir = os.path.dirname(source_path)
+            basename = os.path.basename(source_path)
+            dest_basename = os.path.splitext(basename)[0] + '.%03d.hdf5' % part
+            dest = os.path.join(dest_dir, dest_basename)
+
+    if isinstance(dest, six.string_types):
         if os.path.isfile(dest):
             logging.warning("File '%s' already exists, write_segments will delete the file.", dest)
             os.remove(dest)
@@ -136,16 +150,14 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
             'Selection of submasks was requested which is not supported. All submasks will be saved instead',
             DeprecationWarning)
 
-    with flightdataaccessor.open(source) as fdf:
+    with flightdataaccessor.open(source, cache_param_list=True) as fdf:
         if not fdf.superframe_present and boundary not in (1, 4):
             # boundary in subframes
             warnings.warn(
                 'Alignment to %d subframes was requested. Alignment to 64 subframes is supported only for data '
                 'with superframes otherwise alignment to 4 subframes is used. Default alignment will be used instead.'
                 % boundary, DeprecationWarning)
-        result = fdf.trim(dest, start_offset=segment.start, stop_offset=segment.stop, superframe_boundary=boundary != 1)
-
-    return result
+        return fdf.trim(dest, start_offset=segment.start, stop_offset=segment.stop, superframe_boundary=boundary != 1)
 
 
 def segment_boundaries(segment, boundary):

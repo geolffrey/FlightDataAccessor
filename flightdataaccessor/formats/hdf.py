@@ -66,6 +66,7 @@ class FlightDataFile(FlightDataFormat):
         'cache_param_list',
         'data',
         'file',
+        'hdf_attributes',
         'keys_cache',
         'mode',
         'parameter_cache',
@@ -85,27 +86,36 @@ class FlightDataFile(FlightDataFormat):
             pass  # XXX: Issue a warning?
 
         self.parameter_cache = {}
+        self.keys_cache = defaultdict(SortedSet)
+        self.path = None
+        self.file = None
+        self.open(filelike, mode=mode)
+
         if cache_param_list is True:
             self.cache_param_list = self.keys()
         elif cache_param_list:
             self.cache_param_list = cache_param_list
         else:
             self.cache_param_list = []
-        self.keys_cache = defaultdict(SortedSet)
-
-        self.path = None
-        self.file = None
-        self.open(filelike, mode=mode)
 
     def __repr__(self):
         # XXX: Make use of six.u(), etc?
-        return '<%(class)s [HDF5] (%(state)s, mode %(mode)s, %(size)d bytes, %(count)d parameters) %(path)s>' % {
+        if self.file:
+            return '<%(class)s [HDF5] (%(state)s, mode %(mode)s, %(size)d bytes, %(count)d parameters) %(path)s>' % {
+                'class': self.__class__.__name__,
+                'count': len(self),
+                'mode': self.file.mode,
+                'path': self.path,
+                'size': os.path.getsize(self.path),  # FIXME: Pretty size? OSError?
+                'state': 'open',
+            }
+
+        return '<%(class)s [HDF5] (%(state)s, %(size)d bytes) %(path)s>' % {
             'class': self.__class__.__name__,
-            'count': len(self),
-            'mode': self.file.mode if self.file else '',
+            'count': len(self) if self.file else 'closed',
             'path': self.path,
             'size': os.path.getsize(self.path),  # FIXME: Pretty size? OSError?
-            'state': 'open' if self.file else 'closed',
+            'state': 'closed',
         }
 
     def __str__(self):
@@ -120,6 +130,14 @@ class FlightDataFile(FlightDataFormat):
         """Context manager API"""
         self.close()
 
+    @property
+    def duration(self):
+        return self.hdf_attributes.get('duration')
+
+    @property
+    def frequencies(self):
+        return self.hdf_attributes.get('frequencies')
+
     @require_open
     def __getattr__(self, name):
         """Retrieve file attribute.
@@ -127,27 +145,27 @@ class FlightDataFile(FlightDataFormat):
         Special behaviour: if attribute is one of the standard HDF attributes it will be returned as None if not found
         in the HDF data.
         """
-        if name not in self.ALL_ATTRIBUTES | set(self.file.attrs.keys()):
+        if name not in self.ALL_ATTRIBUTES | set(self.hdf_attributes.keys()):
             raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, name))
 
         # Handle backwards compatibility for older versions:
-        legacy = self.file.attrs.get('version', 0) >= self.VERSION
+        legacy = self.hdf_attributes.get('version', 0) >= self.VERSION
         if legacy:
-            value = self.file.attrs.get(name)
+            value = self.hdf_attributes.get(name)
             if isinstance(value, bytes):
                 value = value.decode('utf-8')
             return value
 
         # XXX move to legacy?
         if name == 'version':
-            value = self.file.attrs.get('version', self.file.attrs.get('hdfaccess_version'))
+            value = self.hdf_attributes.get('version', self.hdf_attributes.get('hdfaccess_version'))
             return 2 if value is None else value
 
         name = self.source_attribute_name(name)
         if name is None:
             return None
 
-        value = self.file.attrs.get(name)
+        value = self.hdf_attributes.get(name)
         if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
             return None if value is None else bool(value)
         elif name in {'dependency_tree'}:
@@ -179,11 +197,13 @@ class FlightDataFile(FlightDataFormat):
             self.file = h5py.File(source, mode=mode)
             self.mode = 'a' if mode == 'x' else mode  # save mode for reopen
 
+        self.hdf_attributes = dict(self.file.attrs.items())
+
         # Handle backwards compatibility for older versions:
         if created:
             self.version = self.VERSION
 
-        if self.file.attrs.get('version', 0) >= self.VERSION:
+        if self.hdf_attributes.get('version', 0) >= self.VERSION:
             self.data = self.file
         else:
             if 'series' not in self.file:
@@ -204,9 +224,10 @@ class FlightDataFile(FlightDataFormat):
 
         if value is not None:
             # Handle backwards compatibility for older versions:
-            if self.file.attrs.get('version', 0) >= self.VERSION:
+            if self.hdf_attributes.get('version', 0) >= self.VERSION:
                 try:
                     self.file.attrs[name] = value
+                    self.hdf_attributes[name] = value
                 except TypeError:
                     pass
             else:
@@ -219,9 +240,11 @@ class FlightDataFile(FlightDataFormat):
                     raise ValueError('Unknown ARINC standard: %s.' % value)
                 # XXX should we attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
                 self.file.attrs[name] = value
+                self.hdf_attributes[name] = value
 
-        elif name in self.file.attrs:
+        elif name in self.hdf_attributes:
             del self.file.attrs[name]
+            del self.hdf_attributes[name]
 
     def __setattr__(self, name, value):
         """Store global file attribute handling special cases.
@@ -276,7 +299,7 @@ class FlightDataFile(FlightDataFormat):
                 self.keys_cache[category].update(self.data.keys())
             else:
                 for name in self.keys():  # (populates top-level name cache.)
-                    attrs = self.data[name].attrs
+                    attrs = dict(self.data[name].attrs)
                     invalid = bool(attrs.get('invalid'))
                     # XXX: assume source = 'lfl' by default?
                     source = attrs.get('source', 'lfl' if attrs.get('lfl', True) else 'derived')
@@ -308,6 +331,7 @@ class FlightDataFile(FlightDataFormat):
     if six.PY2:
         iterkeys = keys
 
+    @require_rw
     def get_or_create(self, name):
         """Return a h5py parameter group, if it does not exist then create it too."""
         if name in self.keys():
@@ -316,18 +340,17 @@ class FlightDataFile(FlightDataFormat):
             group = self.data.create_group(name)
         return group
 
-    def load_mask(self, name):
+    @require_open
+    def load_mask(self, name, mapping=None):
         """Load masks for given parameter name."""
         group = self.data[name]
-        attrs = group.attrs
 
         submasks = {}
-        if 'submasks' in attrs and 'submasks' in group:
-            submask_map = attrs['submasks']
-            if submask_map.strip():
-                submask_map = simplejson.loads(submask_map)
-                for sub_name, index in submask_map.items():
-                    submasks[sub_name] = group['submasks'][slice(None), index]
+        if mapping and 'submasks' in group:
+            if mapping:
+                submasks_data = group['submasks'][:]
+                for sub_name, index in mapping.items():
+                    submasks[sub_name] = submasks_data[slice(None), index]
 
             mask = merge_masks(list(submasks.values()))
 
@@ -337,29 +360,30 @@ class FlightDataFile(FlightDataFormat):
                     submasks['legacy'] = old_mask
                     mask |= old_mask
         else:
-            if 'mask' in group:
-                mask = group['mask']
-            else:
-                mask = False
+            mask = group.get('mask') or False
 
         if isinstance(mask, (bool, np.bool8)):
             mask = np.zeros_like(group['data'], dtype=np.bool8)
         return mask, submasks
 
+    @require_open
     def load_parameter(self, name, load_submasks=False):
         """Load parameter from cache or the file and store in cache"""
         if name in self.parameter_cache:
             return self.parameter_cache[name]
 
         group = self.data[name]
-        attrs = group.attrs
+        attrs = dict(group.attrs)
         data = group['data'][:]
         name = name.split('/')[-1]
 
         kwargs = {}
         kwargs['frequency'] = attrs.get('frequency', 1)
+        mapping = attrs.get('submasks')
+        if mapping and mapping.strip():
+            mapping = simplejson.loads(mapping)
 
-        mask, submasks = self.load_mask(name)
+        mask, submasks = self.load_mask(name, mapping=mapping)
         if load_submasks:
             kwargs['submasks'] = submasks
 
@@ -398,8 +422,7 @@ class FlightDataFile(FlightDataFormat):
 
         return parameter
 
-    @require_open
-    def get_parameter(self, name, valid_only=False, _slice=None, copy_param=True, load_submasks=False):
+    def get_parameter(self, name, valid_only=False, _slice=None, copy_param=False, load_submasks=False):
         """Load parameter and handle special cases"""
         if name not in self.keys(valid_only):
             raise KeyError(name)
@@ -486,6 +509,10 @@ class FlightDataFile(FlightDataFormat):
 
                 param_group.attrs[attr] = value
 
+        self.update_parameter_cache(parameter)
+
+    def update_parameter_cache(self, parameter):
+        """Update parameter in cache."""
         if parameter.name in self.cache_param_list:
             self.parameter_cache[parameter.name] = parameter
 
@@ -518,13 +545,14 @@ class FlightDataFile(FlightDataFormat):
 
     def extend_parameter(self, name, data, submasks=None):
         """Extend the parameter with additional data."""
-        param_group = self.data[name]
-
         parameter = self[name]
         parameter.extend(data, submasks)
+        self.update_parameter_cache(parameter)
+
         data_size = parameter.array.size
 
         # low-level data and submasks extension
+        param_group = self.data[name]
         data = param_group['data']
         start_index = len(data)
         data.resize((data_size,))
@@ -540,7 +568,7 @@ class FlightDataFile(FlightDataFormat):
             submask_arrays.append(submask_array[start_index:len(parameter.array)])
 
         if 'submasks' not in param_group:
-            self.store_parameter_submasks(parameter)
+            self.store_parameter_submasks(parameter, param_group=param_group)
         else:
             submasks_data = param_group['submasks']
             submasks_data.resize((data_size, len(submask_arrays)))

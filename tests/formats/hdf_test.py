@@ -480,11 +480,15 @@ class FlightDataFileTestV2(unittest.TestCase):
     def trim_slice_test(self):
         """Trim the file to first 100 seconds."""
         with FlightDataFile(self.fp) as fdf:
-            fdf.trim(self.fp + '-trim', stop_offset=100)
+            fdf.trim(self.fp + '-trim', stop_offset=100, superframe_boundary=False)
 
         with FlightDataFile(self.fp + '-trim') as fdf:
-            self.assertEquals(fdf.duration, 100)
+            # XXX: the test data has superframe parameters, trimming it without superframe boundary will lead to
+            # inconsistent number of samples and inconsistent duration!
             for parameter in fdf.values():
+                if parameter.frequency < 0.25:
+                    continue
+                self.assertEquals(parameter.duration, 100)
                 self.assertEquals(len(parameter.array), math.floor(100 * parameter.frequency))
 
     def trim_slice_superframe_boundary_test(self):
