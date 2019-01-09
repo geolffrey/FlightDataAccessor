@@ -74,6 +74,7 @@ class MappedArray(MaskedArray):
         '''
         Convert the result into correct type.
         '''
+        super(MappedArray, self).__array_wrap__(out_arr, context)
         return self.__apply_attributes__(out_arr)
 
     def __apply_attributes__(self, result):
@@ -361,8 +362,12 @@ class ParameterArray(object):
                 values_mapping[value] = state
             array = MappedArray(array, values_mapping=values_mapping)
             parameter.values_mapping = array.values_mapping
-        elif isinstance(array, MappedArray) and array.values_mapping:
-            parameter.values_mapping = array.values_mapping
+        elif isinstance(array, MappedArray):
+            # normalise values mapping
+            if hasattr(array, 'values_mapping'):
+                parameter.values_mapping = array.values_mapping
+            else:
+                array.values_mapping = parameter.values_mapping
         else:
             array = np.ma.array(array)
 
@@ -663,13 +668,14 @@ class Parameter(Compatibility):
                 self.submasks[name] = np.zeros(len(self.array), dtype=np.bool8)
             self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
 
+        array = np.ma.array(array)
         if isinstance(self.array, MappedArray):
-            self._array = MappedArray(
-                np.ma.append(self.raw_array, np.zeros(len(array))), values_mapping=self.values_mapping)
-            # let MappedArray handle the type conversion
-            self._array[-len(array):] = array
-        else:
-            self._array = np.ma.append(self.array, array)
+            if array.dtype.type is np.string_:
+                state = {v: k for k, v in self.values_mapping.items()}
+                array = np.ma.array([state.get(x, None) for x in array])
+            array = MappedArray(np.ma.array(array), values_mapping=self.values_mapping)
+
+        self.array = np.ma.append(self.array, array)
 
     def update_submask(self, name, mask, merge=True):
         """Update a submask.
