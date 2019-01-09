@@ -14,7 +14,7 @@ import six
 import traceback
 import warnings
 
-from collections import defaultdict
+from collections import defaultdict, Iterable
 import numpy as np
 from numpy.ma import in1d, MaskedArray, masked, zeros
 
@@ -81,9 +81,16 @@ class MappedArray(MaskedArray):
         result.values_mapping = self.values_mapping
         return result
 
+    def __getstate__(self):
+        """Store values_mapping in the pickle."""
+        return {'ma_state': super(MappedArray, self).__getstate__(), 'values_mapping': self.values_mapping}
+
+    def __setstate__(self, state):
+        """Restore values_mapping from the pickle."""
+        super(MappedArray, self).__setstate__(state['ma_state'])
+        self.values_mapping = state['values_mapping']
+
     def __setattr__(self, key, value):
-        '''
-        '''
         # Update the reverse mappings in self.state
         if key == 'values_mapping' and value:
             self.state = defaultdict(list)
@@ -684,8 +691,11 @@ class Parameter(Compatibility):
         Parameter.array.mask is updated automatically to stay in sync.
 
         If submask with given name does not exist, it will be created."""
-        if name not in self.submasks:
+        if merge or name not in self.submasks:
             self.submasks[name] = mask
         else:
             self.submasks[name] |= mask
-        self.array.mask = self.combine_submasks()
+
+        array = self.array.copy()
+        array.mask = self.combine_submasks()
+        self.set_array(array, self.submasks)
