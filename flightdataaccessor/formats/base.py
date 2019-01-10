@@ -315,11 +315,11 @@ class FlightDataFormat(Compatibility):
 
     def get_parameter_source(self, name):
         """Get parameter source metadata"""
-        return self.data[name].source
+        return self[name].source
 
     def get_parameter_invalid(self, name):
         """Get information if parameter is invalid"""
-        return self.data[name].invalid
+        return self[name].invalid
 
     def get_parameter_limits(self, name, default=None):
         """Return a parameter's operating limits stored within the groups 'limits' attribute.

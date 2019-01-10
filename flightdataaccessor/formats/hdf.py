@@ -418,7 +418,7 @@ class FlightDataFile(FlightDataFormat):
         parameter = Parameter(name, array, **kwargs)
         # FIXME: do we want to keep this condition?
         if name in self.cache_param_list:
-            self.parameter_cache[name] = parameter
+            self.update_parameter_cache(parameter)
 
         return parameter
 
