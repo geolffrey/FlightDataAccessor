@@ -346,11 +346,6 @@ class TestHdfFile(unittest.TestCase):
             self.assertItemsEqual(
                 multi_p.array, [masked, masked, masked, 'three', '?', 'zero', '?', 'two', masked, masked])
             self.assertEqual(multi_p.array.data.dtype, np.int)
-            # modify a masked item
-            multi_p.array[0] = 'three'
-            with self.assertRaises(ValueError):
-                # XXX this fails because we've changed the mask by assignment above but we've not updated the submask
-                fdf['multi'] = multi_p
 
     def test__delitem__(self):
         with hdf_file(self.hdf_path, mode='a') as fdf:
