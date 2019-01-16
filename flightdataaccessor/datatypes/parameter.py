@@ -433,6 +433,35 @@ class ParameterArray(object):
             parameter._array = array
 
 
+class ParameterSubmasks(collections.MutableMapping):
+    """Better control over submasks."""
+    def __init__(self, *args, **kwargs):
+        self.compress = kwargs.pop('compress', False)
+        self.store = dict()
+        self.update(dict(*args, **kwargs))
+
+    def __getitem__(self, key):
+        if self.compress:
+            return decompress_mask(self.store[key])
+        else:
+            return self.store[key]
+
+    def __setitem__(self, key, value):
+        if self.compress:
+            self.store[key] = compress_mask(np.asanyarray(value))
+        else:
+            self.store[key] = np.asanyarray(value)
+
+    def __delitem__(self, key):
+        del self.store[self.__keytransform__(key)]
+
+    def __iter__(self):
+        return iter(self.store)
+
+    def __len__(self):
+        return len(self.store)
+
+
 class Parameter(Compatibility):
     array = ParameterArray()
 
@@ -498,7 +527,8 @@ class Parameter(Compatibility):
         else:
             self.default_submask_name = 'auto'
 
-        self.submasks = {k: np.array(v, dtype=np.bool) for k, v in submasks.items()} if submasks else {}
+        self.submasks = ParameterSubmasks(
+            {k: np.array(v, dtype=np.bool) for k, v in submasks.items()} if submasks else {}, compress=self.compress)
         if not self.submasks and np.any(np.ma.getmaskarray(array)):
             self.submasks[self.default_submask_name] = np.ma.getmaskarray(array)
         self.set_array(array, self.submasks)
@@ -520,7 +550,7 @@ class Parameter(Compatibility):
     def set_array(self, array, submasks):
         self.validate_mask(array, submasks)
         self.array = array
-        self.submasks = submasks
+        self.submasks = ParameterSubmasks(submasks, compress=self.compress)
 
     def get_array(self, submask=None):
         '''
