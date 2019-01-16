@@ -6,6 +6,7 @@ Parameter container class.
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import collections
 import copy
 import inspect
 import logging
@@ -14,7 +15,9 @@ import six
 import traceback
 import warnings
 
-from collections import defaultdict, Iterable
+import blosc
+
+from collections import defaultdict
 import numpy as np
 from numpy.ma import in1d, MaskedArray, masked, zeros
 
@@ -25,6 +28,40 @@ from .legacy import Compatibility
 
 # The value used to fill in MappedArrays for keys not within values_mapping
 NO_MAPPING = '?'  # only when getting values, setting raises ValueError
+
+
+def compress_mask(a):
+    return blosc.compress_ptr(a.__array_interface__['data'][0], a.size, a.dtype.itemsize, 9, True)
+
+
+def decompress_mask(d):
+    return np.frombuffer(blosc.decompress(d), dtype=np.bool)
+
+
+def compress_array(a):
+    values_mapping = getattr(a, 'values_mapping', None)
+    return (
+        str(a.dtype),
+        a.size,
+        blosc.compress_ptr(a.__array_interface__['data'][0], a.size, a.dtype.itemsize, 9, True),
+        compress_mask(a.mask) if isinstance(a.mask, np.ndarray) else a.mask,
+        values_mapping,
+    )
+
+
+def decompress_array(d):
+    dtype, size, data_blz, mask_blz, values_mapping = d
+    data = np.frombuffer(blosc.decompress(data_blz), dtype=dtype)
+    if isinstance(mask_blz, bytes):
+        mask = decompress_mask(mask_blz)
+    else:
+        mask = mask_blz
+    # XXX: by removing the copy() we can make the arrays immutable to avoid subtle errors
+    array = np.ma.array(data, mask=mask)
+    array = array.copy()
+    if values_mapping:
+        array = MappedArray(array, values_mapping=values_mapping)
+    return array
 
 
 class MaskError(ValueError):
@@ -353,7 +390,10 @@ class ParameterArray(object):
 
     The idea is to keep submasks in sync with the array's mask to ensure consistency."""
     def __get__(self, parameter, objtype=None):
-        return parameter._array
+        if parameter.compress:
+            return decompress_array(parameter._array)
+        else:
+            return parameter._array
 
     def __set__(self, parameter, array):
         """Set array on parent object.
@@ -385,18 +425,20 @@ class ParameterArray(object):
                     'Consider using Parameter.set_array(array, submasks) instead.',
                     DeprecationWarning
                 )
-                parameter.submasks = parameter.submasks_from_array(array)
+            parameter.submasks = parameter.submasks_from_array(array)
 
-        parameter._array = array
+        if parameter.compress:
+            parameter._array = compress_array(array)
+        else:
+            parameter._array = array
 
 
 class Parameter(Compatibility):
     array = ParameterArray()
 
-    def __init__(self, name, array=[], values_mapping=None, frequency=1,
-                 offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
-                 unit=None, data_type=None, source=None, source_name=None,
-                 description='', submasks=None, limits=None, **kwargs):
+    def __init__(self, name, array=[], values_mapping=None, frequency=1, offset=0, arinc_429=None, invalid=None,
+                 invalidity_reason=None, unit=None, data_type=None, source=None, source_name=None, description='',
+                 submasks=None, limits=None, compress=False, **kwargs):
         '''
         :param name: Parameter name
         :type name: String
@@ -444,6 +486,7 @@ class Parameter(Compatibility):
         self.invalid = invalid
         self.invalidity_reason = invalidity_reason
         self.limits = limits
+        self.compress = compress
 
         # A default submask is created when the parameter is populated with MaskedArray which contains masked values
         # that are incompatible with corresponding submasks or if MaskedArray is passed to parameter without any

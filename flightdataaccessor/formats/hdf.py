@@ -64,6 +64,7 @@ class FlightDataFile(FlightDataFormat):
     # attributes stored in memory
     INSTANCE_ATTRIBUTES = {
         'cache_param_list',
+        'compress',
         'data',
         'file',
         'hdf_attributes',
@@ -80,13 +81,12 @@ class FlightDataFile(FlightDataFormat):
     ALL_ATTRIBUTES = INSTANCE_ATTRIBUTES | FlightDataFormat.FDF_ATTRIBUTES
 
     def __init__(self, filelike, mode='r', cache_param_list=None, **kwargs):
-        super(FlightDataFormat, self).__init__()
-
         if h5py.version.hdf5_version_tuple < LIBRARY_VERSION:
             pass  # XXX: Issue a warning?
 
-        self.parameter_cache = {}
+        self.compress = kwargs.get('compress', False)
         self.keys_cache = defaultdict(SortedSet)
+        self.parameter_cache = {}
         self.path = None
         self.file = None
         self.open(filelike, mode=mode)
@@ -412,10 +412,11 @@ class FlightDataFile(FlightDataFormat):
         kwargs['arinc_429'] = bool(attrs.get('arinc_429', False))
         kwargs['invalid'] = bool(attrs.get('invalid', False))
         kwargs['invalidity_reason'] = attrs.get('invalidity_reason', None)
-        kwargs['limits'] = attrs.get('limits', None)
+        limits = attrs.get('limits', None)
+        kwargs['limits'] = simplejson.loads(limits) if limits else {}
         kwargs['data_type'] = attrs.get('data_type', None)
         kwargs['source_name'] = attrs.get('source_name', None)
-        parameter = Parameter(name, array, **kwargs)
+        parameter = Parameter(name, array, compress=self.compress, **kwargs)
         # FIXME: do we want to keep this condition?
         if name in self.cache_param_list:
             self.update_parameter_cache(parameter)

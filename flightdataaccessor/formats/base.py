@@ -50,7 +50,7 @@ class FlightDataFormat(Compatibility):
 
     def __init__(self, **kwargs):
         super(FlightDataFormat, self).__init__()
-        self.cache_param_list = kwargs.get('cache_param_list', [])
+        self.compress = kwargs.get('compress', False)
         self.keys_cache = defaultdict(SortedSet)
         self.data = {}
 
@@ -398,6 +398,6 @@ class FlightDataFormat(Compatibility):
         if name in self.keys():
             parameter = self.data[name]
         else:
-            parameter = Parameter(name)
+            parameter = Parameter(name, compress=self.compress)
             self.set_parameter(parameter)
         return parameter
