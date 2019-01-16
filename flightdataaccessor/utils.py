@@ -150,7 +150,7 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
             'Selection of submasks was requested which is not supported. All submasks will be saved instead',
             DeprecationWarning)
 
-    with flightdataaccessor.open(source, cache_param_list=True) as fdf:
+    with flightdataaccessor.open(source) as fdf:
         if not fdf.superframe_present and boundary not in (1, 4):
             # boundary in subframes
             warnings.warn(

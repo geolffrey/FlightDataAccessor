@@ -496,7 +496,7 @@ class FlightDataFile(FlightDataFormat):
                 'data', data=np.ma.getdata(parameter.array), maxshape=(None,), **self.DATASET_KWARGS)
 
         # XXX: remove options to save masks or submasks, implement saving individual Parameter data instead
-        if (save_submasks or save_mask) and getattr(parameter, 'submasks', None):
+        if (save_submasks or save_mask):
             self.store_parameter_submasks(parameter, param_group=param_group)
 
         for attr in PARAMETER_ATTRIBUTES:
@@ -505,7 +505,7 @@ class FlightDataFile(FlightDataFormat):
                 if value is None:
                     continue
 
-                if attr == 'values_mapping':
+                if attr in ('limits', 'values_mapping'):
                     value = simplejson.dumps(value)
 
                 param_group.attrs[attr] = value
@@ -578,45 +578,61 @@ class FlightDataFile(FlightDataFormat):
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
     # Maybe move to legacy instead?
     @require_open
+    def get_parameter_attribute(self, name, attribute, default=None, transformation=None):
+        """Return a parameter's attribute from parameter cache or the HDF source."""
+        if name in self.parameter_cache or attribute in ('duration',):
+            return getattr(self[name], attribute)
+
+        param_group = self.data[name]
+        value = param_group.attrs.get(attribute, default)
+        if transformation:
+            return transformation(value)
+        return value
+
+    # XXX: move to legacy
+    def get_parameter_unit(self, name):
+        """Get frequency of a parameter."""
+        return self.get_parameter_attribute(self, name, 'unit')
+
     def get_parameter_frequency(self, name):
         """Get frequency of a parameter."""
-        param_group = self.data[name]
-        return param_group.attrs.get('frequency', 1)
+        return self.get_parameter_attribute(name, 'frequency', 1)
 
-    @require_open
     def get_parameter_duration(self, name):
         """Get duration of a parameter data is seconds."""
         param_group = self.data[name]
-        return param_group['data'].len() / param_group.attrs.get('frequency', 1)
+        return param_group['data'].len() / self.get_parameter_attribute(name, 'frequency', 1)
 
-    @require_open
     def get_parameter_source(self, name):
-        """Get information if parameter is invalid"""
-        param_group = self.data[name]
-        return param_group.attrs.get('source', 'lfl')
+        """Get information about parameter source."""
+        return self.get_parameter_attribute(name, 'source', 'lfl')
 
-    @require_open
     def get_parameter_invalid(self, name):
-        """Get information if parameter is invalid"""
-        param_group = self.data[name]
-        return bool(param_group.attrs.get('invalid', False))
+        """Get information if parameter is invalid."""
+        return self.get_parameter_attribute(name, 'invalid', False)
 
     def get_parameter_limits(self, name, default=None):
         """Return a parameter's operating limits stored within the groups 'limits' attribute.
 
         Decodes limits from JSON into dict.
         """
-        limits = self.data[name].attrs.get('limits')
-        return simplejson.loads(limits) if limits else default
+        if default is None:
+            default = {}
+        limits = self.get_parameter_attribute(
+            name, 'limits', transformation=lambda x: simplejson.loads(x) if x else default)
+        return limits
 
     def get_param_arinc_429(self, name):
         """Returns a parameter's ARINC 429 flag."""
-        arinc_429 = bool(self.data[name].attrs.get('arinc_429'))
-        return arinc_429
+        return self.get_parameter_attribute(name, 'arinc_429', transformation=bool)
 
     @require_rw
     def set_parameter_limits(self, name, limits):
         """Set parameter limits"""
+        if name in self.parameter_cache:
+            parameter = self[name]
+            parameter.limits = limits
+
         param_group = self.get_or_create(name)
         param_group.attrs['limits'] = simplejson.dumps(limits)
 
@@ -624,6 +640,11 @@ class FlightDataFile(FlightDataFormat):
     def set_parameter_invalid(self, name, reason=''):
         """Set a parameter to be invalid"""
         # XXX: originally the parameter was fully masked, should we create a submask for that?
+        if name in self.parameter_cache:
+            parameter = self[name]
+            parameter.invalid = True
+            parameter.invalidity_reason = reason
+
         param_group = self.data[name]
         param_group.attrs['invalid'] = 1
         param_group.attrs['invalidity_reason'] = reason

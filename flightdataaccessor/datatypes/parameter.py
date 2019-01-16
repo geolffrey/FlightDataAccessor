@@ -416,7 +416,7 @@ class ParameterArray(object):
             else:
                 array.values_mapping = parameter.values_mapping
         else:
-            array = np.ma.array(array)
+            array = np.ma.asanyarray(array)
 
         if np.ma.any(np.ma.getmaskarray(array)):
             if any(np.any(v) for v in parameter.submasks.values()):
@@ -691,13 +691,19 @@ class Parameter(Compatibility):
 
         return clone
 
-    def is_compatible(self, parameter):
+    def is_compatible(self, parameter=None, name=None, frequency=None, offset=None, unit=None):
         """Check if another parameter is compatible with this one."""
+        if parameter:
+            name = parameter.name
+            frequency = parameter.frequency
+            offset = parameter.offset
+            unit = parameter.unit
+
         return (
-            self.name == parameter.name
-            and self.frequency == parameter.frequency
-            and self.offset == parameter.offset
-            and self.unit == parameter.unit
+            self.name == name
+            and self.frequency == frequency
+            and self.offset == offset
+            and self.unit == unit
         )
 
     def submasks_from_array(self, array, submasks=None):
@@ -748,12 +754,12 @@ class Parameter(Compatibility):
                 self.submasks[name] = np.zeros(len(self.array), dtype=np.bool8)
             self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
 
-        array = np.ma.array(array)
+        array = np.ma.asanyarray(array)
         if isinstance(self.array, MappedArray):
             if array.dtype.type is np.string_:
                 state = {v: k for k, v in self.values_mapping.items()}
-                array = np.ma.array([state.get(x, None) for x in array])
-            array = MappedArray(np.ma.array(array), values_mapping=self.values_mapping)
+                array = [state.get(x, None) for x in array]
+            array = MappedArray(np.ma.asanyarray(array), values_mapping=self.values_mapping)
 
         self.array = np.ma.append(self.array, array)
 
