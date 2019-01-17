@@ -72,6 +72,7 @@ class FlightDataFile(FlightDataFormat):
         'mode',
         'parameter_cache',
         'path',
+        'start_datetime',
     }
     # attributyes stored in HDF file
     DYNAMIC_HDF_ATTRIBUTES = {

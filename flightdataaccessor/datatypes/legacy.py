@@ -12,12 +12,17 @@ class Compatibility(object):
     @lfl.setter
     @deprecated(details="Please use `source = 'lfl'` instead")
     def lfl(self, s):
-        self.source = 'lfl'
+        self.source = 'lfl' if s else 'derived'
 
     @property
-    @deprecated(details='Please use `source` instead')
+    @deprecated(details='Please use `unit` instead')
     def units(self):
         return self.unit
+
+    @units.setter
+    @deprecated(details="Please use `source = 'unit'` instead")
+    def units(self, u):
+        self.unit = u
 
     @property
     @deprecated(details='Please use `frequency` instead')

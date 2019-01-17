@@ -364,7 +364,7 @@ class FlightDataFormat(Compatibility):
         '''
         timestamp = self.timestamp
         if timestamp:
-            return datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.utc)
+            return datetime.datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.utc)
         else:
             return None
 
