@@ -28,7 +28,11 @@ __license__ = 'Open Software License (OSL-3.0)'
 __keywords__ = ['hdf', 'numpy', 'flight', 'data']
 
 
-from .formats.compatibility import open
+from .datatypes.array import MappedArray  # noqa: F401
+from .datatypes.parameter import Parameter  # noqa: F401
+from .formats.base import FlightDataFormat  # noqa: F401
+from .formats.compatibility import open  # noqa: F401
+from .formats.hdf import FlightDataFile  # noqa: F401
 
 ################################################################################
 # vim:et:ft=python:nowrap:sts=4:sw=4:ts=4
