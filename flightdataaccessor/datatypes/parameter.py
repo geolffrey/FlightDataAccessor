@@ -419,13 +419,15 @@ class ParameterArray(object):
             array = np.ma.asanyarray(array)
 
         if np.ma.any(np.ma.getmaskarray(array)):
-            if any(np.any(v) for v in parameter.submasks.values()):
+            try:
+                parameter.validate_mask(array, parameter.submasks, strict=True)
+            except MaskError:
                 warnings.warn(
                     "Overriding parameter's submasks due to masked array assignment."
                     'Consider using Parameter.set_array(array, submasks) instead.',
                     DeprecationWarning
                 )
-            parameter.submasks = parameter.submasks_from_array(array)
+                parameter.submasks = parameter.submasks_from_array(array)
 
         if parameter.compress:
             parameter._array = compress_array(array)
@@ -527,11 +529,10 @@ class Parameter(Compatibility):
         else:
             self.default_submask_name = 'auto'
 
-        self.submasks = ParameterSubmasks(
-            {k: np.array(v, dtype=np.bool) for k, v in submasks.items()} if submasks else {}, compress=self.compress)
-        if not self.submasks and np.any(np.ma.getmaskarray(array)):
-            self.submasks[self.default_submask_name] = np.ma.getmaskarray(array)
-        self.set_array(array, self.submasks)
+        submasks = {k: np.array(v, dtype=np.bool) for k, v in submasks.items()} if submasks else {}
+        self.submasks = ParameterSubmasks(submasks, compress=self.compress)
+        self.validate_mask(array, submasks)
+        self.array = array
 
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
@@ -719,8 +720,9 @@ class Parameter(Compatibility):
                 submasks[name] = np.zeros(len(array), dtype=np.bool)
 
         mask_array = np.ma.getmaskarray(array)
-        if np.any(mask_array != self.combine_submasks(submasks)):
+        if np.any(mask_array != self.combine_submasks(submasks, array)):
             submasks[self.default_submask_name] = mask_array
+
         return submasks
 
     def build_array_submasks(self, data, submasks=None):
