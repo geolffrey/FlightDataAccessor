@@ -537,6 +537,21 @@ class Parameter(Compatibility):
     def __repr__(self):
         return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
 
+    def is_compatible(self, parameter=None, name=None, frequency=None, offset=None, unit=None):
+        """Check if another parameter is compatible with this one."""
+        if parameter:
+            name = parameter.name
+            frequency = parameter.frequency
+            offset = parameter.offset
+            unit = parameter.unit
+
+        return (
+            self.name == name
+            and self.frequency == frequency
+            and self.offset == offset
+            and self.unit == unit
+        )
+
     @property
     def duration(self):
         """Calculate the duration of data."""
@@ -571,49 +586,6 @@ class Parameter(Compatibility):
                                values_mapping=self.array.values_mapping)
         else:
             return MaskedArray(self.array.data, mask=self.submasks[submask].copy())
-
-    def combine_submasks(self, submasks=None):
-        '''
-        Combine submasks into a single OR'd mask.
-
-        :returns: Combined submask.
-        :rtype: np.array
-        '''
-        if submasks is None:
-            submasks = self.submasks
-
-        if submasks:
-            return merge_masks(list(submasks.values()))
-        else:
-            return self.array.mask
-
-    def validate_mask(self, array=None, submasks=None):
-        """Verify if combined submasks are equivalent to array.mask."""
-        # XXX: should we raise errors?
-        if array is None and submasks is None:
-            array = self.array
-            submasks = {k: v for k, v in self.submasks.items() if len(v)}
-
-        if not submasks:
-            # if np.any(np.ma.getmaskarray(array)):
-            #     raise MaskError('No submasks defined but the array has masked values')
-            # parameter mask will be used as default submask
-            return True
-
-        # we want to handle "default" submask no matter if already exists or is added
-        old_submask_names = set(self.submasks.keys()) | {self.default_submask_name}
-        new_submask_names = set(submasks.keys()) | {self.default_submask_name}
-        if new_submask_names != old_submask_names:
-            raise MaskError("Submask names don't match the stored submasks")
-        for submask_name, submask in submasks.items():
-            if len(submask) != len(array):
-                raise MaskError('Submasks must have the same length as the array')
-        if isinstance(array, np.ma.MaskedArray):
-            mask = self.combine_submasks(submasks)
-            if not np.all(mask == np.ma.getmaskarray(array)):
-                raise MaskError('Submasks are not equivalent to array.mask')
-
-        return True
 
     def downsample(self, width, start_offset=None, stop_offset=None, mask=True):
         """Downsample data in range to fit in a window of given width."""
@@ -692,20 +664,80 @@ class Parameter(Compatibility):
 
         return clone
 
-    def is_compatible(self, parameter=None, name=None, frequency=None, offset=None, unit=None):
-        """Check if another parameter is compatible with this one."""
-        if parameter:
-            name = parameter.name
-            frequency = parameter.frequency
-            offset = parameter.offset
-            unit = parameter.unit
+    def extend(self, data, submasks=None):
+        """Extend the parameter's data."""
+        if isinstance(data, Parameter):
+            if not self.is_compatible(data):
+                raise ValueError('Parameter passed to extend() is not compatible')
+            if submasks:
+                raise MaskError('`submasks` argument is not accepted if a Parameter is passed to extend()')
 
-        return (
-            self.name == name
-            and self.frequency == frequency
-            and self.offset == offset
-            and self.unit == unit
-        )
+        array, submasks = self.build_array_submasks(data, submasks=submasks)
+
+        for name in submasks:
+            if name not in self.submasks:
+                # add an empty submask up to this point
+                self.submasks[name] = np.zeros(len(self.array), dtype=np.bool8)
+            self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
+
+        array = np.ma.asanyarray(array)
+        if isinstance(self.array, MappedArray):
+            if array.dtype.type is np.string_:
+                state = {v: k for k, v in self.values_mapping.items()}
+                array = [state.get(x, None) for x in array]
+            array = MappedArray(np.ma.asanyarray(array), values_mapping=self.values_mapping)
+
+        self.array = np.ma.append(self.array, array)
+
+    # Submasks handling
+    def validate_mask(self, array=None, submasks=None, strict=False):
+        """Verify if combined submasks are equivalent to array.mask.
+
+        In default mode if submasks are not defined the array's mask is consoidered valid.
+
+        In strict mode the mask and submasks mustr always be equivalent.
+        """
+        if array is None and submasks is None:
+            array = self.array
+            submasks = {k: v for k, v in self.submasks.items() if len(v)}
+
+        if not submasks:
+            if strict and np.any(np.ma.getmaskarray(array)):
+                raise MaskError("Submasks are not defined and array is masked")
+            return True
+
+        # we want to handle "default" submask no matter if already exists or is added
+        old_submask_names = set(self.submasks.keys()) | {self.default_submask_name}
+        new_submask_names = set(submasks.keys()) | {self.default_submask_name}
+        if new_submask_names != old_submask_names:
+            raise MaskError("Submask names don't match the stored submasks")
+        for submask_name, submask in submasks.items():
+            if len(submask) != len(array):
+                raise MaskError("Submasks don't have the same length as the array")
+        if isinstance(array, np.ma.MaskedArray):
+            mask = self.combine_submasks(submasks, array)
+            if not np.all(mask == np.ma.getmaskarray(array)):
+                raise MaskError('Submasks are not equivalent to array.mask')
+
+        return True
+
+    def combine_submasks(self, submasks=None, array=None):
+        '''
+        Combine submasks into a single OR'd mask.
+
+        If optional array is passed it's mask will be returned if submasks are empty.
+
+        :returns: Combined submask.
+        :rtype: np.array
+        '''
+        if submasks is None:
+            submasks = self.submasks
+            array = self.array
+
+        if submasks:
+            return merge_masks(list(submasks.values()))
+        else:
+            return np.zeros(len(array), dtype=np.bool)
 
     def submasks_from_array(self, array, submasks=None):
         """Build submasks compatible with parameter for the passed array of data.
@@ -739,31 +771,6 @@ class Parameter(Compatibility):
         submasks = self.submasks_from_array(array, submasks)
 
         return array, submasks
-
-    def extend(self, data, submasks=None):
-        """Extend the parameter's data."""
-        if isinstance(data, Parameter):
-            if not self.is_compatible(data):
-                raise ValueError('Parameter passed to extend() is not compatible')
-            if submasks:
-                raise MaskError('`submasks` argument is not accepted if a Parameter is passed to extend()')
-
-        array, submasks = self.build_array_submasks(data, submasks=submasks)
-
-        for name in submasks:
-            if name not in self.submasks:
-                # add an empty submask up to this point
-                self.submasks[name] = np.zeros(len(self.array), dtype=np.bool8)
-            self.submasks[name] = np.ma.concatenate([self.submasks[name], submasks[name]])
-
-        array = np.ma.asanyarray(array)
-        if isinstance(self.array, MappedArray):
-            if array.dtype.type is np.string_:
-                state = {v: k for k, v in self.values_mapping.items()}
-                array = [state.get(x, None) for x in array]
-            array = MappedArray(np.ma.asanyarray(array), values_mapping=self.values_mapping)
-
-        self.array = np.ma.append(self.array, array)
 
     def update_submask(self, name, mask, merge=True):
         """Update a submask.
