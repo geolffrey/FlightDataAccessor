@@ -1,7 +1,7 @@
 from deprecation import deprecated
 
 
-class Compatibility(object):
+class Legacy(object):
     """Support for legacy properties and methods"""
 
     @property

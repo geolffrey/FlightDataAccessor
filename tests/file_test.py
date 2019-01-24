@@ -277,9 +277,6 @@ class TestHdfFile(unittest.TestCase):
         self.assertTrue(np.all(self.param_mask == param.array.mask))
         self.assertEqual(self.masked_param_frequency, param.frequency)
         self.assertEqual(self.masked_param_supf_offset, param.offset)
-        # XXX: 'derived' submask is created from the parameter's mask!
-        self.assertItemsEqual(['derived'], param.submasks.keys())
-        np.testing.assert_array_equal(param.submasks['derived'], np.ma.getmaskarray(param.array))
 
     def test_len(self):
         '''
