@@ -133,11 +133,17 @@ class FlightDataFile(FlightDataFormat):
 
     @property
     def duration(self):
-        return self.hdf_attributes.get('duration')
+        duration = self.hdf_attributes.get('duration')
+        if duration is None:
+            duration = super(FlightDataFile, self).duration
+        return duration
 
     @property
     def frequencies(self):
-        return self.hdf_attributes.get('frequencies')
+        frequencies = self.hdf_attributes.get('frequencies')
+        if frequencies is None:
+            frequencies = super(FlightDataFile, self).frequencies
+        return frequencies
 
     @require_open
     def __getattr__(self, name):
@@ -323,7 +329,7 @@ class FlightDataFile(FlightDataFormat):
                 self.file.flush()
                 durations = [self.get_parameter_duration(name) for name in self]
                 self.duration = np.nanmax(durations) if durations else 0
-                self.frequencies = sorted(self.get_parameter_frequency(name) for name in self)
+                self.frequencies = sorted({self.get_parameter_frequency(name) for name in self})
 
             self.file.close()
             self.file = None
