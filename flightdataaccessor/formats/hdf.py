@@ -21,6 +21,7 @@ from collections import defaultdict
 from sortedcontainers import SortedSet
 
 from flightdatautilities.array_operations import merge_masks
+from flightdatautilities.compression import CompressedFile
 
 from ..datatypes.parameter import Parameter
 from .base import FlightDataFormat
@@ -65,6 +66,7 @@ class FlightDataFile(FlightDataFormat):
     INSTANCE_ATTRIBUTES = {
         'cache_param_list',
         'compress',
+        'compressed_file',
         'data',
         'file',
         'hdf_attributes',
@@ -86,6 +88,7 @@ class FlightDataFile(FlightDataFormat):
             pass  # XXX: Issue a warning?
 
         self.compress = kwargs.get('compress', False)
+        self.mode = mode
         self.keys_cache = defaultdict(SortedSet)
         self.parameter_cache = {}
         self.path = None
@@ -197,8 +200,13 @@ class FlightDataFile(FlightDataFormat):
             self.path = os.path.abspath(source.filename)
             self.file = source
         else:
-            # XXX: Handle compressed files transparently?
             self.path = os.path.abspath(source)
+
+            compressed = CompressedFile(self.path, mode=self.mode)
+            if compressed.format:
+                self.compressed_file = compressed
+                self.path = self.compressed_file.open()
+
             if not os.path.exists(self.path):
                 created = True
             self.file = h5py.File(source, mode=mode)
@@ -219,6 +227,22 @@ class FlightDataFile(FlightDataFormat):
             self.data = self.file['series']
 
         return created
+
+    def close(self):
+        # XXX: raise IOError if no file?
+        if self.file is not None and self.file.id:
+            if self.file.mode == 'r+':
+                self.file.flush()
+                durations = [self.get_parameter_duration(name) for name in self]
+                self.duration = np.nanmax(durations) if durations else 0
+                self.frequencies = sorted({self.get_parameter_frequency(name) for name in self})
+
+            self.file.close()
+            if getattr(self, 'compressed_file', None):
+                self.compressed_file.close()
+                del self.compressed_file
+            self.file = None
+            self.data = None
 
     @require_rw
     def set_source_attribute(self, name, value):
@@ -321,19 +345,6 @@ class FlightDataFile(FlightDataFormat):
                         self.keys_cache[category].add(name)
 
         return list(self.keys_cache[category])
-
-    def close(self):
-        # XXX: raise IOError if no file?
-        if self.file is not None and self.file.id:
-            if self.file.mode == 'r+':
-                self.file.flush()
-                durations = [self.get_parameter_duration(name) for name in self]
-                self.duration = np.nanmax(durations) if durations else 0
-                self.frequencies = sorted({self.get_parameter_frequency(name) for name in self})
-
-            self.file.close()
-            self.file = None
-            self.data = None
 
     if six.PY2:
         iterkeys = keys

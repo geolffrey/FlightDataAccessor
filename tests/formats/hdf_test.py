@@ -46,7 +46,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             with self.assertRaises(IOError):
                 fdf.reliable_frame_counter = not fdf.reliable_frame_counter
 
-        with self.assertRaises(IOError):
+        with self.assertRaises(OSError):
             FlightDataFile(self.fp + '-nonexistent')
 
     def file_mode_w_test(self):
