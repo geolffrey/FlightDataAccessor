@@ -356,6 +356,11 @@ class FlightDataFormat(Compatibility):
         parameter.invalid = 1
         parameter.invalidity_reason = reason
 
+    def set_parameter_offset(self, name, offset):
+        """Set parameter offset"""
+        parameter = self.get_parameter(name)
+        parameter.offset = offset
+
     @property
     def start_datetime(self):
         '''The start datetime of the data stored within the FDF object.

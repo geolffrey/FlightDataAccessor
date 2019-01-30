@@ -666,3 +666,13 @@ class FlightDataFile(FlightDataFormat):
         param_group = self.data[name]
         param_group.attrs['invalid'] = 1
         param_group.attrs['invalidity_reason'] = reason
+
+    @require_rw
+    def set_parameter_offset(self, name, offset):
+        """Set a parameter offset"""
+        if name in self.parameter_cache:
+            parameter = self[name]
+            parameter.offset = offset
+
+        param_group = self.data[name]
+        param_group.attrs['offset'] = offset
