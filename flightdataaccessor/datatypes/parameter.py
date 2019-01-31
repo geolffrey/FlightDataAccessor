@@ -106,7 +106,7 @@ class Parameter(Legacy):
         A default submask is created when the parameter is populated with MaskedArray which contains masked values that
         are incompatible with corresponding submasks or if MaskedArray is passed to parameter without any submasks."""
         # XXX: Node should have a default source value
-        source = getattr(self, 'source', 'derived')
+        source = getattr(self, 'source', 'lfl')
         sources = {
             'lfl': 'padding',
             'derived': 'derived',
