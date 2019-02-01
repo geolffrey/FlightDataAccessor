@@ -4,30 +4,6 @@
 # http://www.flightdataservices.com
 # See the file "LICENSE" for the full license governing this code.
 
-__packagename__ = 'HDFAccess'
-__version__ = '0.1.4'
-__author__ = 'Flight Data Services Ltd'
-__author_email__ = 'developers@flightdataservices.com'
-__maintainer__ = 'Flight Data Services Ltd'
-__maintainer_email__ = 'developers@flightdataservices.com'
-__url__ = 'http://www.flightdatacommunity.com/'
-__description__ = 'An interface for HDF files containing flight data.'
-__download_url__ = ''
-__classifiers__ = [
-    'Development Status :: 5 - Production/Stable',
-    'Environment :: Console',
-    'Intended Audience :: Developers',
-    'License :: OSI Approved',
-    'Programming Language :: Python :: 2.7',
-    'Programming Language :: Python :: Implementation :: CPython',
-    'Operating System :: OS Independent',
-    'Topic :: Software Development',
-]
-__platforms__ = ['OS Independent']
-__license__ = 'Open Software License (OSL-3.0)'
-__keywords__ = ['hdf', 'numpy', 'flight', 'data']
-
-
 from .datatypes.array import MappedArray  # noqa: F401
 from .datatypes.parameter import Parameter  # noqa: F401
 from .formats.base import FlightDataFormat  # noqa: F401
