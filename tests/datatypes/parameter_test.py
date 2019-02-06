@@ -9,20 +9,20 @@ from flightdataaccessor.datatypes.parameter import MappedArray, Parameter
 
 
 class TestParameter(unittest.TestCase):
-    def get_parameter(self, frequency=1, with_mask=True):
-        array = np.ma.arange(100)
-        mask = np.zeros(100, dtype=np.bool)
-        if with_mask:
-            mask[:3] = [1, 1, 0]
-            array.mask = mask
-            mask1 = np.ma.zeros(100, dtype=np.bool)
-            mask1[:3] = [1, 0, 0]
-            mask2 = np.ma.zeros(100, dtype=np.bool)
-            mask2[:3] = [1, 1, 0]
-            submasks = {'mask1': mask1, 'mask2': mask2}
-        else:
-            submasks = {}
-        return Parameter('Test', array=array, submasks=submasks, frequency=frequency)
+    def get_parameter(self, array=None, frequency=1, with_mask=True, compress=False):
+        submasks = {}
+        if array is None:
+            array = np.ma.arange(100)
+            mask = np.zeros(len(array), dtype=np.bool)
+            if with_mask:
+                mask[:3] = [1, 1, 0]
+                array.mask = mask
+                mask1 = np.ma.zeros(100, dtype=np.bool)
+                mask1[:3] = [1, 0, 0]
+                mask2 = np.ma.zeros(100, dtype=np.bool)
+                mask2[:3] = [1, 1, 0]
+                submasks = {'mask1': mask1, 'mask2': mask2}
+        return Parameter('Test', compress=compress, array=array, submasks=submasks, frequency=frequency)
 
     def test_parameter(self):
         p_name = 'param'
@@ -300,6 +300,13 @@ class TestParameter(unittest.TestCase):
         p.update_submask('mask1', mask)
         self.assertFalse(np.all(mask == old_mask))
         self.assertTrue(p.validate_mask())
+
+    def test_compression(self):
+        """Ensure array compression works correctly."""
+        array = np.arange(100)
+        p = self.get_parameter(array=array, compress=True)
+        self.assertTrue(p.compress)
+        self.assertTrue(np.all(p.array == array))
 
 
 if __name__ == '__main__':

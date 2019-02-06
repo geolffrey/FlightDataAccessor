@@ -106,4 +106,7 @@ class Compatibility(object):
         if self.file.attrs.get('version') >= self.VERSION:
             raise ValueError('The FlightDataFile is in the latest format!')
 
-        return self.trim(target)
+        with self.trim(target) as result:
+            result.delete_parameter('Date')
+            result.delete_parameter('Time')
+        return result

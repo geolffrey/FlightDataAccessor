@@ -9,24 +9,21 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import copy
 import datetime
-import pytz
 import re
-
-import simplejson
-import six
+from collections import defaultdict
 
 import numpy as np
-
-from collections import defaultdict
+import pytz
+import simplejson
+import six
 from sortedcontainers import SortedSet
 
 from flightdatautilities.patterns import wildcard_match
 
-from flightdataaccessor.datatypes.parameter import Parameter
-
 from . import compatibility
+from ..datatypes.dynamic import DateParameter, TimeParameter
+from ..datatypes.parameter import Parameter
 from .legacy import Compatibility
-
 
 CURRENT_VERSION = 3
 
@@ -163,7 +160,11 @@ class FlightDataFormat(Compatibility):
 
     def get_parameter(self, name, valid_only=False, _slice=None, copy_param=True, **kwargs):
         """Load parameter and handle special cases"""
-        if name not in self.keys(valid_only):
+        if name == 'Date':
+            return DateParameter(start_datetime=self.start_datetime, duration=self.duration)
+        elif name == 'Time':
+            return TimeParameter(start_datetime=self.start_datetime, duration=self.duration)
+        elif name not in self.keys(valid_only):
             raise KeyError(name)
 
         parameter = self.load_parameter(name, **kwargs)
