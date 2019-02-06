@@ -6,7 +6,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import base64
-import copy
 import functools
 import os
 import warnings
@@ -438,22 +437,6 @@ class FlightDataFile(FlightDataFormat):
         # FIXME: do we want to keep this condition?
         if name in self.cache_param_list:
             self.update_parameter_cache(parameter)
-
-        return parameter
-
-    def get_parameter(self, name, valid_only=False, _slice=None, copy_param=False, load_submasks=False):
-        """Load parameter and handle special cases"""
-        if name not in self.keys(valid_only):
-            raise KeyError(name)
-
-        parameter = self.load_parameter(name, load_submasks=load_submasks)
-
-        if _slice:
-            slice_start = int((_slice.start or 0) * parameter.frequency)
-            slice_stop = int((_slice.stop or parameter.array.size) * parameter.frequency)
-            return parameter.slice(slice(slice_start, slice_stop))
-        elif copy_param:
-            return copy.deepcopy(parameter)
 
         return parameter
 
