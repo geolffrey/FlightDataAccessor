@@ -447,7 +447,7 @@ class ParameterSubmasks(collections.MutableMapping):
             self.store[key] = np.asanyarray(value)
 
     def __delitem__(self, key):
-        del self.store[self.__keytransform__(key)]
+        del self.store[key]
 
     def __iter__(self):
         return iter(self.store)

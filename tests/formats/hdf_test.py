@@ -323,8 +323,7 @@ class FlightDataFileTestV2(unittest.TestCase):
 
         copy_param=False is required for comparison purposes.
         """
-        with FlightDataFile(self.fp) as fdf:
-            fdf.cache_param_list += fdf.keys()
+        with FlightDataFile(self.fp, cache_param_list=True) as fdf:
             param1 = fdf.get_parameter('Airspeed', copy_param=False)
             self.assertIn(param1.name, fdf.parameter_cache)
             cached = fdf.parameter_cache['Airspeed']

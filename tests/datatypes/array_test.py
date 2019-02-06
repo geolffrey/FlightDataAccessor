@@ -1,10 +1,53 @@
 from __future__ import print_function
 
+import cPickle
 import unittest
 
 import numpy as np
 
 from flightdataaccessor.datatypes.parameter import MappedArray, Parameter
+from flightdataaccessor.datatypes.array import compress_mask, decompress_mask, compress_array, decompress_array
+from flightdataaccessor.datatypes.array import ParameterSubmasks
+
+
+class TestCompression(unittest.TestCase):
+    def test_compress_mask(self):
+        mask = (np.arange(100) % 7).astype(np.bool)
+        compressed = compress_mask(mask)
+        self.assertTrue(np.all(mask == decompress_mask(compressed)))
+
+    def test_compress_numeric_array(self):
+        array = np.ma.arange(100)
+        compressed = compress_array(array)
+        self.assertTrue(np.all(array == decompress_array(compressed)))
+
+        array[0:10] = np.ma.masked
+        compressed = compress_array(array)
+        self.assertTrue(np.all(array == decompress_array(compressed)))
+
+    def test_compress_mapped_array(self):
+        mapping = {1: 'one', 2: 'two', 3: 'three'}
+        values = 1 + np.arange(100) % 3
+        array = MappedArray(values, values_mapping=mapping)
+        compressed = compress_array(array)
+        self.assertTrue(np.all(array == decompress_array(compressed)))
+
+        array[0:10] = np.ma.masked
+        compressed = compress_array(array)
+        self.assertTrue(np.all(array == decompress_array(compressed)))
+
+
+class TestPickle(unittest.TestCase):
+    def test_pickle_mapped_array(self):
+        mapping = {1: 'one', 2: 'two', 3: 'three'}
+        values = 1 + np.arange(100) % 3
+        array = MappedArray(values, values_mapping=mapping)
+        pickled = cPickle.dumps(array)
+        self.assertTrue(np.all(array == cPickle.loads(pickled)))
+
+        array[0:10] = np.ma.masked
+        pickled = cPickle.dumps(array)
+        self.assertTrue(np.all(array == cPickle.loads(pickled)))
 
 
 class TestMappedArray(unittest.TestCase):
@@ -12,8 +55,7 @@ class TestMappedArray(unittest.TestCase):
 
     def test_any_of(self):
         values = [1, 2, 3, 2, 1, 2, 3, 2, 1]
-        a = MappedArray(values, mask=[True] + [False] * 8,
-                        values_mapping=self.mapping)
+        a = MappedArray(values, mask=[True] + [False] * 8, values_mapping=self.mapping)
         result = a.any_of('one', 'three')
         self.assertEqual(
             result.tolist(),
@@ -244,10 +286,8 @@ masked_array(data = [False False  True False False],
 
     def test_duplicate_values(self):
         values_mapping = {0: 'A', 1: 'A', 2: 'B', 3: 'C', 5: 'C'}
-        data = [0, 1, 2, 3, 4, 5]
-
-        array = np.ma.masked_array(data, mask=False)
-        array = MappedArray(array, values_mapping=values_mapping)
+        data = np.ma.masked_array([0, 1, 2, 3, 4, 5], mask=False)
+        array = MappedArray(data, values_mapping=values_mapping)
         self.assertEqual(array[0], 'A')
         self.assertEqual(array[1], 'A')
         self.assertEqual(array[2], 'B')
@@ -262,8 +302,10 @@ masked_array(data = [False False  True False False],
         self.assertEqual((array == 'A').tolist(), [True, True, False, False, False, False])
 
     def test_missing_state(self):
+        """Ensure the array compared to incorrect state raises KeyError."""
         values_mapping = {0: 'A', 1: 'B', 2: 'C'}
-        array = MappedArray([0, 0, 0, 1, 2, 1, 0, 0], mask=[True] * 2 + [False] * 5 + [True], values_mapping=values_mapping)
+        array = MappedArray(
+            [0, 0, 0, 1, 2, 1, 0, 0], mask=[True] * 2 + [False] * 5 + [True], values_mapping=values_mapping)
         self.assertEqual((array == 'A').tolist(), [None, None, True, False, False, False, True, None])
         self.assertRaises(KeyError, array.__eq__, 'D')
         self.assertRaises(KeyError, array.__ne__, 'E')
@@ -271,6 +313,29 @@ masked_array(data = [False False  True False False],
         self.assertRaises(KeyError, array.__ge__, 'G')
         self.assertRaises(KeyError, array.__lt__, 'H')
         self.assertRaises(KeyError, array.__le__, 'I')
+
+    def test_missing_value(self):
+        """Ensure the array compared to incorrect numeric value returns False."""
+        values_mapping = {0: 'A', 1: 'B', 2: 'C'}
+        array = MappedArray(
+            [0, 0, 0, 1, 2, 1, 0, 0], mask=[True] * 2 + [False] * 5 + [True], values_mapping=values_mapping)
+        self.assertFalse(np.any(array == 5))
+
+    def test_get_state_value(self):
+        values_mapping = {1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E'}
+        data = np.ma.masked_array([1, 2, 3, 4, 5], mask=False)
+        array = MappedArray(data, values_mapping=values_mapping)
+        for raw, state in values_mapping.items():
+            self.assertEqual(array.get_state_value(state), [raw])
+
+
+class TestParameterSubmasks(unittest.TestCase):
+    """Test ParameterSubmasks proxy."""
+    def test_delitem(self):
+        ps = ParameterSubmasks()
+        ps['test'] = np.zeros(100)
+        del ps['test']
+        self.assertNotIn('test', ps)
 
 
 if __name__ == '__main__':

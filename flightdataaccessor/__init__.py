@@ -4,6 +4,8 @@
 # http://www.flightdataservices.com
 # See the file "LICENSE" for the full license governing this code.
 
+from . import utils  # noqa: F401
+
 from .datatypes.array import MappedArray  # noqa: F401
 from .datatypes.parameter import Parameter  # noqa: F401
 from .formats.base import FlightDataFormat  # noqa: F401

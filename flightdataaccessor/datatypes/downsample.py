@@ -1,3 +1,7 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import math
+
 import numpy as np
 
 
@@ -27,6 +31,8 @@ def most_common_value(array, threshold=None):
     '''
     if isinstance(array, np.ma.MaskedArray):
         array = array.compressed()
+    else:
+        array = np.asanyarray(array)
     values, counts = np.unique(array, return_counts=True)
     if not counts.size:
         return None
@@ -56,7 +62,7 @@ def downsample_most_common_value(data, width):
 
     array = np.ma.asarray(data)
 
-    bucket_size = array.size // width
+    bucket_size = math.ceil(array.size / width)
     remainder = len(array) % bucket_size
     regular_part = masked_invalid(array[:len(array) - remainder])
     samples = []

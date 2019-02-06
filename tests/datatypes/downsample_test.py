@@ -34,6 +34,10 @@ class MostCommonValueTest(unittest.TestCase):
         array = parameter.MappedArray([1, 2, 3, 4, 4, 3, 2, 3], values_mapping=values_mapping)
         self.assertEquals(downsample.most_common_value(array), 3)
 
+    def test_most_common_value_high_threshold(self):
+        array = [1, 2, 3, 4, 5, 3, 2, 3]
+        self.assertEquals(downsample.most_common_value(array, 10), None)
+
 
 class DownsampleTest(unittest.TestCase):
     def test_downsample_list(self):
@@ -112,3 +116,12 @@ class DownsampleTest(unittest.TestCase):
         # implicit use of the nonnumeric algorithm
         np.testing.assert_array_equal(downsampled1, downsampled2)
         np.testing.assert_array_equal(downsampled1, [np.ma.masked, np.ma.masked, 'one', 'one'])
+
+    def test_downsample_mapped_array_remainder(self):
+        mask = np.zeros(100, dtype=np.bool)
+        mask[:50] = True
+        values_mapping = {1: 'one', 2: 'two', 3: 'three', 4: 'four'}
+        array = parameter.MappedArray([1, 2, 3, 4, 1] * 20, mask=mask, values_mapping=values_mapping)
+        # uneven split of samples (34, 34 and 32 samples)
+        downsampled = downsample.downsample(array, 3)
+        np.testing.assert_array_equal(downsampled, [np.ma.masked, 'one', 'one'])
