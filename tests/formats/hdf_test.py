@@ -7,14 +7,14 @@ import json
 import math
 import os
 import shutil
-import unittest
 import tempfile
+import unittest
 
 import h5py
 import numpy as np
 
-from flightdataaccessor.formats.hdf import FlightDataFile
 from flightdataaccessor.datatypes.parameter import Parameter
+from flightdataaccessor.formats.hdf import FlightDataFile
 
 
 class FlightDataFileTestV2(unittest.TestCase):

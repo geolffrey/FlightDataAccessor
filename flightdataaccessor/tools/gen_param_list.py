@@ -5,8 +5,8 @@ python module, allowing lists to be imported by other scripts.
 '''
 from __future__ import print_function
 
-import os
 import glob
+import os
 
 FILES = glob.glob(os.path.join('list_data', 'parameters-*.txt'))
 

@@ -4,7 +4,6 @@ import math
 
 import numpy as np
 
-
 SAMPLES_PER_BUCKET = 2
 
 

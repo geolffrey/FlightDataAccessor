@@ -3,8 +3,8 @@ import unittest
 
 import numpy as np
 
-from flightdataaccessor.formats.base import FlightDataFormat
 from flightdataaccessor.datatypes.parameter import Parameter
+from flightdataaccessor.formats.base import FlightDataFormat
 
 
 class FlightDataFormatTest(unittest.TestCase):

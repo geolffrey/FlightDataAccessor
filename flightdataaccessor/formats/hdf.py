@@ -10,13 +10,12 @@ import functools
 import os
 import warnings
 import zlib
+from collections import defaultdict
 
 import h5py
 import numpy as np
 import simplejson
 import six
-
-from collections import defaultdict
 from sortedcontainers import SortedSet
 
 from flightdatautilities.array_operations import merge_masks
@@ -24,7 +23,6 @@ from flightdatautilities.compression import CompressedFile
 
 from ..datatypes.parameter import Parameter
 from .base import FlightDataFormat
-
 
 LIBRARY_VERSION = (1, 10, 1)
 CURRENT_VERSION = 3

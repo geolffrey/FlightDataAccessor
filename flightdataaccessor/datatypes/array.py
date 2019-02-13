@@ -1,15 +1,14 @@
 import collections
 import inspect
 import logging
-import six
 import traceback
 import warnings
+from collections import defaultdict
 
 import blosc
 import numpy as np
-
-from collections import defaultdict
-from numpy.ma import in1d, MaskedArray, masked, zeros
+import six
+from numpy.ma import MaskedArray, in1d, masked, zeros
 
 
 def compress_mask(a):

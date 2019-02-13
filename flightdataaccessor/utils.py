@@ -8,7 +8,6 @@ import tempfile
 import warnings
 
 import six
-
 from deprecation import deprecated
 
 import flightdataaccessor

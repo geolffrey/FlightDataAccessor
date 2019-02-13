@@ -12,10 +12,10 @@ import math
 import numpy as np
 
 from flightdatautilities.array_operations import merge_masks
-from .downsample import SAMPLES_PER_BUCKET, downsample
-from .array import MappedArray, MaskError, ParameterArray, ParameterSubmasks
-from .legacy import Legacy
 
+from .array import MappedArray, MaskError, ParameterArray, ParameterSubmasks
+from .downsample import SAMPLES_PER_BUCKET, downsample
+from .legacy import Legacy
 
 # XXX: deprecate!
 NO_MAPPING = MappedArray.NO_MAPPING

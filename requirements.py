@@ -70,10 +70,8 @@ import platform
 import re
 import subprocess
 import sys
-
 from collections import defaultdict
 from glob import glob
-
 
 ################################################################################
 # Exports

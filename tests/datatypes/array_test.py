@@ -5,9 +5,10 @@ import unittest
 
 import numpy as np
 
+from flightdataaccessor.datatypes.array import (
+    ParameterSubmasks, compress_array, compress_mask, decompress_array, decompress_mask,
+)
 from flightdataaccessor.datatypes.parameter import MappedArray, Parameter
-from flightdataaccessor.datatypes.array import compress_mask, decompress_mask, compress_array, decompress_array
-from flightdataaccessor.datatypes.array import ParameterSubmasks
 
 
 class TestCompression(unittest.TestCase):

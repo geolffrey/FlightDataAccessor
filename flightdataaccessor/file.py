@@ -2,8 +2,7 @@ from __future__ import print_function
 
 from deprecation import deprecated
 
-from .formats import hdf
-from .formats import compatibility
+from .formats import compatibility, hdf
 
 # XXX: refactor dependent code and remove
 HDFACCESS_VERSION = hdf.CURRENT_VERSION

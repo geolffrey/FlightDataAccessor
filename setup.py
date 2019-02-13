@@ -4,8 +4,10 @@
 # http://www.flightdataservices.com
 # See the file "LICENSE" for the full license governing this code.
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+
 from requirements import RequirementsParser
+
 requirements = RequirementsParser()
 
 setup(

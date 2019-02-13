@@ -13,7 +13,6 @@ from flightdatautilities import units as ut
 
 from .parameter import Parameter
 
-
 STORAGE_DATE_OFFSET = np.datetime64('1990-01-01', 'D')
 
 

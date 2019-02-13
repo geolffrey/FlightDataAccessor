@@ -1,14 +1,14 @@
 from __future__ import print_function
 
 import errno
-import h5py
-import numpy as np
 import os
 import unittest
 
-from flightdataaccessor.formats.hdf import FlightDataFile
-from flightdataaccessor.datatypes.parameter import Parameter
+import h5py
+import numpy as np
 
+from flightdataaccessor.datatypes.parameter import Parameter
+from flightdataaccessor.formats.hdf import FlightDataFile
 from flightdataaccessor.utils import concat_hdf, strip_hdf, write_segment
 from flightdatautilities.array_operations import merge_masks
 
@@ -408,4 +408,3 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
 
 if __name__ == '__main__':
     unittest.main()
-

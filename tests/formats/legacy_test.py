@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-
 import unittest
 
 from flightdataaccessor.formats.hdf import FlightDataFile

@@ -1,6 +1,5 @@
 import unittest
 
-
 import numpy as np
 
 from flightdataaccessor.datatypes import downsample, parameter
