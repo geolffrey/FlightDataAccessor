@@ -217,8 +217,8 @@ class Parameter(Legacy):
         if unmasked_start_offset > start_offset or stop_offset > unmasked_stop_offset:
             requested_duration = unmasked_stop_offset - unmasked_start_offset
             padding = np.zeros(len(clone.array), dtype=np.bool)
-            padding_at_start = unmasked_start_offset * self.frequency - start_ix
-            padding_at_end = padding_at_start + requested_duration * self.frequency
+            padding_at_start = int(unmasked_start_offset * self.frequency - start_ix)
+            padding_at_end = int(padding_at_start + requested_duration * self.frequency)
             padding[:padding_at_start] = True
             padding[padding_at_end:] = True
             clone.update_submask('padding', padding)
@@ -243,7 +243,7 @@ class Parameter(Legacy):
 
         array = np.ma.asanyarray(array)
         if isinstance(self.array, MappedArray):
-            if array.dtype.type is np.string_:
+            if array.dtype.type is np.str_:
                 state = {v: k for k, v in self.values_mapping.items()}
                 array = [state.get(x, None) for x in array]
             array = MappedArray(np.ma.asanyarray(array), values_mapping=self.values_mapping)

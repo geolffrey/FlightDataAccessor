@@ -102,7 +102,7 @@ class DownsampleTest(unittest.TestCase):
         downsampled1 = downsample.downsample(array, 4)
         downsampled2 = downsample.downsample_most_common_value(array, 4)
         # implicit use of the nonnumeric algorithm
-        np.testing.assert_array_equal(downsampled1, downsampled2)
+        self.assertTrue(np.all(downsampled1 == downsampled2))
         np.testing.assert_array_equal(downsampled1, ['one', 'one', 'one', 'one'])
 
     def test_downsample_mapped_array_masked(self):
@@ -113,7 +113,7 @@ class DownsampleTest(unittest.TestCase):
         downsampled1 = downsample.downsample(array, 4)
         downsampled2 = downsample.downsample_most_common_value(array, 4)
         # implicit use of the nonnumeric algorithm
-        np.testing.assert_array_equal(downsampled1, downsampled2)
+        self.assertTrue(np.all(downsampled1 == downsampled2))
         np.testing.assert_array_equal(downsampled1, [np.ma.masked, np.ma.masked, 'one', 'one'])
 
     def test_downsample_mapped_array_remainder(self):

@@ -243,8 +243,6 @@ masked_%(name)s(values = %(sdata)s,
                     masked if el is masked else
                     self.state[el][0] if el in self.state else None if isinstance(el, six.string_types) else el
                     for el in other]
-            else:
-                pass  # allow equality by MaskedArray
         return other
 
     def __raw_values__(self, state):
@@ -324,8 +322,6 @@ masked_%(name)s(values = %(sdata)s,
                 # Indexing for a single value
                 # MappedArray()[4]
                 v = self.values_mapping.get(v, self.NO_MAPPING)
-            else:
-                pass
         return v
 
     def __setitem__(self, key, val):
