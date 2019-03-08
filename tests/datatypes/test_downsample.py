@@ -8,34 +8,34 @@ from flightdataaccessor.datatypes import downsample, parameter
 class MostCommonValueTest(unittest.TestCase):
     def test_most_common_value_list(self):
         array = [1, 2, 3, 4, 5, 3, 2, 3]
-        self.assertEquals(downsample.most_common_value(array), 3)
+        self.assertEqual(downsample.most_common_value(array), 3)
 
     def test_most_common_value_array(self):
         array = np.array([1, 2, 3, 4, 5, 3, 2, 3])
-        self.assertEquals(downsample.most_common_value(array), 3)
+        self.assertEqual(downsample.most_common_value(array), 3)
 
     def test_most_common_value_masked_array(self):
         array = np.ma.array([1, 2, 3, 4, 5, 3, 2, 3], mask=[False] * 8)
         array.mask[2] = True
         array.mask[-1] = True
-        self.assertEquals(downsample.most_common_value(array), 2)
+        self.assertEqual(downsample.most_common_value(array), 2)
 
     def test_most_common_value_list_of_strings(self):
         array = ['1', '2', '3', '4', '5', '3', '2', '3']
-        self.assertEquals(downsample.most_common_value(array), '3')
+        self.assertEqual(downsample.most_common_value(array), '3')
 
     def test_most_common_value_array_of_strings(self):
         array = np.array(['1', '2', '3', '4', '5', '3', '2', '3'])
-        self.assertEquals(downsample.most_common_value(array), '3')
+        self.assertEqual(downsample.most_common_value(array), '3')
 
     def test_most_common_value_mapped_array(self):
         values_mapping = {1: 'one', 2: 'two', 3: 'three', 4: 'four'}
         array = parameter.MappedArray([1, 2, 3, 4, 4, 3, 2, 3], values_mapping=values_mapping)
-        self.assertEquals(downsample.most_common_value(array), 3)
+        self.assertEqual(downsample.most_common_value(array), 3)
 
     def test_most_common_value_high_threshold(self):
         array = [1, 2, 3, 4, 5, 3, 2, 3]
-        self.assertEquals(downsample.most_common_value(array, 10), None)
+        self.assertEqual(downsample.most_common_value(array, 10), None)
 
 
 class DownsampleTest(unittest.TestCase):

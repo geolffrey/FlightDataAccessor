@@ -3,8 +3,7 @@ import unittest
 
 import numpy as np
 
-from flightdataaccessor.datatypes.parameter import Parameter
-from flightdataaccessor.formats.base import FlightDataFormat
+from flightdataaccessor import FlightDataFormat, Parameter
 
 
 class FlightDataFormatTest(unittest.TestCase):
@@ -25,6 +24,8 @@ class FlightDataFormatTest(unittest.TestCase):
             fdf['Test'] = param
             param = fdf['Test']
             self.assertEqual(param.name, 'Test')
+            with self.assertRaises(KeyError):
+                fdf['Missing']
 
     def delitem_test(self):
         """__delitem__ is equivalent to delete_parameter()"""

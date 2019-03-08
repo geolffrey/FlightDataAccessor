@@ -13,19 +13,6 @@ from deprecation import deprecated
 import flightdataaccessor
 
 
-def _copy_attrs(source_group, target_group, deidentify=False):
-    '''
-    While the library can recursively copy groups and datasets, there does
-    not seem to be a simple way to copy all of a group's attributes at once.
-    '''
-    for key, value in source_group.attrs.items():
-        # TODO: We are planning to upgrade the file format to remove cruft.
-        #       Remove obsolete attribute names when we have upgraded all files.
-        if deidentify and key in ('aircraft_info', 'tailmark'):
-            continue
-        target_group.attrs[key] = value
-
-
 @deprecated(details='Use FlightDataFormat.concatenate() instead')
 def concat_hdf(sources, dest=None):
     '''
@@ -141,7 +128,7 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
 
     if isinstance(dest, six.string_types):
         if os.path.isfile(dest):
-            logging.warning("File '%s' already exists, write_segments will delete the file.", dest)
+            logging.warning("File '%s' already exists, write_segment will delete the file.", dest)
             os.remove(dest)
 
     if submasks:

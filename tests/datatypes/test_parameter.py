@@ -42,6 +42,8 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.frequency, frequency)
         self.assertEqual(p.offset, offset)
         self.assertEqual(p.arinc_429, arinc_429)
+        # dynamically calculated:
+        self.assertEqual(p.duration, len(array) / frequency)
 
     def test_multivalue_parameter(self):
         values = [1, 2, 3]
@@ -88,6 +90,8 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.get_array().tolist(), [None, None, 30])
         self.assertEqual(p.get_array('mask1').tolist(), [None, 20, 30])
         self.assertEqual(p.get_array('mask2').tolist(), [None, None, 30])
+        with self.assertRaises(ValueError):
+            p.get_array('missing')
 
     def test_get_array__mapped(self):
         array = np.ma.array([1, 2, 3], mask=[1, 1, 0])
@@ -140,15 +144,15 @@ class TestParameter(unittest.TestCase):
         Number of samples independent from sample rate."""
         p = self.get_parameter()
         p2 = p.slice(slice(10, 20))
-        self.assertEquals(p2.array.size, 10)
-        self.assertEquals(p2.submasks['mask1'].size, 10)
-        self.assertEquals(p2.submasks['mask2'].size, 10)
+        self.assertEqual(p2.array.size, 10)
+        self.assertEqual(p2.submasks['mask1'].size, 10)
+        self.assertEqual(p2.submasks['mask2'].size, 10)
         # 2Hz
         p = self.get_parameter(frequency=2)
         p2 = p.slice(slice(10, 20))
-        self.assertEquals(p2.array.size, 10)
-        self.assertEquals(p2.submasks['mask1'].size, 10)
-        self.assertEquals(p2.submasks['mask2'].size, 10)
+        self.assertEqual(p2.array.size, 10)
+        self.assertEqual(p2.submasks['mask1'].size, 10)
+        self.assertEqual(p2.submasks['mask2'].size, 10)
 
     def test_trim(self):
         """Trim parameter
@@ -156,15 +160,15 @@ class TestParameter(unittest.TestCase):
         Number of samples dependent on sample rate."""
         p = self.get_parameter(frequency=.5)
         p2 = p.trim(start_offset=10, stop_offset=20, pad_subframes=False)
-        self.assertEquals(p2.array.size, 5)
-        self.assertEquals(p2.submasks['mask1'].size, 5)
-        self.assertEquals(p2.submasks['mask2'].size, 5)
+        self.assertEqual(p2.array.size, 5)
+        self.assertEqual(p2.submasks['mask1'].size, 5)
+        self.assertEqual(p2.submasks['mask2'].size, 5)
 
         p = self.get_parameter(frequency=2)
         p2 = p.trim(start_offset=10, stop_offset=20, pad_subframes=False)
-        self.assertEquals(p2.array.size, 20)
-        self.assertEquals(p2.submasks['mask1'].size, 20)
-        self.assertEquals(p2.submasks['mask2'].size, 20)
+        self.assertEqual(p2.array.size, 20)
+        self.assertEqual(p2.submasks['mask1'].size, 20)
+        self.assertEqual(p2.submasks['mask2'].size, 20)
 
     def test_trim_pad_subframes(self):
         """Trim parameter to a window in seconds.
@@ -174,7 +178,7 @@ class TestParameter(unittest.TestCase):
         p2 = p.trim(start_offset=10, stop_offset=20, pad_subframes=64)
         # the window is implicitely extended to superframe boundaries, which is 64 seconds wide, in this case
         # start_offset=0, stop_offset=64
-        self.assertEquals(p2.array.size, 32)
+        self.assertEqual(p2.array.size, 32)
         # unrequested edges are masked
         self.assertTrue(np.all(p2.array.mask[:5]))
         self.assertTrue(np.all(p2.array.mask[10:]))
@@ -187,7 +191,7 @@ class TestParameter(unittest.TestCase):
         # because the array size is 100 which is only 50 seconds, the whole data is returned and padded at the end to
         # complete superframes
         # result data has size greater than the original due to superframe padding
-        self.assertEquals(p2.array.size, 128)
+        self.assertEqual(p2.array.size, 128)
         # padding submask is added
         self.assertTrue('padding' in p2.submasks)
         # unrequested edges are masked
@@ -200,9 +204,9 @@ class TestParameter(unittest.TestCase):
         """Extend parameter without a mask."""
         p = self.get_parameter()
         p.extend(p.array.data)
-        self.assertEquals(p.array.size, 200)
-        self.assertEquals(p.submasks['mask1'].size, 200)
-        self.assertEquals(p.submasks['mask2'].size, 200)
+        self.assertEqual(p.array.size, 200)
+        self.assertEqual(p.submasks['mask1'].size, 200)
+        self.assertEqual(p.submasks['mask2'].size, 200)
 
     def test_extend_multistate_int(self):
         """Extend multistate parameter with a list of integers."""
@@ -241,17 +245,17 @@ class TestParameter(unittest.TestCase):
         """Extend parameter array with a mask."""
         p = self.get_parameter()
         p.extend(p.array, submasks=p.submasks)
-        self.assertEquals(p.array.size, 200)
-        self.assertEquals(p.submasks['mask1'].size, 200)
-        self.assertEquals(p.submasks['mask2'].size, 200)
+        self.assertEqual(p.array.size, 200)
+        self.assertEqual(p.submasks['mask1'].size, 200)
+        self.assertEqual(p.submasks['mask2'].size, 200)
 
     def test_extend_parameter(self):
         """Extend parameter with another parameter."""
         p = self.get_parameter()
         p.extend(p)
-        self.assertEquals(p.array.size, 200)
-        self.assertEquals(p.submasks['mask1'].size, 200)
-        self.assertEquals(p.submasks['mask2'].size, 200)
+        self.assertEqual(p.array.size, 200)
+        self.assertEqual(p.submasks['mask1'].size, 200)
+        self.assertEqual(p.submasks['mask2'].size, 200)
 
         with self.assertRaises(ValueError):
             # submasks argument is invalid when extending with a Parameter
@@ -307,6 +311,26 @@ class TestParameter(unittest.TestCase):
         p = self.get_parameter(array=array, compress=True)
         self.assertTrue(p.compress)
         self.assertTrue(np.all(p.array == array))
+
+    def test_downsample(self):
+        """Ensure downsampling works correctly."""
+        array = np.arange(100)
+        p = self.get_parameter(array=array)
+        downsampled, bucket_size = p.downsample(10)
+        self.assertEqual(len(downsampled), 10)
+        self.assertEqual(bucket_size, 10)
+        downsampled, bucket_size = p.downsample(25)
+        self.assertEqual(len(downsampled), 25)
+        self.assertEqual(bucket_size, 4)
+        downsampled, bucket_size = p.downsample(23)
+        self.assertEqual(len(downsampled), 23)
+        self.assertEqual(bucket_size, 4)
+        downsampled, bucket_size = p.downsample(13)
+        self.assertEqual(len(downsampled), 13)
+        self.assertEqual(bucket_size, 7)
+        downsampled, bucket_size = p.downsample(6)
+        self.assertEqual(len(downsampled), 6)
+        self.assertEqual(bucket_size, 16)
 
 
 if __name__ == '__main__':

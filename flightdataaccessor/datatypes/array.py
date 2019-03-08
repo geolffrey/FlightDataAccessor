@@ -367,8 +367,8 @@ masked_%(name)s(values = %(sdata)s,
                             # v is an int
                             mapped_val[i] = v
                         else:
-                            raise KeyError(
-                                "Value '%s' not in values mapping" % v)
+                            # FIXME: should this be a ValueError instead?
+                            raise KeyError("Value '%s' not in values mapping" % v)
                 return super(MappedArray, self).__setitem__(key, mapped_val)
 
 
@@ -436,10 +436,11 @@ class ParameterSubmasks(collections.MutableMapping):
             return self.store[key]
 
     def __setitem__(self, key, value):
+        mask = np.asanyarray(value, dtype=np.bool)
         if self.compress:
-            self.store[key] = compress_mask(np.asanyarray(value))
+            self.store[key] = compress_mask(mask)
         else:
-            self.store[key] = np.asanyarray(value)
+            self.store[key] = mask
 
     def __delitem__(self, key):
         del self.store[key]

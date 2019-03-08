@@ -7,10 +7,8 @@ import unittest
 import h5py
 import numpy as np
 
-from flightdataaccessor.datatypes.parameter import Parameter
-from flightdataaccessor.formats.hdf import FlightDataFile
+import flightdataaccessor as fda
 from flightdataaccessor.utils import concat_hdf, strip_hdf, write_segment
-from flightdatautilities.array_operations import merge_masks
 
 TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 TEMP_DIR_PATH = os.path.join(TEST_DATA_DIR_PATH, 'temp')
@@ -74,13 +72,13 @@ class TestConcatHDF(unittest.TestCase):
         self.hdf_data_2 = np.arange(240, dtype=np.float)
 
         # Create test hdf files.
-        with FlightDataFile(self.hdf_path_1, mode='w') as fdf:
+        with fda.open(self.hdf_path_1, mode='w') as fdf:
             fdf.frame_type = '737-3C'
-            fdf['PARAM'] = Parameter('PARAM', array=self.hdf_data_1, frequency=8)
+            fdf['PARAM'] = fda.Parameter('PARAM', array=self.hdf_data_1, frequency=8)
 
-        with FlightDataFile(self.hdf_path_2, mode='w') as fdf:
+        with fda.open(self.hdf_path_2, mode='w') as fdf:
             fdf.frame_type = '737-3C'
-            fdf['PARAM'] = Parameter('PARAM', array=self.hdf_data_2, frequency=8)
+            fdf['PARAM'] = fda.Parameter('PARAM', array=self.hdf_data_2, frequency=8)
 
         self.hdf_out_path = os.path.join(TEMP_DIR_PATH, 'concat_out.dat')
 
@@ -96,7 +94,8 @@ class TestConcatHDF(unittest.TestCase):
         'series/<Param Name>/data' is concatenated, while other datasets and
         attributes are unaffected.
         '''
-        out_path = concat_hdf((self.hdf_path_1, self.hdf_path_2), dest=dest)
+        with self.assertWarns(DeprecationWarning):
+            out_path = concat_hdf((self.hdf_path_1, self.hdf_path_2), dest=dest)
         if dest:
             self.assertEqual(dest, out_path)
         with h5py.File(out_path, 'r') as hdf_out_file:
@@ -133,14 +132,16 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         '''
         Do not keep any parameters.
         '''
-        strip_hdf(self.hdf_path, [], self.out_path)
+        with self.assertWarns(DeprecationWarning):
+            strip_hdf(self.hdf_path, [], self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
             series = hdf_file
             self.assertEqual(list(series.keys()), [])
 
     def test_strip_hdf_ivv(self):
         params_to_keep = ['IVV']
-        strip_hdf(self.hdf_path, params_to_keep, self.out_path)
+        with self.assertWarns(DeprecationWarning):
+            strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
             series = hdf_file
             self.assertEqual(list(series.keys()), params_to_keep)
@@ -159,7 +160,8 @@ class TestStripHDF(unittest.TestCase, CreateHDFForTest):
         test_strip_hdf_ivv.
         '''
         params_to_keep = ['DME', 'WOW']
-        strip_hdf(self.hdf_path, params_to_keep, self.out_path)
+        with self.assertWarns(DeprecationWarning):
+            strip_hdf(self.hdf_path, params_to_keep, self.out_path)
         with h5py.File(self.out_path, 'r') as hdf_file:
             series = hdf_file
             self.assertEqual(list(series.keys()), params_to_keep)
@@ -310,6 +312,39 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
             self.assertEqual(dme_result.tolist(), dme_expected_result.tolist())
             self.assertEqual(hdf_file.attrs['duration'], 80)
 
+    def test_write_segment__from_path__no_dest(self):
+        '''
+        Tests that the destination filename is constructed correctly when source filename is pased to write_segment.
+        '''
+        segment = slice(None, 70)
+        with self.assertWarns(DeprecationWarning):
+            dest = write_segment(self.hdf_path, segment).path
+        expected_dest_basename = os.path.splitext(self.hdf_path)[0] + '.000.hdf5'
+        expected = os.path.join(os.path.dirname(self.hdf_path), expected_dest_basename)
+        self.assertEqual(dest, expected)
+
+    def test_write_segment__from_object__no_dest(self):
+        '''
+        Tests that the destination filename is constructed correctly.
+        '''
+        segment = slice(None, 70)
+        with fda.open(self.hdf_path) as fdf:
+            with self.assertWarns(DeprecationWarning):
+                dest = write_segment(fdf, segment).path
+
+        expected_dest_basename = os.path.splitext(self.hdf_path)[0] + '.000.hdf5'
+        expected = os.path.join(os.path.dirname(self.hdf_path), expected_dest_basename)
+        self.assertEqual(dest, expected)
+
+    def test_write_segment__submasks(self):
+        '''
+        Ensure a warning is raised when `submasks` argument is passed.
+        '''
+        segment = slice(None, 70)
+        with fda.open(self.hdf_path) as fdf:
+            with self.assertWarns(DeprecationWarning):
+                write_segment(fdf, segment, submasks=['sub1', 'sub2'])
+
     def test_write_segment__stop_only(self):
         '''
         Tests that the correct segment of the dataset within the path matching
@@ -318,7 +353,8 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         Slice has a start and stop.
         '''
         segment = slice(None, 70)
-        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4).path
+        with self.assertWarns(DeprecationWarning):
+            dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4).path
         self.assertEqual(dest, self.out_path)
 
         frame_boundary_segment = slice(None, 72)
@@ -386,10 +422,12 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
                 self.assertEqual(hdf_file.attrs['duration'], self.data_secs)
 
         segment = slice(None)
-        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4).path
+        with self.assertWarns(DeprecationWarning):
+            dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=4).path
         self.assertEqual(dest, self.out_path)
         test_hdf(dest)
-        dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=64).path
+        with self.assertWarns(DeprecationWarning):
+            dest = write_segment(self.hdf_path, segment, dest=self.out_path, boundary=64).path
         self.assertEqual(dest, self.out_path)
         test_hdf(dest)
 

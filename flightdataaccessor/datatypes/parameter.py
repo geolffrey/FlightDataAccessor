@@ -139,9 +139,8 @@ class Parameter(Legacy):
         '''
         if not submask:
             return self.array
-        # FIXME: should we not raise a ValueError instead?
         if submask not in self.submasks:
-            return None
+            raise ValueError("Submask not in parameter's submasks.")
         if isinstance(self.array, MappedArray):
             return MappedArray(self.array.data, mask=self.submasks[submask].copy(),
                                values_mapping=self.array.values_mapping)

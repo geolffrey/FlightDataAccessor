@@ -117,4 +117,4 @@ def downsample(data, width):
     # zip the indexes together
     indexes = np.column_stack((minimums + beginnings, maximums + beginnings)).reshape((-1,))
     indexes.sort()
-    return array[indexes]
+    return array[indexes][:width]

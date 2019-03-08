@@ -54,6 +54,14 @@ class TestPickle(unittest.TestCase):
 class TestMappedArray(unittest.TestCase):
     mapping = {1: 'one', 2: 'two', 3: 'three'}
 
+    def test_copy(self):
+        values = [1, 2, 3, 2, 1, 2, 3, 2, 1]
+        a = MappedArray(values, mask=[True] + [False] * 8, values_mapping=self.mapping)
+        b = a.copy()
+        self.assertFalse(a.raw is b.raw)
+        self.assertTrue(np.all(a == b))
+        self.assertEqual(a.values_mapping, b.values_mapping)
+
     def test_any_of(self):
         values = [1, 2, 3, 2, 1, 2, 3, 2, 1]
         a = MappedArray(values, mask=[True] + [False] * 8, values_mapping=self.mapping)
@@ -126,16 +134,34 @@ class TestMappedArray(unittest.TestCase):
         self.assertEqual(list(a.raw.mask), [False, False, True, True])
         # set a slice to a single value
         a[2:] = 'one'
-        self.assertEqual(list(a.raw.data[2:]), [1, 1])
+        self.assertEqual(list(a.raw[2:]), [1, 1])
         a[2:] = 3
-        self.assertEqual(list(a.raw.data[2:]), [3, 3])
+        self.assertEqual(list(a.raw[2:]), [3, 3])
         # set a slice to a single element list (odd but consistent with numpy)
         a[2:] = [2]
-        self.assertEqual(list(a.raw.data[2:]), [2, 2])
+        self.assertEqual(list(a.raw[2:]), [2, 2])
         a[2:] = ['three']
-        self.assertEqual(list(a.raw.data[2:]), [3, 3])
+        self.assertEqual(list(a.raw[2:]), [3, 3])
+        sub = [1, np.ma.masked]
+        a[2:] = sub
+        self.assertEqual(list(a.raw[2:]), [1, np.ma.masked])
+
+    def test_set_slice_errors(self):
+        values = [1, 2, 3, 3]
+        mask = [False, True, False, True]
+        arr = np.ma.MaskedArray(values, mask)
+        a = MappedArray(arr, values_mapping=self.mapping)
+        # value from assigned list is not in state
+        sub = ['one', 'missing']
+        with self.assertRaises(KeyError):
+            a[2:] = sub
+        # value from assigned list is not in values_mapping
+        sub = [1, 100]
+        with self.assertRaises(KeyError):
+            a[2:] = sub
         # unequal number of arguments
-        self.assertRaises(ValueError, a.__setitem__, slice(-3, None), ['one', 'one'])
+        with self.assertRaises(ValueError):
+            a[:] = ['one', 'one']
 
     def test_no_mapping(self):
         # values_mapping is no longer a requirement. (check no exception raised)
@@ -276,7 +302,7 @@ class TestMappedArray(unittest.TestCase):
         # if the __array_finalize__ wasn't called this would raise exception:
         # AttributeError: 'MappedArray' object has no attribute 'values_mapping'
         result = np.ma.masked_less(array, 1.0)
-        self.assertEquals(array.values_mapping, result.values_mapping)
+        self.assertEqual(array.values_mapping, result.values_mapping)
 
     def test_duplicate_values(self):
         values_mapping = {0: 'A', 1: 'A', 2: 'B', 3: 'C', 5: 'C'}
@@ -330,6 +356,14 @@ class TestParameterSubmasks(unittest.TestCase):
         ps['test'] = np.zeros(100)
         del ps['test']
         self.assertNotIn('test', ps)
+
+    def test_compression(self):
+        ps = ParameterSubmasks(compress=True)
+        mask = np.zeros(100)
+        ps['test'] = mask
+        # implicit conversion to bool Numpy array
+        self.assertEqual(ps['test'].dtype, np.bool)
+        self.assertTrue(np.all(mask == ps['test']))
 
 
 if __name__ == '__main__':
