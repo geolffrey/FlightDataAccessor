@@ -397,7 +397,7 @@ class FlightDataFormat(Compatibility):
 
         return self.trim(target)
 
-    # XXX: do we need it? I's used by "access attribute" methods (inconsistently) and it's use cases are questionable
+    # XXX: do we need it? It's used by "access attribute" methods (inconsistently) and it's use cases are questionable
     # (access an attribute on a parameter before it is properly instantiated)
     def get_or_create(self, name):
         """Return a Parameter, if it does not exist then create it too."""
@@ -407,3 +407,6 @@ class FlightDataFormat(Compatibility):
             parameter = Parameter(name, compress=self.compress)
             self.set_parameter(parameter)
         return parameter
+
+    def close(self):
+        pass
