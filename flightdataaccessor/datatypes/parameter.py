@@ -140,6 +140,7 @@ class Parameter(Legacy):
         if not submask:
             return self.array
         if submask not in self.submasks:
+            return  # TODO: this matches previous behaviour, or should this raise?
             raise ValueError("Submask not in parameter's submasks.")
         if isinstance(self.array, MappedArray):
             return MappedArray(self.array.data, mask=self.submasks[submask].copy(),
