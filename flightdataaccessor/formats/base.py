@@ -347,7 +347,7 @@ class FlightDataFormat(Compatibility):
     # Maybe move to legacy instead?
     def set_parameter_limits(self, name, limits):
         """Set parameter limits"""
-        parameter = self.get_parameter(name)
+        parameter = self.get_parameter(name, copy_param=False)
         parameter.limits = simplejson.dumps(limits)
 
     def set_parameter_invalid(self, name, reason=''):
