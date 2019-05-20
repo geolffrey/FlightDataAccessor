@@ -276,9 +276,10 @@ class Parameter(Legacy):
             if len(submask) != len(array):
                 raise MaskError("Submasks don't have the same length as the array")
         if isinstance(array, np.ma.MaskedArray):
-            mask = self.combine_submasks(submasks, array)
-            if not np.all(mask == np.ma.getmaskarray(array)):
-                raise MaskError('Submasks are not equivalent to array.mask')
+            pass  # TODO
+            #mask = self.combine_submasks(submasks, array)
+            #if not np.all(mask == np.ma.getmaskarray(array)):
+                #raise MaskError('Submasks are not equivalent to array.mask')
 
         return True
 

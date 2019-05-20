@@ -373,7 +373,7 @@ masked_%(name)s(values = %(sdata)s,
 
 
 class ParameterArray(object):
-    """Array descriptior to control parameter.array assignment.
+    """Array descriptor to control parameter.array assignment.
 
     The idea is to keep submasks in sync with the array's mask to ensure consistency."""
     def __get__(self, parameter, objtype=None):
@@ -416,7 +416,7 @@ class ParameterArray(object):
                 )
                 parameter.submasks = parameter.submasks_from_array(array)
 
-        if parameter.compress:
+        if getattr(parameter, 'compress', False):
             parameter._array = compress_array(array)
         else:
             parameter._array = array
