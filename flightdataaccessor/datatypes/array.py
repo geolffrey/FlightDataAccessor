@@ -7,15 +7,14 @@ from collections import defaultdict
 
 import blosc
 import numpy as np
-import six
 from numpy.ma import MaskedArray, in1d, masked, zeros
 
 
-def compress_mask(a):
+def compress_ndarray(a):
     return blosc.compress_ptr(a.__array_interface__['data'][0], a.size, a.dtype.itemsize, 9, True)
 
 
-def decompress_mask(d):
+def decompress_ndarray(d):
     return np.frombuffer(blosc.decompress(d), dtype=np.bool)
 
 
@@ -25,7 +24,7 @@ def compress_array(a):
         str(a.dtype),
         a.size,
         blosc.compress_ptr(a.__array_interface__['data'][0], a.size, a.dtype.itemsize, 9, True),
-        compress_mask(a.mask) if isinstance(a.mask, np.ndarray) else a.mask,
+        compress_ndarray(a.mask) if isinstance(a.mask, np.ndarray) else a.mask,
         values_mapping,
     )
 
@@ -34,7 +33,7 @@ def decompress_array(d):
     dtype, size, data_blz, mask_blz, values_mapping = d
     data = np.frombuffer(blosc.decompress(data_blz), dtype=dtype)
     if isinstance(mask_blz, bytes):
-        mask = decompress_mask(mask_blz)
+        mask = decompress_ndarray(mask_blz)
     else:
         mask = mask_blz
     # XXX: by removing the copy() we can make the arrays immutable to avoid subtle errors
@@ -241,7 +240,7 @@ masked_%(name)s(values = %(sdata)s,
                 # state per raw value.
                 other = [
                     masked if el is masked else
-                    self.state[el][0] if el in self.state else None if isinstance(el, six.string_types) else el
+                    self.state[el][0] if el in self.state else None if isinstance(el, str) else el
                     for el in other]
         return other
 
@@ -253,7 +252,7 @@ masked_%(name)s(values = %(sdata)s,
         try:
             return getattr(self, 'state', {})[state]
         except KeyError:
-            if isinstance(state, six.string_types):
+            if isinstance(state, str):
                 raise
         except TypeError:
             pass
@@ -338,7 +337,7 @@ masked_%(name)s(values = %(sdata)s,
             # self[:3] = np.ma.array([2,2,2])
             return super(MappedArray, self).__setitem__(key, val)
         else:
-            if isinstance(val, six.string_types):
+            if isinstance(val, str):
                 # expecting self[:3] = 'one'
                 return super(MappedArray, self).__setitem__(
                     key, self.state[val][0])
@@ -431,14 +430,14 @@ class ParameterSubmasks(collections.MutableMapping):
 
     def __getitem__(self, key):
         if self.compress:
-            return decompress_mask(self.store[key])
+            return decompress_ndarray(self.store[key])
         else:
             return self.store[key]
 
     def __setitem__(self, key, value):
         mask = np.asanyarray(value, dtype=np.bool)
         if self.compress:
-            self.store[key] = compress_mask(mask)
+            self.store[key] = compress_ndarray(mask)
         else:
             self.store[key] = mask
 

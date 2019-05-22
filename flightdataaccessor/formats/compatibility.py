@@ -3,15 +3,13 @@ Compatibility features.
 """
 import inspect
 
-import six
-
 
 def open(source, **kwargs):
     """Open the source object."""
     from . import base
     from . import hdf
 
-    if isinstance(source, six.string_types):
+    if isinstance(source, str):
         # path to a file
         return hdf.FlightDataFile(source, **kwargs)
 

@@ -5,7 +5,6 @@ import shutil
 import tempfile
 import warnings
 
-import six
 from deprecation import deprecated
 
 import flightdataaccessor
@@ -29,7 +28,7 @@ def concat_hdf(sources, dest=None):
     :rtype: str
     '''
     target = dest if dest is not None else None
-    if isinstance(sources[0], six.string_types):
+    if isinstance(sources[0], str):
         # the frst source needs to be upgraded first
         if target is None:
             f, target = tempfile.mkstemp()
@@ -106,7 +105,7 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
     '''
     # XXX: handle source / dest logic somewhere else
     if dest is None:
-        if isinstance(source, six.string_types):
+        if isinstance(source, str):
             source_path = source
         elif hasattr(source, 'path'):
             source_path = source.path
@@ -124,7 +123,7 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
             dest_basename = os.path.splitext(basename)[0] + '.%03d.hdf5' % part
             dest = os.path.join(dest_dir, dest_basename)
 
-    if isinstance(dest, six.string_types):
+    if isinstance(dest, str):
         if os.path.isfile(dest):
             logging.warning("File '%s' already exists, write_segment will delete the file.", dest)
             os.remove(dest)

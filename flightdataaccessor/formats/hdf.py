@@ -13,7 +13,6 @@ from collections import defaultdict
 import h5py
 import numpy as np
 import simplejson
-import six
 from sortedcontainers import SortedSet
 
 from flightdatautilities.array_operations import merge_masks
@@ -53,7 +52,6 @@ def require_rw(func):
 
 
 # XXX: Should subclass container types: https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
-@six.python_2_unicode_compatible
 class FlightDataFile(FlightDataFormat):
     VERSION = CURRENT_VERSION
     DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 6}
@@ -98,7 +96,6 @@ class FlightDataFile(FlightDataFormat):
             self.cache_param_list = []
 
     def __repr__(self):
-        # XXX: Make use of six.u(), etc?
         if self.file:
             return '<%(class)s [HDF5] (%(state)s, mode %(mode)s, %(size)d bytes, %(count)d parameters) %(path)s>' % {
                 'class': self.__class__.__name__,
@@ -340,9 +337,6 @@ class FlightDataFile(FlightDataFormat):
                         self.keys_cache[category].add(name)
 
         return list(self.keys_cache[category])
-
-    if six.PY2:
-        iterkeys = keys
 
     @require_rw
     def get_or_create(self, name):

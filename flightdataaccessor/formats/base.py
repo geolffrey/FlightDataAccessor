@@ -13,7 +13,6 @@ from collections import defaultdict
 import numpy as np
 import pytz
 import simplejson
-import six
 from sortedcontainers import SortedSet
 
 from flightdatautilities.patterns import wildcard_match
@@ -28,7 +27,6 @@ CURRENT_VERSION = 3
 
 # XXX: Should subclass container types:
 # https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
-@six.python_2_unicode_compatible
 class FlightDataFormat(Compatibility):
     FDF_ATTRIBUTES = {
         'arinc',
@@ -55,7 +53,6 @@ class FlightDataFormat(Compatibility):
         self.timestamp = None
 
     def __repr__(self):
-        # XXX: Make use of six.u(), etc?
         return '<%(class)s [Memory] (%(count)d parameters)>' % {
             'class': self.__class__.__name__,
             'count': len(self),
@@ -146,11 +143,6 @@ class FlightDataFormat(Compatibility):
         """Iterate over the parameters in the flight data format object."""
         for name in self.data:
             yield name, self[name]
-
-    if six.PY2:
-        iterkeys = keys
-        iteritems = items
-        itervalues = values
 
     def load_parameter(self, name, **kwargs):
         """Load parameter"""
