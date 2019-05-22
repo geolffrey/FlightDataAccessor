@@ -3,8 +3,6 @@
 # [x] Support for array slice
 # [ ] Modification of "old" format file will update the old format file and parameter attributes preserving data types
 #     etc.
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import base64
 import functools
 import os
