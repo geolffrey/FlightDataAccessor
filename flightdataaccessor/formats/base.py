@@ -5,8 +5,6 @@ The FlightDataFormat class defines in-memory functionality. It can be used by it
 required. Please note that this is in memory representation and in case of large data frames it will use a lot of
 RAM.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import copy
 import datetime
 import re

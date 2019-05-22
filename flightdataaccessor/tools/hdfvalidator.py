@@ -3,8 +3,6 @@
 HDFValidator checks flight data, stored in a HDF5 file format, is in a
 compatible structure meeting POLARIS pre-analysis specification.
 '''
-from __future__ import print_function
-
 import argparse
 import json
 import logging

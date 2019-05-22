@@ -3,8 +3,6 @@
 A script to generate python lists from list_data/parameters-*.txt files into a
 python module, allowing lists to be imported by other scripts.
 '''
-from __future__ import print_function
-
 import glob
 import os
 

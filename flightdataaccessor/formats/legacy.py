@@ -1,6 +1,5 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from deprecation import deprecated
+
 
 REMOVED_GLOBAL_ATTRIBUTES = [
     'achieved_flight_record', 'aircraft_info', 'tailmark', 'starttime', 'endtime',

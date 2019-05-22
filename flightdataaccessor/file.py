@@ -3,8 +3,6 @@ Legacy factory to open FlightDataFile.
 
 The contents of this module is deprecated.
 """
-from __future__ import print_function
-
 from deprecation import deprecated
 
 from .formats import compatibility, hdf
