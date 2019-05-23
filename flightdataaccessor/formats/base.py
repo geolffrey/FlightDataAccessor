@@ -275,6 +275,18 @@ class FlightDataFormat(Compatibility):
                 for to_append in fdf.values():
                     self.extend_parameter(to_append.name, to_append)
 
+    def clone(self, fdf=None, parameters=None):
+        """Clones self into fdf (creates in-memory FDF if fdf not specified). Optionally clones only a subset of parameters."""
+        if fdf is None:
+            fdf = FlightDataFormat()
+
+        for attribute_name in self.FDF_ATTRIBUTES:
+            setattr(fdf, attribute_name, getattr(self, attribute_name, None))
+
+        for parameter in self.values():
+            if parameters is None or parameter.name in parameters:
+                fdf.set_parameter(parameter)
+
     def get(self, name, default=None, **kwargs):
         """Dictionary like .get operator. Additional kwargs are passed into the get_parameter() method."""
         try:
