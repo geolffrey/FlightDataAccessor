@@ -702,13 +702,13 @@ def validate_namespace(hdf5):
     group_num = len(hdf5.keys())
 
     show_groups = False
-    if group_num is 1 and 'series' in found:
+    if group_num == 1 and 'series' in found:
         LOGGER.info("Namespace 'series' is the only group on root.")
-    elif group_num is 1 and 'series' not in found:
+    elif group_num == 1 and 'series' not in found:
         LOGGER.error("Only one namespace on root,but not the required "
                      "'series' namespace.")
         show_groups = True
-    elif group_num is 0:
+    elif group_num == 0:
         LOGGER.error("No namespace groups found in the file.")
     elif group_num > 1 and 'series' in found:
         LOGGER.warn("Namespace 'series' found, along with %s addtional "
