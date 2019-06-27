@@ -11,14 +11,14 @@ class CompatibilityTest(unittest.TestCase):
     test_fn = 'data/flight_data_v2.hdf5'
 
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
+        self.tempdir = tempfile.TemporaryDirectory()
         curr_dir = os.path.dirname(__file__)
-        self.old_fp = os.path.join(self.tempdir, os.path.basename(self.test_fn))
+        self.old_fp = os.path.join(self.tempdir.name, os.path.basename(self.test_fn))
         self.new_fp = self.old_fp.replace('.hdf5', '-new.hdf5')
         shutil.copy(os.path.join(curr_dir, self.test_fn), self.old_fp)
 
     def tearDown(self):
-        shutil.rmtree(self.tempdir)
+        self.tempdir.cleanup()
 
     def test_upgrade(self):
         """

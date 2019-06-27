@@ -28,13 +28,13 @@ class FlightDataFileTestV2(unittest.TestCase):
         return hdf['series']
 
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
+        self.tempdir = tempfile.TemporaryDirectory()
         curr_dir = os.path.dirname(__file__)
-        self.fp = os.path.join(self.tempdir, os.path.basename(self.test_fn))
+        self.fp = os.path.join(self.tempdir.name, os.path.basename(self.test_fn))
         shutil.copy(os.path.join(curr_dir, self.test_fn), self.fp)
 
     def tearDown(self):
-        shutil.rmtree(self.tempdir)
+        self.tempdir.cleanup()
 
     def test_file_mode_r(self):
         """Open file in 'r' mode."""
