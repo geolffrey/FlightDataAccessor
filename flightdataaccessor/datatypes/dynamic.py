@@ -39,10 +39,10 @@ def get_time_array(start_datetime=None, duration=0):
 class DateParameter(Parameter):
     def __init__(self, name='Date', start_datetime=None, duration=0):
         array = get_date_array(start_datetime, duration)
-        super(DateParameter, self).__init__(name, array=array, unit=ut.DAY, data_type='Unsigned')
+        super().__init__(name, array=array, unit=ut.DAY, data_type='Unsigned')
 
 
 class TimeParameter(Parameter):
     def __init__(self, name='Time', start_datetime=None, duration=0):
         array = get_time_array(start_datetime, duration)
-        super(TimeParameter, self).__init__(name, array=array, unit=ut.SECOND, data_type='Unsigned')
+        super().__init__(name, array=array, unit=ut.SECOND, data_type='Unsigned')

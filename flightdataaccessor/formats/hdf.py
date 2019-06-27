@@ -143,14 +143,14 @@ class FlightDataFile(FlightDataFormat):
     def duration(self):
         duration = self.hdf_attributes.get('duration')
         if duration is None:
-            duration = super(FlightDataFile, self).duration
+            duration = super().duration
         return float(duration)
 
     @property
     def frequencies(self):
         frequencies = self.hdf_attributes.get('frequencies')
         if frequencies is None:
-            frequencies = super(FlightDataFile, self).frequencies
+            frequencies = super().frequencies
         return frequencies
 
     @require_open

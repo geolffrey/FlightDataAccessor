@@ -86,7 +86,7 @@ class MappedArray(np.ma.MaskedArray):
 
     def __array_finalize__(self, obj):
         """Finalise the newly created object."""
-        super(MappedArray, self).__array_finalize__(obj)
+        super().__array_finalize__(obj)
         if not hasattr(self, 'values_mapping'):
             master_values_mapping = getattr(obj, 'values_mapping', None)
             if master_values_mapping:
@@ -94,7 +94,7 @@ class MappedArray(np.ma.MaskedArray):
 
     def __array_wrap__(self, out_arr, context=None):
         """Convert the result into correct type."""
-        super(MappedArray, self).__array_wrap__(out_arr, context)
+        super().__array_wrap__(out_arr, context)
         return self.__apply_attributes__(out_arr)
 
     def __apply_attributes__(self, result):
@@ -103,18 +103,18 @@ class MappedArray(np.ma.MaskedArray):
 
     def __getstate__(self):
         """Store values_mapping in the pickle."""
-        return {'np.ma.state': super(MappedArray, self).__getstate__(), 'values_mapping': self.values_mapping}
+        return {'np.ma.state': super().__getstate__(), 'values_mapping': self.values_mapping}
 
     def __setstate__(self, state):
         """Restore dynamic attributes from the pickle."""
         if isinstance(state, dict):
             # Numpy uses different format of state
-            super(MappedArray, self).__setstate__(state['np.ma.state'])
+            super().__setstate__(state['np.ma.state'])
             self.values_mapping = state['values_mapping']
         else:
             # XXX: only for tests pickled in old format!
             # TODO: make fresh pickles
-            super(MappedArray, self).__setstate__(state)
+            super().__setstate__(state)
 
     def __setattr__(self, key, value):
         # Update the reverse mappings in self.state
@@ -123,7 +123,7 @@ class MappedArray(np.ma.MaskedArray):
             for k, v in value.items():
                 self.state[v].append(k)
             self.state = dict(self.state)
-        super(MappedArray, self).__setattr__(key, value)
+        super().__setattr__(key, value)
 
     def __repr__(self):
         # WARNING: SLOW!
@@ -142,7 +142,7 @@ class MappedArray(np.ma.MaskedArray):
 
     def copy(self):
         """Copy custom atributes on self.copy()."""
-        result = super(MappedArray, self).copy()
+        result = super().copy()
         return self.__apply_attributes__(result)
 
     def get_state_value(self, state):
@@ -181,7 +181,7 @@ class MappedArray(np.ma.MaskedArray):
         # OPT: values_mapping in local scope and map masked values (4x speedup)
         values_mapping = self.values_mapping.copy()
         values_mapping[None] = None
-        return [values_mapping.get(x, x) for x in super(MappedArray, self).tolist()]
+        return [values_mapping.get(x, x) for x in super().tolist()]
 
     @property
     def raw(self):
@@ -278,7 +278,7 @@ class MappedArray(np.ma.MaskedArray):
         Note: Returns self.NO_MAPPING where mapping is not available.
         Q: Shouldn't it use self.fill_value which for string types is 'N/A'
         """
-        v = super(MappedArray, self).__getitem__(key)
+        v = super().__getitem__(key)
         if hasattr(self, 'values_mapping'):
             if isinstance(v, MappedArray):
                 # Slicing or filtering
@@ -299,11 +299,11 @@ class MappedArray(np.ma.MaskedArray):
             # self[:3] = np.ma.masked
             # self[:3] = 2
             # self[:3] = np.ma.array([2,2,2])
-            return super(MappedArray, self).__setitem__(key, val)
+            return super().__setitem__(key, val)
         else:
             if isinstance(val, str):
                 # expecting self[:3] = 'one'
-                return super(MappedArray, self).__setitem__(
+                return super().__setitem__(
                     key, self.state[val][0])
             else:
                 # expecting the following options (all the same):
@@ -332,7 +332,7 @@ class MappedArray(np.ma.MaskedArray):
                         else:
                             # FIXME: should this be a ValueError instead?
                             raise KeyError("Value '%s' not in values mapping" % v)
-                return super(MappedArray, self).__setitem__(key, mapped_val)
+                return super().__setitem__(key, mapped_val)
 
 
 class ParameterArray(object):

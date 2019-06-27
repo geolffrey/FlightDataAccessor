@@ -34,7 +34,7 @@ class HDFValidatorHandler(logging.Handler):
     A handler to raise stop on the first error log.
     """
     def __init__(self, stop_on_error=None):
-        super(HDFValidatorHandler, self).__init__()
+        super().__init__()
         self.stop_on_error = stop_on_error
         self.errors = 0
         self.warnings = 0

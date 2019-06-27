@@ -44,7 +44,7 @@ class FlightDataFormat(Compatibility):
     }
 
     def __init__(self, **kwargs):
-        super(FlightDataFormat, self).__init__()
+        super().__init__()
         self.compress = kwargs.get('compress', False)
         self.keys_cache = collections.defaultdict(sc.SortedSet)
         self.data = {}
