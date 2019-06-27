@@ -418,7 +418,7 @@ def validate_source_name(parameter, matched):
                     "optional.", parameter.name)
     else:
         try:
-            pname = parameter.source_name.decode('utf8')
+            pname = parameter.source_name.decode()
         except UnicodeDecodeError:
             pname = repr(parameter.source_name)
         add_msg = ''

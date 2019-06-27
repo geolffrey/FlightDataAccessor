@@ -161,7 +161,7 @@ class FlightDataFile(FlightDataFormat):
         if legacy:
             value = self.hdf_attributes.get(name)
             if isinstance(value, bytes):
-                value = value.decode('utf-8')
+                value = value.decode()
             return value
 
         # XXX move to legacy?
@@ -177,10 +177,10 @@ class FlightDataFile(FlightDataFormat):
         if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'stream', 'superframe_present'}:
             return None if value is None else bool(value)
         elif name in {'dependency_tree'}:
-            return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode('utf-8')) if value else None
+            return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode()) if value else None
         else:
             if isinstance(value, bytes):
-                value = value.decode('utf-8')
+                value = value.decode()
             return value
 
     def open(self, source=None, mode='r'):
@@ -264,7 +264,7 @@ class FlightDataFile(FlightDataFormat):
                     value = int(value)
                 elif name in {'dependency_tree'}:
                     value = base64.encodestring(
-                        zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode('ascii')))
+                        zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode()))
                 elif name in {'arinc'} and value not in {'717', '767'}:
                     raise ValueError('Unknown ARINC standard: %s.' % value)
                 # XXX should we attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
@@ -336,7 +336,7 @@ class FlightDataFile(FlightDataFormat):
                     # XXX: assume source = 'lfl' by default?
                     source = attrs.get('source', 'lfl' if attrs.get('lfl', True) else 'derived')
                     if isinstance(source, bytes):
-                        source = source.decode('utf8')
+                        source = source.decode()
                     append = not any((
                         valid_only and invalid,
                         subset == 'lfl' and source != 'lfl',
@@ -418,7 +418,7 @@ class FlightDataFile(FlightDataFormat):
         # backwards compatibility
         source = attrs.get('source')
         if isinstance(source, bytes):
-            source = source.decode('utf-8')
+            source = source.decode()
         elif source is None:
             source = 'lfl' if attrs.get('lfl', True) else 'derived'
         kwargs['source'] = source
