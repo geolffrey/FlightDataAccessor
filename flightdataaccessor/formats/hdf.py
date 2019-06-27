@@ -51,7 +51,6 @@ def require_rw(func):
     return wrapper
 
 
-# XXX: Should subclass container types: https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
 class FlightDataFile(FlightDataFormat):
     VERSION = CURRENT_VERSION
     DATASET_KWARGS = {'compression': 'gzip', 'compression_opts': 6}

@@ -26,8 +26,7 @@ from .legacy import Compatibility
 CURRENT_VERSION = 3
 
 
-# XXX: Should subclass container types:
-# https://docs.python.org/2/library/collections.html#collections-abstract-base-classes
+# XXX: Should subclass container types: https://docs.python.org/3/library/collections.abc.html
 class FlightDataFormat(Compatibility):
     FDF_ATTRIBUTES = {
         'arinc',
