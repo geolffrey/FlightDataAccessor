@@ -158,7 +158,7 @@ def segment_boundaries(segment, boundary):
     supf_stop_secs = segment.stop
 
     if segment.start:
-        supf_start_secs = (int(segment.start) // boundary) * boundary
+        supf_start_secs = segment.start // boundary * boundary
         array_start_secs = segment.start % boundary
     else:
         supf_start_secs = 0
@@ -167,7 +167,7 @@ def segment_boundaries(segment, boundary):
     array_stop_secs = 0
     if segment.stop:
         # Always round up to next boundary
-        supf_stop_secs = (int(segment.stop) // boundary) * boundary
+        supf_stop_secs = segment.stop // boundary * boundary
 
         if segment.stop % boundary != 0:
             # Segment does not end on a frame/superframe boundary, include the

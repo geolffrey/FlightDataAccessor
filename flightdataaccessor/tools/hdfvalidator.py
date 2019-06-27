@@ -654,7 +654,7 @@ def inf_nan_check(parameter):
         if count:
             msg = "Found %s %s values in the data of '%s'. " \
                 % (count, val_str, parameter.name)
-            nan_percent = (float(count) / len(parameter.array.data)) * 100
+            nan_percent = count / len(parameter.array.data) * 100
             msg += "This represents %.2f%% of the data. " % (nan_percent, )
             if unmasked:
                 msg += "%s are not masked." % (unmasked,)
