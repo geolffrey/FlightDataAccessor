@@ -101,6 +101,10 @@ class FlightDataFormat(Compatibility):
         """Count of parameters in the flight data format object."""
         return len(self.keys())
 
+    def _ipython_key_completions_(self):
+        """Custom tab completions for __getitem__ in IPython >=5.0."""
+        return sorted(self.keys())
+
     @property
     def duration(self):
         durations = np.array([p.duration for p in self.values()])
