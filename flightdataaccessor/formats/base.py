@@ -10,9 +10,9 @@ import copy
 import datetime
 import itertools
 import re
+from datetime import timezone
 
 import numpy as np
-import pytz
 import simplejson
 import sortedcontainers as sc
 
@@ -381,7 +381,7 @@ class FlightDataFormat(Compatibility):
         '''
         timestamp = self.timestamp
         if timestamp:
-            return datetime.datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.utc)
+            return datetime.datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
         else:
             return None
 
@@ -394,7 +394,7 @@ class FlightDataFormat(Compatibility):
             timestamp = None
         else:
             if isinstance(start_datetime, datetime.datetime):
-                epoch = datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)
+                epoch = datetime.datetime(1970, 1, 1, tzinfo=timezone.utc)
                 timestamp = (start_datetime - epoch).total_seconds()
             else:
                 timestamp = start_datetime
