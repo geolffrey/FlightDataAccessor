@@ -56,11 +56,7 @@ class CreateHDFForTest(object):
 
 class TestConcatHDF(unittest.TestCase):
     def setUp(self):
-        try:
-            os.makedirs(TEMP_DIR_PATH)
-        except OSError as err:
-            if err.errno == errno.EEXIST:
-                pass
+        os.makedirs(TEMP_DIR_PATH, exist_ok=True)
 
         self.hdf_path_1 = os.path.join(TEMP_DIR_PATH,
                                        'concat_hdf_1.hdf5')
