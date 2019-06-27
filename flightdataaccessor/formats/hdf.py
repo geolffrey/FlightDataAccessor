@@ -33,7 +33,7 @@ def require_open(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.file is None:
-            raise IOError('HDF file is not open')
+            raise OSError('HDF file is not open')
         return func(self, *args, **kwargs)
 
     return wrapper
@@ -43,9 +43,9 @@ def require_rw(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.file is None:
-            raise IOError('HDF file is not open')
+            raise OSError('HDF file is not open')
         if not self.disposable and self.file.mode != 'r+':
-            raise IOError('Modification of file open in read-only mode was requested')
+            raise OSError('Modification of file open in read-only mode was requested')
         return func(self, *args, **kwargs)
 
     return wrapper
@@ -227,7 +227,7 @@ class FlightDataFile(FlightDataFormat):
         return created
 
     def close(self):
-        # XXX: raise IOError if no file?
+        # XXX: raise OSError if no file?
         if self.file is not None and self.file.id:
             if self.file.mode == 'r+':
                 self.file.flush()
