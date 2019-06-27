@@ -31,7 +31,7 @@ def concat_hdf(sources, dest=None):
     """
     target = dest if dest is not None else None
     if isinstance(sources[0], str):
-        # the frst source needs to be upgraded first
+        # the first source needs to be upgraded first
         if target is None:
             f, target = tempfile.mkstemp()
             os.fdopen(f, 'w').close()
