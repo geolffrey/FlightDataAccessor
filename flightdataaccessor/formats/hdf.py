@@ -121,16 +121,23 @@ class FlightDataFile(FlightDataFormat):
         return self.__repr__().lstrip('<').rstrip('>')
 
     def __enter__(self):
+<<<<<<< HEAD
         """Context manager API"""
         self._context_level += 1
+=======
+>>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
         self.open()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+<<<<<<< HEAD
         """Context manager API"""
         self._context_level -= 1
         if not self._context_level:
             self.close()
+=======
+        self.close()
+>>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
 
     @property
     def duration(self):
@@ -148,7 +155,8 @@ class FlightDataFile(FlightDataFormat):
 
     @require_open
     def __getattr__(self, name):
-        """Retrieve file attribute.
+        """
+        Retrieve file attribute.
 
         Special behaviour: if attribute is one of the standard HDF attributes it will be returned as None if not found
         in the HDF data.
@@ -267,9 +275,14 @@ class FlightDataFile(FlightDataFormat):
                         zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode()))
                 elif name in {'arinc'} and value not in {'717', '767'}:
                     raise ValueError('Unknown ARINC standard: %s.' % value)
+<<<<<<< HEAD
                 # XXX should we attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
                 if not self.disposable:
                     self.file.attrs[name] = value
+=======
+                # XXX Attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
+                self.file.attrs[name] = value
+>>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
                 self.hdf_attributes[name] = value
 
         elif name in self.hdf_attributes:
@@ -313,7 +326,8 @@ class FlightDataFile(FlightDataFormat):
 
     @require_open
     def keys(self, valid_only=False, subset=None):
-        """Parameter group names within the series group.
+        """
+        Parameter group names within the series group.
 
         :param subset: name of a subset of parameter names to lookup.
         :type subset: str or None
@@ -384,7 +398,7 @@ class FlightDataFile(FlightDataFormat):
 
     @require_open
     def load_parameter(self, name, load_submasks=False):
-        """Load parameter from cache or the file and store in cache"""
+        """Load parameter from cache or the file and store in cache."""
         if name in self.parameter_cache:
             return self.parameter_cache[name]
 
@@ -451,7 +465,7 @@ class FlightDataFile(FlightDataFormat):
 
         # Get array length for expanding booleans.
         submask_length = 0
-        for submask_name, submask_array in parameter.submasks.items():
+        for submask_array in parameter.submasks.values():
             if (submask_array is None or type(submask_array) in (bool, np.bool8)):
                 continue
             submask_length = max(submask_length, len(submask_array))
@@ -530,18 +544,16 @@ class FlightDataFile(FlightDataFormat):
 
     @require_rw
     def delete_parameter(self, name, ignore=True):
-        """Delete a parameter"""
         if name not in self:
             if ignore:
                 return
             raise KeyError('Parameter not found')
 
-        for key, cache in self.keys_cache.items():
+        for cache in self.keys_cache.values():
             cache.discard(name)
         del self.data[name]
 
     def get_parameters(self, names=None, valid_only=False, raise_keyerror=False, _slice=None):
-        """Get multiple parameters"""
         if names is None:
             names = self.keys(valid_only=valid_only)
         return {name: self.get_parameter(name, valid_only=valid_only) for name in names}
@@ -583,7 +595,7 @@ class FlightDataFile(FlightDataFormat):
             submasks_data.resize((data_size, len(submask_arrays)))
             submasks_data[start_index:data_size, ] = np.column_stack(submask_arrays)
 
-        for key, cache in self.keys_cache.items():
+        for cache in self.keys_cache.values():
             cache.discard(name)
 
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
@@ -639,12 +651,11 @@ class FlightDataFile(FlightDataFormat):
         return limits
 
     def get_param_arinc_429(self, name):
-        """Returns a parameter's ARINC 429 flag."""
+        """Return a parameter's ARINC 429 flag."""
         return self.get_parameter_attribute(name, 'arinc_429', transformation=bool)
 
     @require_rw
     def set_parameter_limits(self, name, limits):
-        """Set parameter limits"""
         if name in self.parameter_cache:
             parameter = self[name]
             parameter.limits = limits
@@ -654,7 +665,6 @@ class FlightDataFile(FlightDataFormat):
 
     @require_rw
     def set_parameter_invalid(self, name, reason=''):
-        """Set a parameter to be invalid"""
         # XXX: originally the parameter was fully masked, should we create a submask for that?
         if name in self.parameter_cache:
             parameter = self[name]
@@ -667,7 +677,6 @@ class FlightDataFile(FlightDataFormat):
 
     @require_rw
     def set_parameter_offset(self, name, offset):
-        """Set a parameter offset"""
         if name in self.parameter_cache:
             parameter = self[name]
             parameter.offset = offset

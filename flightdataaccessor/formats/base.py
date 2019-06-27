@@ -5,6 +5,7 @@ The FlightDataFormat class defines in-memory functionality. It can be used by it
 required. Please note that this is in memory representation and in case of large data frames it will use a lot of
 RAM.
 """
+
 import collections
 import copy
 import datetime
@@ -18,9 +19,9 @@ import sortedcontainers as sc
 
 from flightdatautilities.patterns import wildcard_match
 
-from . import compatibility
 from ..datatypes.dynamic import DateParameter, TimeParameter
 from ..datatypes.parameter import Parameter
+from . import compatibility
 from .legacy import Compatibility
 
 CURRENT_VERSION = 3
@@ -64,15 +65,12 @@ class FlightDataFormat(Compatibility):
         return self.__repr__().lstrip('<').rstrip('>')
 
     def __enter__(self):
-        """Context manager API"""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Context manager API"""
         pass
 
     def __iter__(self):
-        """Iterator API"""
         return iter(self.keys())
 
     def __getitem__(self, name):
@@ -113,9 +111,11 @@ class FlightDataFormat(Compatibility):
         return sorted({p.frequency for p in self.values()})
 
     def keys(self, valid_only=False, subset=None):
-        """Parameter group names within the series group.
+        """
+        Parameter group names within the series group.
 
-        The supported subsets: 'lfl' and 'derived'."""
+        The supported subsets: 'lfl' and 'derived'.
+        """
         if subset and subset not in ('lfl', 'derived'):
             raise ValueError('Unknown parameter subset: %s.' % subset)
         category = subset + '_names' if subset else 'names'
@@ -147,11 +147,10 @@ class FlightDataFormat(Compatibility):
             yield name, self[name]
 
     def load_parameter(self, name, **kwargs):
-        """Load parameter"""
         return self.data[name]
 
     def get_parameter(self, name, valid_only=False, _slice=None, copy_param=True, **kwargs):
-        """Load parameter and handle special cases"""
+        """Load parameter and handle special cases."""
         if name == 'Date':
             return DateParameter(start_datetime=self.start_datetime, duration=self.duration)
         elif name == 'Time':
@@ -177,7 +176,6 @@ class FlightDataFormat(Compatibility):
         return parameter
 
     def set_parameter(self, parameter, **kwargs):
-        """Store parameter data"""
         if not parameter.invalid and hasattr(parameter, 'validate_mask'):
             parameter.validate_mask()
 
@@ -193,29 +191,25 @@ class FlightDataFormat(Compatibility):
             self.keys_cache[key].add(parameter.name)
 
     def delete_parameter(self, name, ignore=True):
-        """Delete a parameter."""
         if name not in self:
             if ignore:
                 return
             raise KeyError('Parameter not found')
 
-        for key, cache in self.keys_cache.items():
+        for cache in self.keys_cache.values():
             cache.discard(name)
         del self.data[name]
 
     def get_parameters(self, names=None, valid_only=False, raise_keyerror=False, _slice=None):
-        """Get multiple parameters."""
         if names is None:
             names = self.keys(valid_only=valid_only)
         return {name: self.get_parameter(name, valid_only=valid_only) for name in names}
 
     def set_parameters(self, parameters):
-        """Set multiple parameters."""
         for parameter in parameters:
             self.set_parameter(parameter)
 
     def delete_parameters(self, names):
-        """Delete multiple parameters."""
         for name in names:
             self.delete_parameter(name)
 
@@ -228,7 +222,11 @@ class FlightDataFormat(Compatibility):
 
     def trim(self, target=None, start_offset=0, stop_offset=None, superframe_boundary=True, parameter_list=None,
              deidentify=False):
+<<<<<<< HEAD
         """Create a copy of the object trimmed to given range"""
+=======
+        """Create a copy of the object trimmed to given range."""
+>>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
         if target is None:
             target = self.__class__
 
@@ -280,7 +278,8 @@ class FlightDataFormat(Compatibility):
         return new_fdf
 
     def concatenate(self, sources):
-        """Concatenate compatible FDF objects.
+        """
+        Concatenate compatible FDF objects.
 
         ValueError is raised in case any incompatibility is found on parameter level.
         """
@@ -299,6 +298,25 @@ class FlightDataFormat(Compatibility):
                 for to_append in fdf.values():
                     self.extend_parameter(to_append.name, to_append)
 
+<<<<<<< HEAD
+=======
+    def clone(self, fdf=None, parameters=None):
+        """
+        Clone ``self`` into ``fdf``, creating an in-memory FDF if ``fdf`` is not specified.
+
+        Optionally clones only a subset of parameters.
+        """
+        if fdf is None:
+            fdf = FlightDataFormat()
+
+        for attribute_name in self.FDF_ATTRIBUTES:
+            setattr(fdf, attribute_name, getattr(self, attribute_name, None))
+
+        for parameter in self.values():
+            if parameters is None or parameter.name in parameters:
+                fdf.set_parameter(parameter)
+
+>>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
     def get(self, name, default=None, **kwargs):
         """Dictionary like .get operator. Additional kwargs are passed into the get_parameter() method."""
         try:
@@ -308,10 +326,12 @@ class FlightDataFormat(Compatibility):
 
     # XXX are the below methods used? Does it make sense to keep them in the API?
     def search(self, pattern, lfl_keys_only=False):
-        """Searches for param using wildcard matching
+        """
+        Search for parameter using wildcard matching.
 
-        If a match with the regular expression is not found, then a list of params are returned that contains the
-        `pattern`."""
+        If a match with the regular expression is not found, then a list of parameters are returned that contains the
+        `pattern`.
+        """
         # XXX: is it used?
         keys = self.lfl_keys() if lfl_keys_only else self.keys()
         if '(*)' in pattern or '(?)' in pattern:
@@ -322,19 +342,18 @@ class FlightDataFormat(Compatibility):
 
     def startswith(self, term):
         # XXX: is it used?
-        """Searches for keys which start with the term. Case sensitive"""
+        """Search for keys which start with the term case sensitively."""
         return sorted(x for x in self.keys() if x.startswith(term))
 
     def get_parameter_source(self, name):
-        """Get parameter source metadata"""
         return self[name].source
 
     def get_parameter_invalid(self, name):
-        """Get information if parameter is invalid"""
         return self[name].invalid
 
     def get_parameter_limits(self, name, default=None):
-        """Return a parameter's operating limits stored within the groups 'limits' attribute.
+        """
+        Return a parameter's operating limits stored within the groups 'limits' attribute.
 
         Decodes limits from JSON into dict.
         """
@@ -344,7 +363,7 @@ class FlightDataFormat(Compatibility):
         return simplejson.loads(limits) if limits else default
 
     def get_param_arinc_429(self, name):
-        """Returns a parameter's ARINC 429 flag."""
+        """Return a parameter's ARINC 429 flag."""
         arinc_429 = bool(self[name].arinc_429)
         return arinc_429
 
@@ -357,28 +376,26 @@ class FlightDataFormat(Compatibility):
     # XXX: the below methods are unbalanced: we cater for certain modifications on the parameters, but not the others
     # Maybe move to legacy instead?
     def set_parameter_limits(self, name, limits):
-        """Set parameter limits"""
         parameter = self.get_parameter(name, copy_param=False)
         parameter.limits = simplejson.dumps(limits)
 
     def set_parameter_invalid(self, name, reason=''):
-        """Set a parameter to be invalid"""
         # XXX: originally the parameter was fully masked, should we create a submask for that?
         parameter = self.get_parameter(name)
         parameter.invalid = 1
         parameter.invalidity_reason = reason
 
     def set_parameter_offset(self, name, offset):
-        """Set parameter offset"""
         parameter = self.get_parameter(name)
         parameter.offset = offset
 
     @property
     def start_datetime(self):
-        '''The start datetime of the data stored within the FDF object.
+        """
+        Return the start datetime of the data stored within the FDF object.
 
         Convert the root-level 'timestamp' attribute from a timestamp to a datetime.
-        '''
+        """
         timestamp = self.timestamp
         if timestamp:
             return datetime.datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
@@ -387,9 +404,11 @@ class FlightDataFormat(Compatibility):
 
     @start_datetime.setter
     def start_datetime(self, start_datetime):
-        """Convert start_datetime to a timestamp and save as 'timestamp' attribute.
+        """
+        Convert start_datetime to a timestamp and save as 'timestamp' attribute.
 
-        If start_datetime is None the 'timestamp' attribute will be deleted."""
+        If start_datetime is None the 'timestamp' attribute will be deleted.
+        """
         if start_datetime is None:
             timestamp = None
         else:

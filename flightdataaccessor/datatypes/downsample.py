@@ -1,6 +1,6 @@
 import math
-import numpy as np
 
+import numpy as np
 
 SAMPLES_PER_BUCKET = 2
 
@@ -15,7 +15,7 @@ def masked_invalid(data):
 # XXX: copy-paste from analysis_engine.library. Needs to be sorted out with FlightDataAnalyzer refactoring to create a
 # utilities package with common functionality used by many repositories to avoid cross-dependencies.
 def most_common_value(array, threshold=None):
-    '''
+    """
     Find the most repeating non-negative valid value within an array. Works
     with mapped arrays too as well as arrays of strings.
 
@@ -25,7 +25,7 @@ def most_common_value(array, threshold=None):
         less than this
     :type threshold: float
     :returns: most common value in array
-    '''
+    """
     if isinstance(array, np.ma.MaskedArray):
         array = array.compressed()
     else:
@@ -47,7 +47,8 @@ def most_common_value(array, threshold=None):
 
 
 def downsample_most_common_value(data, width):
-    """Downsample non numeric data.
+    """
+    Downsample non numeric data.
 
     In case of non numeric values (as well as MappedArrays) we want to return most common values instead of min/max
     pairs for each bucket.
@@ -82,7 +83,8 @@ def downsample_most_common_value(data, width):
 
 
 def downsample(data, width):
-    """Downsample data.
+    """
+    Downsample data.
 
     bucket_size is number of consecutive points to coalesce into one bucket. point_size is the number of values for
     each point (used when downsampling already downsampled data). Result is array (sorted on x) with min1, max1, min2,

@@ -1,9 +1,3 @@
-#------------------------------------------------------------------------------
-# Parameter container Class
-# =========================
-'''
-Parameter container class.
-'''
 import copy
 import math
 
@@ -22,10 +16,12 @@ NO_MAPPING = MappedArray.NO_MAPPING
 class Parameter(Legacy):
     array = ParameterArray()
 
-    def __init__(self, name, array=[], values_mapping=None, frequency=1, offset=0, arinc_429=None, invalid=None,
+    def __init__(self, name, array=None, values_mapping=None, frequency=1, offset=0, arinc_429=None, invalid=None,
                  invalidity_reason=None, unit=None, data_type=None, source=None, source_name=None, description='',
                  submasks=None, limits=None, compress=False, **kwargs):
-        '''
+        """
+        Parameter container class.
+
         :param name: Parameter name
         :type name: String
         :param array: Masked array of data for the parameter.
@@ -54,7 +50,10 @@ class Parameter(Legacy):
         :param description: Description of the parameter.
         :type description: str
         :param submasks: Default value is None to avoid kwarg default being mutable.
-        '''
+        """
+        if array is None:
+            array = []
+
         self.name = name
 
         if values_mapping or not getattr(self, 'values_mapping', None):
@@ -80,7 +79,7 @@ class Parameter(Legacy):
         self.array = array
 
     def __repr__(self):
-        return "%s %sHz %.2fsecs" % (self.name, self.frequency, self.offset)
+        return '%s %sHz %.2fsecs' % (self.name, self.frequency, self.offset)
 
     def is_compatible(self, parameter=None, name=None, frequency=None, offset=None, unit=None):
         """Check if another parameter is compatible with this one."""
@@ -91,18 +90,20 @@ class Parameter(Legacy):
             unit = parameter.unit
 
         return (
-            self.name == name
-            and self.frequency == frequency
-            and self.offset == offset
-            and self.unit == unit
+            self.name == name and
+            self.frequency == frequency and
+            self.offset == offset and
+            self.unit == unit
         )
 
     @property
     def default_submask_name(self):
-        """ Name of a default submask.
+        """
+        Name of a default submask.
 
         A default submask is created when the parameter is populated with MaskedArray which contains masked values that
-        are incompatible with corresponding submasks or if MaskedArray is passed to parameter without any submasks."""
+        are incompatible with corresponding submasks or if MaskedArray is passed to parameter without any submasks.
+        """
         # XXX: Node should have a default source value
         source = getattr(self, 'source', 'lfl')
         sources = {
@@ -128,13 +129,12 @@ class Parameter(Legacy):
         self.submasks = ParameterSubmasks(submasks, compress=self.compress)
 
     def get_array(self, submask=None):
-        '''
-        Get the Parameter's array with an optional submask substituted for the
-        mask.
+        """
+        Get the Parameter's array with an optional submask substituted for the mask.
 
         :param submask: Name of submask to return with the array.
         :type submask: str or None
-        '''
+        """
         if not submask:
             return self.array
         if submask not in self.submasks:
@@ -163,11 +163,13 @@ class Parameter(Legacy):
             return sliced, bucket_size
 
     def zoom(self, width, start_offset=0, stop_offset=None, mask=True, timestamps=False):
-        """Zoom out to display the data in range in a window of given width.
+        """
+        Zoom out to display the data in range in a window of given width.
 
         Optionally combine the data with timestamp information (in miliseconds).
 
-        This method is designed for use in data visualisation."""
+        This method is designed for use in data visualisation.
+        """
         downsampled, bucket_size = self.downsample(width, start_offset=start_offset, stop_offset=stop_offset, mask=mask)
         if not timestamps:
             return downsampled
@@ -183,10 +185,12 @@ class Parameter(Legacy):
         return clone
 
     def trim(self, start_offset=0, stop_offset=None, pad_subframes=4):
-        """Return a copy of the parameter with all the data trimmed to given window in seconds.
+        """
+        Return a copy of the parameter with all the data trimmed to given window in seconds.
 
         Optionally align the window to pad_subframes blocks of subframes (defaults to a single frame)which is useful
-        for splitting segments."""
+        for splitting segments.
+        """
         if start_offset is None:
             start_offset = 0
         if stop_offset is None:
@@ -261,7 +265,7 @@ class Parameter(Legacy):
 
         if not submasks:
             if strict and np.any(np.ma.getmaskarray(array)):
-                raise MaskError("Submasks are not defined and array is masked")
+                raise MaskError('Submasks are not defined and array is masked')
             return True
 
         # we want to handle "default" submask no matter if already exists or is added
@@ -269,7 +273,7 @@ class Parameter(Legacy):
         new_submask_names = set(submasks.keys()) | {self.default_submask_name}
         if new_submask_names != old_submask_names:
             raise MaskError("Submask names don't match the stored submasks")
-        for submask_name, submask in submasks.items():
+        for submask in submasks.values():
             if len(submask) != len(array):
                 raise MaskError("Submasks don't have the same length as the array")
         if isinstance(array, np.ma.MaskedArray):
@@ -280,14 +284,14 @@ class Parameter(Legacy):
         return True
 
     def combine_submasks(self, submasks=None, array=None):
-        '''
+        """
         Combine submasks into a single OR'd mask.
 
         If optional array is passed it's mask will be returned if submasks are empty.
 
         :returns: Combined submask.
         :rtype: np.array
-        '''
+        """
         if submasks is None:
             submasks = self.submasks
             array = self.array
@@ -321,9 +325,11 @@ class Parameter(Legacy):
         return array, submasks
 
     def build_array_submasks(self, data, submasks=None):
-        """Build array and submasks from passed data.
+        """
+        Build array and submasks from passed data.
 
-        The data is normalised to provide formats compatible with the parameter."""
+        The data is normalised to provide formats compatible with the parameter.
+        """
         if isinstance(data, Parameter):
             array = data.array
             submasks = data.submasks
@@ -336,12 +342,14 @@ class Parameter(Legacy):
         return array, submasks
 
     def update_submask(self, name, mask, merge=True):
-        """Update a submask.
+        """
+        Update a submask.
 
         If merge is True the submask is updated (logical OR) with the passed value, otherwise it's replaced.
         Parameter.array.mask is updated automatically to stay in sync.
 
-        If submask with given name does not exist, it will be created."""
+        If submask with given name does not exist, it will be created.
+        """
         if merge or name not in self.submasks:
             self.submasks[name] = mask
         else:

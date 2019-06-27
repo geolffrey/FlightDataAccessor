@@ -2,7 +2,7 @@ from deprecation import deprecated
 
 
 class Legacy(object):
-    """Support for legacy properties and methods"""
+    """Support for legacy properties and methods."""
 
     @property
     @deprecated(details="Please use `source == 'lfl'` instead")

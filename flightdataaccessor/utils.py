@@ -14,7 +14,7 @@ import flightdataaccessor as fda
 
 @deprecated(details='Use FlightDataFormat.concatenate() instead')
 def concat_hdf(sources, dest=None):
-    '''
+    """
     Takes in a list of HDF file paths and concatenates the parameter
     datasets which match the path 'series/<Param Name>/data'. The first file
     in the list of paths is the template for the output file, with only the
@@ -28,7 +28,7 @@ def concat_hdf(sources, dest=None):
     :type dest: dict
     :return: path to concatenated hdf file.
     :rtype: str
-    '''
+    """
     target = dest if dest is not None else None
     if isinstance(sources[0], str):
         # the frst source needs to be upgraded first
@@ -52,7 +52,7 @@ def concat_hdf(sources, dest=None):
 
 @deprecated(details='Use FlightDataFormat.trim() instead')
 def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
-    '''
+    """
     Strip an HDF file of all parameters apart from those in params_to_keep.
     Does not raise an exception if any of the params_to_keep are not in the
     HDF file.
@@ -65,8 +65,13 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     :type dest: str
     :return: all parameters names within the output hdf file
     :rtype: [str]
+<<<<<<< HEAD
     '''
     with fda.open(hdf_path) as fdf:
+=======
+    """
+    with flightdataaccessor.open(hdf_path) as fdf:
+>>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
         fdf.trim(dest, parameter_list=params_to_keep, deidentify=deidentify)
 
     # XXX: filter the param_to_keep list to the list of existing parameters
@@ -76,7 +81,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
 
 @deprecated(details='Use FlightDataFormat.trim() instead')
 def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4, submasks=None):
-    '''
+    """
     Writes a segment of the HDF file stored in hdf_path to dest defined by
     segments, a slice in seconds. Expects the HDF file to contain whole
     superframes.
@@ -104,7 +109,7 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
 
     TODO: Support segmenting parameter masks. Q: Does this mean copying the mask along
     with data? If so, this is already done.
-    '''
+    """
     # XXX: handle source / dest logic somewhere else
     if dest is None:
         if isinstance(source, str):
@@ -146,10 +151,10 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
 
 
 def segment_boundaries(segment, boundary):
-    '''
+    """
     Calculate start and stop boundaries from segment slice and amount of
     padding needed to fill to boundary edge
-    '''
+    """
     supf_stop_secs = segment.stop
 
     if segment.start:
@@ -173,13 +178,18 @@ def segment_boundaries(segment, boundary):
 
 
 def revert_masks(hdf_path, params=None, delete_derived=False):
-    '''
+    """
     :type hdf_path: str
     :type params: params to revert or delete.
     :type params: [str] or None
     :type delete_derived: bool
+<<<<<<< HEAD
     '''
     with fda.open(hdf_path, mode='a') as fdf:
+=======
+    """
+    with flightdataaccessor.open(hdf_path, mode='a') as fdf:
+>>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
         if not params:
             params = fdf.keys() if delete_derived else fdf.lfl_keys()
 
@@ -215,8 +225,7 @@ def align(array, slave_frequency, slave_offset, master_frequency, master_offset=
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest='command',
-                                      description="Utility command, either "
-                                      "'strip' or 'revert'")
+                                      description="Utility command, either 'strip' or 'revert'")
     strip_parser = subparser.add_parser('strip', help='Strip a file to a '
                                         'subset of parameters.')
     strip_parser.add_argument('input_file_path', help='Input hdf filename.')
@@ -235,11 +244,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.command == 'strip':
         if not os.path.isfile(args.input_file_path):
-            parser.error("Input file path '%s' does not exist." %
-                         args.input_file_path)
+            parser.error("Input file path '%s' does not exist.", args.input_file_path)
         if os.path.exists(args.output_file_path):
-            parser.error("Output file path '%s' already exists." %
-                         args.output_file_path)
+            parser.error("Output file path '%s' already exists.", args.output_file_path)
         output_parameters = strip_hdf(args.input_file_path, args.parameters,
                                       args.output_file_path)
         if output_parameters:

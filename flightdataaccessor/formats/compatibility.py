@@ -1,6 +1,5 @@
-"""
-Compatibility features.
-"""
+"""Compatibility features."""
+
 import inspect
 
 

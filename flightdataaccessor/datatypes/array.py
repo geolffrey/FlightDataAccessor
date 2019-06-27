@@ -2,6 +2,7 @@ import collections
 import collections.abc
 import inspect
 import logging
+import textwrap
 import traceback
 import warnings
 
@@ -49,8 +50,9 @@ class MaskError(ValueError):
 
 
 class MappedArray(np.ma.MaskedArray):
-    '''
+    """
     MaskedArray which optionally converts its values using provided mapping.
+
     Has a dtype of int.
 
     Provide keyword argument 'values_mapping' when initialising, e.g.:
@@ -61,17 +63,18 @@ class MappedArray(np.ma.MaskedArray):
 
     For details about numpy array subclassing see
     http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
-    '''
+    """
+
     # The value used to fill in MappedArrays for keys not within values_mapping only when getting values, setting
     # raises ValueError
     NO_MAPPING = '?'
 
     def __new__(cls, *args, **kwargs):
-        '''
+        """
         Create new object.
 
         No default mapping - use empty dictionary.
-        '''
+        """
         values_mapping = kwargs.pop('values_mapping', {})
         obj = MaskedArray.__new__(MaskedArray, *args, **kwargs)
         obj.__class__ = MappedArray
@@ -82,9 +85,7 @@ class MappedArray(np.ma.MaskedArray):
         return obj
 
     def __array_finalize__(self, obj):
-        '''
-        Finalise the newly created object.
-        '''
+        """Finalise the newly created object."""
         super(MappedArray, self).__array_finalize__(obj)
         if not hasattr(self, 'values_mapping'):
             master_values_mapping = getattr(obj, 'values_mapping', None)
@@ -92,9 +93,7 @@ class MappedArray(np.ma.MaskedArray):
                 self.values_mapping = master_values_mapping
 
     def __array_wrap__(self, out_arr, context=None):
-        '''
-        Convert the result into correct type.
-        '''
+        """Convert the result into correct type."""
         super(MappedArray, self).__array_wrap__(out_arr, context)
         return self.__apply_attributes__(out_arr)
 
@@ -127,49 +126,32 @@ class MappedArray(np.ma.MaskedArray):
         super(MappedArray, self).__setattr__(key, value)
 
     def __repr__(self):
-        name = 'mapped_array'
-        parameters = dict(
-            name=name,
-            nlen=" " * len(name),
-            data=self.raw,
-            # WARNING: SLOW!
-            sdata=MaskedArray([self.values_mapping.get(x, self.NO_MAPPING)
-                               for x in self.data], mask=self.mask),
-            mask=self._mask,
-            fill=self.fill_value,
-            dtype=self.dtype,
-            values=self.values_mapping
-        )
-        short_std = """\
-masked_%(name)s(values = %(sdata)s,
-       %(nlen)s   data = %(data)s,
-       %(nlen)s   mask = %(mask)s,
-%(nlen)s    fill_value = %(fill)s,
-%(nlen)svalues_mapping = %(values)s)
-"""
-        return short_std % parameters
+        # WARNING: SLOW!
+        values = MaskedArray([self.values_mapping.get(x, self.NO_MAPPING) for x in self.data], mask=self.mask)
+        return textwrap.dedent(f'''\
+            masked_mapped_array(values = {values},
+                                  data = {self.raw},
+                                  mask = {self._mask},
+                            fill_value = {self.fill_value},
+                        values_mapping = {self.values_mapping})
+        ''')
 
     def __str__(self):
         return str(MaskedArray([self.values_mapping.get(x, self.NO_MAPPING)
                                 for x in self.data], mask=self.mask))
 
     def copy(self):
-        '''
-        Copy custom atributes on self.copy().
-        '''
+        """Copy custom atributes on self.copy()."""
         result = super(MappedArray, self).copy()
         return self.__apply_attributes__(result)
 
     def get_state_value(self, state):
-        '''
-        Return raw value for given state.
-        '''
+        """Return raw value for given state."""
         return self.state[state]
 
     def any_of(self, *states, **kwargs):
-        '''
-        Return a boolean array containing True where the value of the
-        MappedArray equals any state in states.
+        """
+        Return a boolean array containing True where the value of the MappedArray equals any state in states.
 
         :param states: List of states.
         :type states: [str]
@@ -178,7 +160,7 @@ masked_%(name)s(values = %(sdata)s,
         :type ignore_missing: bool
         :returns: Boolean array.
         :rtype: np.ma.array(bool)
-        '''
+        """
         ignore_missing = kwargs.get('ignore_missing', False)
         raw_values = []
         for state in states:
@@ -195,12 +177,7 @@ masked_%(name)s(values = %(sdata)s,
         return MaskedArray(np.ma.in1d(self.raw.data, raw_values), mask=self.mask)
 
     def tolist(self):
-        '''
-        Returns the array converted into a list of states.
-
-        :returns: A list of states.
-        :rtype: list
-        '''
+        """Return the array converted into a list of states."""
         # OPT: values_mapping in local scope and map masked values (4x speedup)
         values_mapping = self.values_mapping.copy()
         values_mapping[None] = None
@@ -208,18 +185,17 @@ masked_%(name)s(values = %(sdata)s,
 
     @property
     def raw(self):
-        '''
-        See the raw data.
-        '''
+        """See the raw data."""
         return self.view(MaskedArray)
 
     def __coerce_type(self, other):
-        '''
-        Coerces an argument of unknown type into consistently numpy comparable
-        type. As used by comparison methods __eq__ etc.
+        """
+        Coerces an argument of unknown type into consistently numpy comparable type.
+
+        As used by comparison methods __eq__ etc.
 
         e.g. 'one' -> 1, ['one', 'two'] -> [1, 2]
-        '''
+        """
         try:
             if hasattr(self, 'values_mapping') and other not in self.values_mapping:
                 # the caller is 2 frames statedown on the stack
@@ -227,8 +203,8 @@ masked_%(name)s(values = %(sdata)s,
                 tb = ''.join(traceback.format_list(
                     traceback.extract_stack(frame, 3)))
                 logging.error(
-                    tb + 'Trying to coerce value `%s` which is not a valid '
-                    'state name for this mapped array', other)
+                    '%s Trying to coerce value `%s` which is not a valid '
+                    'state name for this mapped array', tb, other)
         except TypeError:  # unhashable type: 'list'
             if getattr(other, 'dtype', None) == int:
                 # comparable to raw array, skip past
@@ -245,10 +221,10 @@ masked_%(name)s(values = %(sdata)s,
         return other
 
     def __raw_values__(self, state):
-        '''
+        """
         :type state: str
         :returns: Raw values corresponding to state.
-        '''
+        """
         try:
             return getattr(self, 'state', {})[state]
         except KeyError:
@@ -259,10 +235,7 @@ masked_%(name)s(values = %(sdata)s,
         return None
 
     def __equality__(self, other, invert=False):
-        '''
-        Test equality or inequality allowing for multiple raw values matching a
-        state.
-        '''
+        """Test equality or inequality allowing for multiple raw values matching a state."""
         raw_values = self.__raw_values__(other)
         if raw_values:
             return MaskedArray(in1d(self.raw.data, raw_values, invert=invert), mask=self.mask)
@@ -276,21 +249,15 @@ masked_%(name)s(values = %(sdata)s,
         return method(self.raw, other)
 
     def __eq__(self, other):
-        '''
-        Allow comparison with Strings such as array == 'state'
-        '''
+        """Allow comparison with Strings such as array == 'state'."""
         return self.__equality__(other)
 
     def __ne__(self, other):
-        '''
-        In MappedArrays, != is always the opposite of ==
-        '''
+        """In MappedArrays, != is always the opposite of ==."""
         return self.__equality__(other, invert=True)
 
     def __gt__(self, other):
-        '''
-        works - but comparing against string states is not recommended
-        '''
+        """Works - but comparing against string states is not recommended."""
         return self.__relational__(other, MaskedArray.__gt__, max)
 
     def __ge__(self, other):
@@ -303,14 +270,14 @@ masked_%(name)s(values = %(sdata)s,
         return self.__relational__(other, MaskedArray.__le__, min)
 
     def __getitem__(self, key):
-        '''
+        """
         Return mapped values.
 
         Note: Returns MappedArray if sliced
 
         Note: Returns self.NO_MAPPING where mapping is not available.
         Q: Shouldn't it use self.fill_value which for string types is 'N/A'
-        '''
+        """
         v = super(MappedArray, self).__getitem__(key)
         if hasattr(self, 'values_mapping'):
             if isinstance(v, MappedArray):
@@ -324,10 +291,7 @@ masked_%(name)s(values = %(sdata)s,
         return v
 
     def __setitem__(self, key, val):
-        '''
-        Raises KeyError if mapping does not exist for val (unless val is
-        masked)
-        '''
+        """Raises KeyError if mapping does not exist for val (unless val is masked)."""
         if val is masked or \
            isinstance(val, int) or \
            getattr(val, 'dtype', None) == int:
@@ -372,9 +336,12 @@ masked_%(name)s(values = %(sdata)s,
 
 
 class ParameterArray(object):
-    """Array descriptor to control parameter.array assignment.
+    """
+    Array descriptor to control parameter.array assignment.
 
-    The idea is to keep submasks in sync with the array's mask to ensure consistency."""
+    The idea is to keep submasks in sync with the array's mask to ensure consistency.
+    """
+
     def __get__(self, parameter, objtype=None):
         if getattr(parameter, 'compress', None):
             return decompress_array(parameter._array)
@@ -382,9 +349,11 @@ class ParameterArray(object):
             return getattr(parameter, '_array', np.ma.array([]))
 
     def __set__(self, parameter, array):
-        """Set array on parent object.
+        """
+        Set array on parent object.
 
-        A rebuild of parent's submasks will be triggered as a side effect."""
+        A rebuild of parent's submasks will be triggered as a side effect.
+        """
         if getattr(parameter, 'values_mapping', None) and not isinstance(array, MappedArray):
             values_mapping = {}
             for value, state in parameter.values_mapping.items():
@@ -411,7 +380,7 @@ class ParameterArray(object):
                 warnings.warn(
                     "Overriding parameter's submasks due to masked array assignment."
                     'Consider using Parameter.set_array(array, submasks) instead.',
-                    DeprecationWarning
+                    DeprecationWarning,
                 )
                 array, submasks = parameter.submasks_from_array(array)
                 parameter.submasks = submasks
@@ -421,6 +390,7 @@ class ParameterArray(object):
 
 class ParameterSubmasks(collections.abc.MutableMapping):
     """Better control over submasks."""
+
     def __init__(self, *args, **kwargs):
         self.compress = kwargs.pop('compress', False)
         self.store = {}
