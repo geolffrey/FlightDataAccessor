@@ -12,7 +12,7 @@ TEMP_DIR_PATH = os.path.join(TEST_DATA_DIR_PATH, 'temp')
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 
 
-class CreateHDFForTest(object):
+class CreateHDFForTest:
     '''
     Test classes can derive from this class to be able to create an HDF file
     for testing.

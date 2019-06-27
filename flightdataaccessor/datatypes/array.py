@@ -335,7 +335,7 @@ class MappedArray(np.ma.MaskedArray):
                 return super().__setitem__(key, mapped_val)
 
 
-class ParameterArray(object):
+class ParameterArray:
     """
     Array descriptor to control parameter.array assignment.
 

@@ -12,7 +12,7 @@ RENAMED_GLOBAL_ATTRIBUTES = {
 LEGACY_GLOBAL_ATTRIBUTES = {v: k for k, v in RENAMED_GLOBAL_ATTRIBUTES.items()}
 
 
-class Compatibility(object):
+class Compatibility:
     """Support for legacy properties and methods."""
 
     # Legacy functions for handling pickled global attributes:
