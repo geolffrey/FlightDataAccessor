@@ -1,4 +1,3 @@
-import errno
 import os
 import unittest
 
@@ -106,9 +105,8 @@ class TestConcatHDF(unittest.TestCase):
         for file_path in (self.hdf_path_1, self.hdf_path_2, self.hdf_out_path):
             try:
                 os.remove(file_path)
-            except OSError as err:
-                if err.errno != errno.ENOENT:
-                    raise
+            except FileNotFoundError:
+                pass
 
 
 class TestStripHDF(unittest.TestCase, CreateHDFForTest):
@@ -426,16 +424,11 @@ class TestWriteSegment(unittest.TestCase, CreateHDFForTest):
         test_hdf(dest)
 
     def tearDown(self):
-        try:
-            os.remove(self.hdf_path)
-        except OSError as err:
-            if err.errno != errno.ENOENT:
-                raise
-        try:
-            os.remove(self.out_path)
-        except OSError as err:
-            if err.errno != errno.ENOENT:
-                raise
+        for path in (self.hdf_path, self.out_path):
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
 
 
 if __name__ == '__main__':
