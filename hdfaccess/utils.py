@@ -178,7 +178,7 @@ def write_segment(source, segment, dest, boundary, submasks=None):
 
                 param = source_hdf.get_param(
                     param_name, _slice=supf_slice, load_submasks=True)
-                if ((param.hz * 64) % 1) != 0:
+                if source_hdf.arinc == '717' and ((param.hz * 64) % 1) != 0:
                     raise ValueError(
                         "Parameter '%s' does not record a consistent number of "
                         "values every superframe. Check the LFL definition."
