@@ -76,6 +76,7 @@ class Compatibility(object):
         return self.keys(subset='derived')
 
     # Legacy properties for handling custom tweaks to global attributes:
+    # - stream
     # - superframe_present
     # - version
 

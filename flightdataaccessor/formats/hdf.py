@@ -168,7 +168,7 @@ class FlightDataFile(FlightDataFormat):
             return None
 
         value = self.hdf_attributes.get(name)
-        if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
+        if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'stream', 'superframe_present'}:
             return None if value is None else bool(value)
         elif name in {'dependency_tree'}:
             return simplejson.loads(zlib.decompress(base64.decodestring(value)).decode('utf-8')) if value else None
@@ -254,7 +254,7 @@ class FlightDataFile(FlightDataFormat):
                 except TypeError:
                     pass
             else:
-                if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'superframe_present'}:
+                if name in {'reliable_frame_counter', 'reliable_subframe_counter', 'stream', 'superframe_present'}:
                     value = int(value)
                 elif name in {'dependency_tree'}:
                     value = base64.encodestring(

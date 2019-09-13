@@ -33,6 +33,7 @@ class FlightDataFormat(Compatibility):
         'dependency_tree',
         'reliable_frame_counter',
         'reliable_subframe_counter',
+        'stream',
         'superframe_present',
         'timestamp',
         'version',
@@ -48,6 +49,7 @@ class FlightDataFormat(Compatibility):
         self.data = {}
 
         # FDF attributes
+        self.stream = kwargs.get('stream', False)
         self.superframe_present = kwargs.get('superframe_present', False)
         self.reliable_frame_counter = kwargs.get('reliable_frame_counter', False)
         self.timestamp = None
