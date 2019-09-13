@@ -1,7 +1,0 @@
-deprecation
-flightdatautilities
-h5py>=2.0.1
-numpy
-pytz
-simplejson
-sortedcontainers
