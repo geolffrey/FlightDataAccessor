@@ -376,7 +376,7 @@ class ParameterArray(object):
 
     The idea is to keep submasks in sync with the array's mask to ensure consistency."""
     def __get__(self, parameter, objtype=None):
-        if parameter.compress:
+        if getattr(parameter, 'compress', None):
             return decompress_array(parameter._array)
         else:
             return getattr(parameter, '_array', np.ma.array([]))

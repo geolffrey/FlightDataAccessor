@@ -212,7 +212,7 @@ class FlightDataFile(FlightDataFormat):
 
         if self.hdf_attributes.get('version', 0) >= self.VERSION:
             self.data = self.file
-        else:
+        else:  # TODO: fix check
             if 'series' not in self.file:
                 # XXX: maybe we should raise an error instead, this file contains no data anyway
                 self.file.create_group('series')
