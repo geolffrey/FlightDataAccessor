@@ -13,12 +13,13 @@ import h5py
 import numpy as np
 
 from analysis_engine.utils import list_parameters
-from flightdataaccessor.datatypes.parameter import MappedArray
-from flightdataaccessor.file import hdf_file
-from flightdataaccessor.tools.datatypes.parameter_lists import PARAMETERS_FROM_FILES
 from flightdatautilities import units as ut
 from flightdatautilities.patterns import WILDCARD, wildcard_match
 from flightdatautilities.state_mappings import PARAMETER_CORRECTIONS
+
+from flightdataaccessor.datatypes.parameter import MappedArray
+from flightdataaccessor.file import hdf_file
+from flightdataaccessor.tools.datatypes.parameter_lists import PARAMETERS_FROM_FILES
 
 LOGGER = logging.getLogger(__name__)
 
