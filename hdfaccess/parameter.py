@@ -334,7 +334,7 @@ masked_%(name)s(values = %(sdata)s,
 
 class Parameter(object):
     def __init__(self, name, array=[], values_mapping=None, frequency=1,
-                 offset=0, arinc_429=None, invalid=None, invalidity_reason=None,
+                 offset=0.0, arinc_429=False, invalid=None, invalidity_reason=None,
                  units=None, data_type=None, lfl=None, source_name=None,
                  description='', submasks=None):
         '''
