@@ -157,7 +157,7 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(param.arinc_429, self.param_arinc_429)
         param = params['TEST_PARAM11']
         self.assertEqual(param.offset, self.masked_param_supf_offset)
-        self.assertEqual(param.arinc_429, None)
+        self.assertEqual(param.arinc_429, False)
         # Test retrieving single specified parameter.
         params = hdf_file.get_params(param_names=['TEST_PARAM10'])
         self.assertTrue(len(params) == 1)
@@ -212,7 +212,7 @@ class TestHdfFile(unittest.TestCase):
         array = np.arange(100)
         set_param_data(name1, Parameter(name1, array))
         self.assertTrue(np.all(series[name1]['data'].value == array))
-        self.assertFalse('arinc_429' in series[name1].attrs)
+        self.assertTrue('arinc_429' in series[name1].attrs)
         # Create new parameter with np.ma.masked_array.
         name2 = 'TEST_PARAM2'
         mask = [False] * len(array)
@@ -319,7 +319,7 @@ class TestHdfFile(unittest.TestCase):
         self.assertEqual(self.masked_param_frequency, param.frequency)
         self.assertEqual(self.masked_param_supf_offset, param.offset)
         self.assertEqual({}, param.submasks)
-        
+
 
     def test_len(self):
         '''
@@ -333,14 +333,14 @@ class TestHdfFile(unittest.TestCase):
         '''
         self.assertEqual(sorted(self.hdf_file.keys()),
                          sorted([self.param_name, self.masked_param_name]))
-    
+
     def test_lfl_keys(self):
         '''
         Depends upon HDF creation in self.setUp().
         '''
         self.assertEqual(sorted(self.hdf_file.lfl_keys()),
                          sorted([u'TEST_PARAM10']))
-    
+
     def test_derived_keys(self):
         '''
         Depends upon HDF creation in self.setUp().
@@ -450,7 +450,7 @@ class TestHdfFile(unittest.TestCase):
         hdf_b = hdf_file(temp, create=True)
         self.assertEqual(hdf_b.cache_param_list, [])
         self.assertNotEqual(id(hdf_a.cache_param_list), id(hdf_b.cache_param_list))
-    
+
     def test_set_invalid(self):
         name = 'TEST_PARAM11'
         self.hdf_file.set_invalid(name)
