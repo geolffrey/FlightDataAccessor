@@ -3,12 +3,11 @@ import h5py
 import mock
 import numpy as np
 import os
-import pytz
 import random
 import simplejson
 import unittest
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from hdfaccess.file import hdf_file
 from hdfaccess.parameter import Parameter
@@ -78,15 +77,15 @@ class TestHdfFile(unittest.TestCase):
 
     def test_start_datetime(self):
         self.assertEqual(self.hdf_file.start_datetime, None)
-        datetime_1 = datetime.utcnow().replace(tzinfo=pytz.utc)
+        datetime_1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         timestamp = calendar.timegm(datetime_1.utctimetuple())
-        epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+        epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
         timestamp = (datetime_1 - epoch).total_seconds()
         # assign a timestamp
         self.hdf_file.start_datetime = timestamp
         self.assertEqual(self.hdf_file.start_datetime, datetime_1)
 
-        datetime_2 = datetime.utcnow().replace(tzinfo=pytz.utc)
+        datetime_2 = datetime.utcnow().replace(tzinfo=timezone.utc)
         # assign a datetime object
         self.hdf_file.start_datetime = datetime_2
         self.assertEqual(self.hdf_file.start_datetime, datetime_2)

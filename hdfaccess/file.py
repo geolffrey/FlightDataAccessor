@@ -11,11 +11,10 @@ import re
 import simplejson
 import six
 import zlib
-import pytz
 
 from collections import defaultdict
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sortedcontainers import SortedSet
 
@@ -426,7 +425,7 @@ class hdf_file(object):    # rare case of lower case?!
         '''
         timestamp = self.hdf.attrs.get('start_timestamp')
         if timestamp:
-            return datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.utc)
+            return datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
         else:
             return None
 
@@ -446,7 +445,7 @@ class hdf_file(object):    # rare case of lower case?!
                 del self.hdf.attrs['start_timestamp']
         else:
             if isinstance(start_datetime, datetime):
-                epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+                epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
                 timestamp = (start_datetime - epoch).total_seconds()
             else:
                 timestamp = start_datetime
