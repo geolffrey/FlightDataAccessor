@@ -1,4 +1,3 @@
-import calendar
 import h5py
 import mock
 import numpy as np
@@ -77,18 +76,11 @@ class TestHdfFile(unittest.TestCase):
 
     def test_start_datetime(self):
         self.assertEqual(self.hdf_file.start_datetime, None)
-        datetime_1 = datetime.utcnow().replace(tzinfo=timezone.utc)
-        timestamp = calendar.timegm(datetime_1.utctimetuple())
-        epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
-        timestamp = (datetime_1 - epoch).total_seconds()
-        # assign a timestamp
-        self.hdf_file.start_datetime = timestamp
-        self.assertEqual(self.hdf_file.start_datetime, datetime_1)
-
-        datetime_2 = datetime.utcnow().replace(tzinfo=timezone.utc)
-        # assign a datetime object
-        self.hdf_file.start_datetime = datetime_2
-        self.assertEqual(self.hdf_file.start_datetime, datetime_2)
+        dt = datetime.now(timezone.utc)
+        self.hdf_file.start_datetime = dt.timestamp()  # assign a timestamp
+        self.assertEqual(self.hdf_file.start_datetime, dt)
+        self.hdf_file.start_datetime = dt  # assign a datetime object
+        self.assertEqual(self.hdf_file.start_datetime, dt)
         self.hdf_file.start_datetime = None
         self.assertEqual(self.hdf_file.start_datetime, None)
 

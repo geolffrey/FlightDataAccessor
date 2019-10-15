@@ -424,10 +424,7 @@ class hdf_file(object):    # rare case of lower case?!
         :rtype: datetime or None
         '''
         timestamp = self.hdf.attrs.get('start_timestamp')
-        if timestamp:
-            return datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
-        else:
-            return None
+        return datetime.fromtimestamp(timestamp, timezone.utc) if timestamp else None
 
     @start_datetime.setter
     def start_datetime(self, start_datetime):
@@ -444,11 +441,7 @@ class hdf_file(object):    # rare case of lower case?!
             if 'start_timestamp' in self.hdf.attrs:
                 del self.hdf.attrs['start_timestamp']
         else:
-            if isinstance(start_datetime, datetime):
-                epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
-                timestamp = (start_datetime - epoch).total_seconds()
-            else:
-                timestamp = start_datetime
+            timestamp = start_datetime.timestamp() if isinstance(start_datetime, datetime) else start_datetime
             self.hdf.attrs['start_timestamp'] = timestamp
 
     @property
