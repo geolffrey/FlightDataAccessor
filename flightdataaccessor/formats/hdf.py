@@ -44,7 +44,7 @@ def require_rw(func):
     def wrapper(self, *args, **kwargs):
         if self.file is None:
             raise IOError('HDF file is not open')
-        if self.file.mode != 'r+':
+        if not self.disposable and self.file.mode != 'r+':
             raise IOError('Modification of file open in read-only mode was requested')
         return func(self, *args, **kwargs)
 
@@ -61,6 +61,7 @@ class FlightDataFile(FlightDataFormat):
         'compress',
         'compressed_file',
         'data',
+        'disposable',
         'file',
         'hdf_attributes',
         'keys_cache',
@@ -77,20 +78,23 @@ class FlightDataFile(FlightDataFormat):
     ALL_ATTRIBUTES = INSTANCE_ATTRIBUTES | FlightDataFormat.FDF_ATTRIBUTES
 
     def __init__(self, filelike, mode='r', cache_param_list=None, **kwargs):
+        '''
+        :param cache_param_list: An iterable of parameter names to cache, True (cache all parameters) or None
+        '''
         if h5py.version.hdf5_version_tuple < LIBRARY_VERSION:
             pass  # XXX: Issue a warning?
 
         self.compress = kwargs.get('compress', False)
+        self.disposable = kwargs.get('disposable', False)  # allow fdf to be changed in read-only mode (won't flush)
         self.mode = mode
         self.keys_cache = defaultdict(SortedSet)
         self.parameter_cache = {}
         self.path = None
         self.file = None
+        self._context_level = 0
         self.open(filelike, mode=mode)
 
-        if cache_param_list is True:
-            self.cache_param_list = self.keys()
-        elif cache_param_list:
+        if cache_param_list:
             self.cache_param_list = cache_param_list
         else:
             self.cache_param_list = []
@@ -119,12 +123,15 @@ class FlightDataFile(FlightDataFormat):
 
     def __enter__(self):
         """Context manager API"""
+        self._context_level += 1
         self.open()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Context manager API"""
-        self.close()
+        self._context_level -= 1
+        if not self._context_level:
+            self.close()
 
     @property
     def duration(self):
@@ -194,10 +201,10 @@ class FlightDataFile(FlightDataFormat):
         else:
             self.path = os.path.abspath(source)
 
-            compressed = CompressedFile(self.path, mode=self.mode)
-            if compressed.format:
-                self.compressed_file = compressed
-                self.path = self.compressed_file.open()
+            #compressed = CompressedFile(self.path, mode=self.mode)  # TODO: fix
+            #if compressed.format:
+                #self.compressed_file = compressed
+                #self.path = self.compressed_file.open()
 
             if not os.path.exists(self.path):
                 created = True
@@ -262,7 +269,8 @@ class FlightDataFile(FlightDataFormat):
                 elif name in {'arinc'} and value not in {'717', '767'}:
                     raise ValueError('Unknown ARINC standard: %s.' % value)
                 # XXX should we attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
-                self.file.attrs[name] = value
+                if not self.disposable:
+                    self.file.attrs[name] = value
                 self.hdf_attributes[name] = value
 
         elif name in self.hdf_attributes:
@@ -277,7 +285,7 @@ class FlightDataFile(FlightDataFormat):
 
         Special behaviour: all extra attributes are stored in HDF file.
         """
-        if name in self.INSTANCE_ATTRIBUTES:
+        if name.startswith('_') or name in self.INSTANCE_ATTRIBUTES:
             # Handle attributes that are not stored in HDF file
             return object.__setattr__(self, name, value)
 
@@ -425,7 +433,7 @@ class FlightDataFile(FlightDataFormat):
         kwargs['source_name'] = attrs.get('source_name', None)
         parameter = Parameter(name, array, compress=self.compress, **kwargs)
         # FIXME: do we want to keep this condition?
-        if name in self.cache_param_list:
+        if self.cache_param_list is True or name in self.cache_param_list:
             self.update_parameter_cache(parameter)
 
         return parameter
@@ -478,34 +486,36 @@ class FlightDataFile(FlightDataFormat):
 
         if hasattr(parameter, 'validate_mask'):
             parameter.validate_mask()
-        param_group = self.get_or_create(parameter.name)
 
-        if save_data:
-            if 'data' in param_group:
-                del param_group['data']
-            param_group.create_dataset(
-                'data', data=np.ma.getdata(parameter.array), maxshape=(None,), **self.DATASET_KWARGS)
+        if not self.disposable:
+            param_group = self.get_or_create(parameter.name)
 
-        # XXX: remove options to save masks or submasks, implement saving individual Parameter data instead
-        if (save_submasks or save_mask):
-            self.store_parameter_submasks(parameter, param_group=param_group)
+            if save_data:
+                if 'data' in param_group:
+                    del param_group['data']
+                param_group.create_dataset(
+                    'data', data=np.ma.getdata(parameter.array), maxshape=(None,), **self.DATASET_KWARGS)
 
-        for attr in PARAMETER_ATTRIBUTES:
-            if hasattr(parameter, attr):
-                value = getattr(parameter, attr)
-                if value is None:
-                    continue
+            # XXX: remove options to save masks or submasks, implement saving individual Parameter data instead
+            if (save_submasks or save_mask):
+                self.store_parameter_submasks(parameter, param_group=param_group)
 
-                if attr in ('limits', 'values_mapping'):
-                    value = simplejson.dumps(value)
+            for attr in PARAMETER_ATTRIBUTES:
+                if hasattr(parameter, attr):
+                    value = getattr(parameter, attr)
+                    if value is None:
+                        continue
 
-                param_group.attrs[attr] = value
+                    if attr in ('limits', 'values_mapping'):
+                        value = simplejson.dumps(value)
+
+                    param_group.attrs[attr] = value
 
         self.update_parameter_cache(parameter)
 
     def update_parameter_cache(self, parameter):
         """Update parameter in cache."""
-        if parameter.name in self.cache_param_list:
+        if self.cache_param_list is True or parameter.name in self.cache_param_list:
             self.parameter_cache[parameter.name] = parameter
 
         # Update all parameter name caches with updates:
@@ -556,7 +566,7 @@ class FlightDataFile(FlightDataFormat):
         else:
             if set(submasks.keys()) != set(submask_names):
                 # automatically add submasks
-                raise ValueError("The submasks in extensi0on don't match the ones already stored")
+                raise ValueError("The submasks in extension don't match the ones already stored")
 
         # low-level data and submasks extension
         param_group = self.data[name]
