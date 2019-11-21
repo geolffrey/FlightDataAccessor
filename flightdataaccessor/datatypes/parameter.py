@@ -315,6 +315,9 @@ class Parameter(Legacy):
         if np.any(mask_array != self.combine_submasks(submasks, array)):
             submasks[self.default_submask_name] = mask_array
 
+        if self.data_type == 'Multi-state':
+            submasks['invalid_states'] = ~np.isin(array, list(self.values_mapping))
+
         return submasks
 
     def build_array_submasks(self, data, submasks=None):
