@@ -200,6 +200,18 @@ def revert_masks(hdf_path, params=None, delete_derived=False):
             fdf[param_name] = param
 
 
+def align(array, slave_frequency, slave_offset, master_frequency, master_offset=0.):
+    if slave_frequency == master_frequency and slave_offset == master_offset:
+        return array
+
+    is_mapped_array = isinstance(array, fda.MappedArray)
+
+    aligned = ma.align(array.raw if is_mapped_array else array, slave_frequency, slave_offset, master_frequency,
+                       master_offset=master_offset)
+
+    return fda.MappedArray(aligned, values_mapping=array.values_mapping) if is_mapped_array else aligned
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest='command',
