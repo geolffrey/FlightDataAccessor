@@ -7,7 +7,9 @@ import warnings
 
 from deprecation import deprecated
 
-import flightdataaccessor
+from flightdatautilities.array import masked_array as ma
+
+import flightdataaccessor as fda
 
 
 @deprecated(details='Use FlightDataFormat.concatenate() instead')
@@ -35,14 +37,14 @@ def concat_hdf(sources, dest=None):
             os.fdopen(f, 'w').close()
             os.unlink(target)
 
-        with flightdataaccessor.open(sources[0]) as fdf_master:
+        with fda.open(sources[0]) as fdf_master:
             fdf_master.upgrade(target)
 
         if dest is None:
             # the first source is the concatenation target
             shutil.copy(target, sources[0])
 
-    with flightdataaccessor.open(target, mode='a') as fdf:
+    with fda.open(target, mode='a') as fdf:
         fdf.concatenate(sources[1:])
 
     return target
@@ -64,11 +66,11 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     :return: all parameters names within the output hdf file
     :rtype: [str]
     '''
-    with flightdataaccessor.open(hdf_path) as fdf:
+    with fda.open(hdf_path) as fdf:
         fdf.trim(dest, parameter_list=params_to_keep, deidentify=deidentify)
 
     # XXX: filter the param_to_keep list to the list of existing parameters
-    with flightdataaccessor.open(dest) as fdf:
+    with fda.open(dest) as fdf:
         return list(set(params_to_keep) & set(fdf.keys()))
 
 
@@ -133,7 +135,7 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
             'Selection of submasks was requested which is not supported. All submasks will be saved instead',
             DeprecationWarning)
 
-    with flightdataaccessor.open(source) as fdf:
+    with fda.open(source) as fdf:
         if not fdf.superframe_present and boundary not in (1, 4):
             # boundary in subframes
             warnings.warn(
@@ -177,7 +179,7 @@ def revert_masks(hdf_path, params=None, delete_derived=False):
     :type params: [str] or None
     :type delete_derived: bool
     '''
-    with flightdataaccessor.open(hdf_path, mode='a') as fdf:
+    with fda.open(hdf_path, mode='a') as fdf:
         if not params:
             params = fdf.keys() if delete_derived else fdf.lfl_keys()
 

@@ -295,7 +295,8 @@ class FlightDataFile(FlightDataFormat):
                 name, DeprecationWarning,
             )
 
-        return self.set_source_attribute(name, value)
+        if not self.disposable:
+            return self.set_source_attribute(name, value)
 
     @require_rw
     def delete_source_attribute(self, name):
@@ -308,7 +309,8 @@ class FlightDataFile(FlightDataFormat):
         if name in self.INSTANCE_ATTRIBUTES:
             object.__delattr__(self, name)
 
-        self.delete_source_attribute(name)
+        if not self.disposable:
+            self.delete_source_attribute(name)
 
     @require_open
     def keys(self, valid_only=False, subset=None):
