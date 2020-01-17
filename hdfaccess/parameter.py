@@ -9,16 +9,14 @@ from __future__ import division
 import datetime
 import inspect
 import logging
-import six
 import traceback
-
 from collections import defaultdict
+
 import numpy as np
-from numpy.ma import in1d, MaskedArray, masked, zeros
-
 from flightdatautilities.array_operations import merge_masks
-from .downsample import SAMPLES_PER_BUCKET, downsample
+from numpy.ma import MaskedArray, in1d, masked, zeros
 
+from .downsample import SAMPLES_PER_BUCKET, downsample
 
 # The value used to fill in MappedArrays for keys not within values_mapping
 NO_MAPPING = '?'  # only when getting values, setting raises ValueError
@@ -221,7 +219,7 @@ masked_%(name)s(values = %(sdata)s,
                 # state per raw value.
                 other = [
                     masked if el is masked else
-                    self.state[el][0] if el in self.state else None if isinstance(el, six.string_types) else el
+                    self.state[el][0] if el in self.state else None if isinstance(el, str) else el
                     for el in other]
             else:
                 pass  # allow equality by MaskedArray
@@ -235,7 +233,7 @@ masked_%(name)s(values = %(sdata)s,
         try:
             return getattr(self, 'state', {})[state]
         except KeyError:
-            if isinstance(state, six.string_types):
+            if isinstance(state, str):
                 raise
         except TypeError:
             pass
@@ -322,7 +320,7 @@ masked_%(name)s(values = %(sdata)s,
             # self[:3] = np.ma.array([2,2,2])
             return super(MappedArray, self).__setitem__(key, val)
         else:
-            if isinstance(val, six.string_types):
+            if isinstance(val, str):
                 # expecting self[:3] = 'one'
                 return super(MappedArray, self).__setitem__(
                     key, self.state[val][0])

@@ -3,29 +3,24 @@ from __future__ import print_function
 import base64
 import collections
 import logging
-import h5py
-import numpy as np
 import os
 import pickle
 import re
-import simplejson
-import six
 import zlib
-import pytz
-
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 
-from sortedcontainers import SortedSet
-
+import h5py
+import numpy as np
+import pytz
+import simplejson
 from flightdatautilities import units as ut
 from flightdatautilities.compression import CompressedFile, ReadOnlyCompressedFile
 from flightdatautilities.filesystem_tools import pretty_size
 from flightdatautilities.patterns import wildcard_match
-
 from hdfaccess.parameter import Parameter, get_date_array, get_time_array
-
+from sortedcontainers import SortedSet
 
 HDFACCESS_VERSION = 1
 DYNAMIC_PARAMETERS = ['Date', 'Time']
@@ -193,11 +188,6 @@ class hdf_file(object):    # rare case of lower case?!
                         self._cache[key].add(name)
         return list(self._cache[key])
 
-    if six.PY2:
-        iteritems = items
-        iterkeys = keys
-        itervalues = values
-
     # TODO: These are deprecated and should be removed!
     get_param_list = lambda self: self.keys()
     valid_param_names = lambda self: self.keys(valid_only=True)
@@ -350,7 +340,7 @@ class hdf_file(object):    # rare case of lower case?!
         #      When we implement the next version of this, we could keep a flag
         #      to determine when something has changed and then properly update
         #      the attribute prior to the file being closed.
-        return sorted({float(x.attrs['frequency']) for x in six.itervalues(self.hdf['series'])})
+        return sorted({float(x.attrs['frequency']) for x in self.hdf['series'].values()})
 
     @frequencies.setter
     def frequencies(self, frequencies):
