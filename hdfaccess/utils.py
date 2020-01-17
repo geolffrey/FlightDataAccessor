@@ -2,14 +2,13 @@ from __future__ import print_function
 
 import argparse
 import logging
-import numpy as np
 import os
 import shutil
-import six
 
+import numpy as np
+import six
 from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.filesystem_tools import copy_file
-
 from hdfaccess.file import hdf_file
 
 

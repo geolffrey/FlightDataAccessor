@@ -19,14 +19,16 @@ from datetime import datetime
 
 from sortedcontainers import SortedSet
 
+from flightdatautilities import units as ut
 from flightdatautilities.compression import CompressedFile, ReadOnlyCompressedFile
 from flightdatautilities.filesystem_tools import pretty_size
 from flightdatautilities.patterns import wildcard_match
 
-from hdfaccess.parameter import Parameter
+from hdfaccess.parameter import Parameter, get_date_array, get_time_array
 
 
 HDFACCESS_VERSION = 1
+DYNAMIC_PARAMETERS = ['Date', 'Time']
 
 
 class hdf_file(object):    # rare case of lower case?!
@@ -173,15 +175,20 @@ class hdf_file(object):    # rare case of lower case?!
             series = self.hdf['series']
             if subset is None and not valid_only:
                 self._cache[key].update(series.keys())
+                # "virtual" parameters
+                self._cache[key].update(DYNAMIC_PARAMETERS)
             else:
                 for name in self.keys():  # (populates top-level name cache.)
-                    attrs = series[name].attrs
-                    lfl = bool(attrs.get('lfl'))
-                    append = not any((
-                        valid_only and bool(attrs.get('invalid')),
-                        not lfl and subset == 'lfl',
-                        lfl and subset == 'derived',
-                    ))
+                    if name in DYNAMIC_PARAMETERS:
+                        append = subset == 'derived'
+                    else:
+                        attrs = series[name].attrs
+                        lfl = bool(attrs.get('lfl'))
+                        append = not any((
+                            valid_only and bool(attrs.get('invalid')),
+                            not lfl and subset == 'lfl',
+                            lfl and subset == 'derived',
+                        ))
                     if append:
                         self._cache[key].add(name)
         return list(self._cache[key])
@@ -670,7 +677,7 @@ class hdf_file(object):    # rare case of lower case?!
         need to consider what are the use cases of submasks caching.
         '''
         # XXX: Can we avoid this extra check and rely on h5py throwing KeyError?
-        if name not in self.keys(valid_only):
+        if name not in self.keys(valid_only) and name not in DYNAMIC_PARAMETERS:
             raise KeyError("%s" % name)
 
         if name in self._params_cache:
@@ -683,10 +690,22 @@ class hdf_file(object):    # rare case of lower case?!
             logging.debug(
                 'Skipping returning parameter `%s` from cache as slice of '
                 'data was requested.', name)
-        group = self.hdf['series'][name]
-        attrs = group.attrs
-        data = group['data']
-        mask = group.get('mask', False)
+
+        if name == 'Date':
+            data = get_date_array(start_datetime=self.start_datetime, duration=self.duration).astype('float64')
+            mask = False
+            group = {}
+            attrs = {'units': ut.DAY, 'data_type': 'Unsigned'}
+        elif name == 'Time':
+            data = get_time_array(start_datetime=self.start_datetime, duration=self.duration).astype('float64')
+            mask = False
+            group = {}
+            attrs = {'units': ut.SECOND, 'data_type': 'Unsigned'}
+        else:
+            group = self.hdf['series'][name]
+            attrs = group.attrs
+            data = group['data']
+            mask = group.get('mask', False)
 
         kwargs = {}
 
@@ -971,6 +990,8 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Parameter operating limits or None if 'limits' attribute does not exist.
         :rtype: dict or None
         '''
+        if name in DYNAMIC_PARAMETERS:
+            return default
         limits = self.hdf['series'][name].attrs.get('limits')
         return simplejson.loads(limits) if limits else default
 
@@ -983,6 +1004,8 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Parameter ARINC 429 flag.
         :rtype: bool
         '''
+        if name in DYNAMIC_PARAMETERS:
+            return False
         arinc_429 = bool(self.hdf['series'][name].attrs.get('arinc_429'))
         return arinc_429
 

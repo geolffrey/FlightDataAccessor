@@ -6,6 +6,7 @@ Parameter container class.
 '''
 from __future__ import division
 
+import datetime
 import inspect
 import logging
 import six
@@ -21,6 +22,29 @@ from .downsample import SAMPLES_PER_BUCKET, downsample
 
 # The value used to fill in MappedArrays for keys not within values_mapping
 NO_MAPPING = '?'  # only when getting values, setting raises ValueError
+
+
+STORAGE_DATE_OFFSET = np.datetime64('1990-01-01', 'D')
+
+
+def get_datetime_array(start_datetime=None, duration=0):
+    """Return Numpy array of datetimes at 1Hz frequency."""
+    dt0 = np.datetime64(start_datetime or datetime.datetime.now(datetime.timezone.utc))
+    dt1 = dt0 + np.timedelta64(int(duration), 's')
+    return np.arange(dt0, dt1, dtype='datetime64[s]')
+
+
+def get_date_array(start_datetime=None, duration=0):
+    """Return Numpy array of dates at 1Hz frequency."""
+    datetimes = get_datetime_array(start_datetime, duration)
+    return datetimes.astype('datetime64[D]') - STORAGE_DATE_OFFSET
+
+
+def get_time_array(start_datetime=None, duration=0):
+    """Return Numpy array of time at 1Hz frequency."""
+    datetimes = get_datetime_array(start_datetime, duration)
+    dates = get_date_array(start_datetime, duration)
+    return datetimes - dates - STORAGE_DATE_OFFSET.astype('datetime64[s]')
 
 
 class MappedArray(MaskedArray):
@@ -387,7 +411,7 @@ class Parameter(object):
         self.arinc_429 = arinc_429
         self.units = units
         self.data_type = data_type
-        self.lfl = lfl
+        self.lfl = bool(lfl) if lfl is not None else None
         self.source_name = source_name
         self.description = description
         self.invalid = invalid
