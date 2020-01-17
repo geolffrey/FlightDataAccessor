@@ -149,7 +149,7 @@ class hdf_file(object):    # rare case of lower case?!
         :returns: Number of parameters.
         :rtype: int
         '''
-        return len(self.hdf['series'])
+        return len(self.hdf['series']) if 'series' in self.hdf else 0
 
     def keys(self, valid_only=False, subset=None):
         '''

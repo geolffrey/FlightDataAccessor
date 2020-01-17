@@ -8,7 +8,7 @@ import shutil
 import numpy as np
 from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.filesystem_tools import copy_file
-from hdfaccess.file import hdf_file
+from hdfaccess.file import DYNAMIC_PARAMETERS, hdf_file
 
 
 def _copy_attrs(source_group, target_group, deidentify=False):
@@ -44,12 +44,12 @@ def concat_hdf(hdf_paths, dest=None):
     hdf_master_path = copy_file(hdf_paths[0])
 
     with hdf_file(hdf_master_path) as hdf_master:
-        master_keys = hdf_master.keys()
+        master_keys = set(hdf_master.keys()) - set(DYNAMIC_PARAMETERS)
         for hdf_path in hdf_paths[1:]:
             with hdf_file(hdf_path) as hdf:
                 # check that all parameters match (avoids mismatching array lengths)
-                param_keys = hdf.keys()
-                assert set(param_keys) == set(master_keys)
+                param_keys = sorted(set(hdf.keys()) - set(DYNAMIC_PARAMETERS))
+                assert set(param_keys) == master_keys
                 logging.debug("Copying parameters from file %s", hdf_path)
                 for param_name in param_keys:
                     param = hdf[param_name]
@@ -170,10 +170,10 @@ def write_segment(source, segment, dest, boundary, submasks=None):
 
             supf_slice = slice(supf_start_secs, supf_stop_secs)
 
-            for param_name in source_hdf.keys():
-
+            # don't store dynamic parameters
+            param_names = sorted(set(source_hdf.keys()) - set(DYNAMIC_PARAMETERS))
+            for param_name in param_names:
                 #Q: Why not always pad masked values to the next superframe
-
                 param = source_hdf.get_param(
                     param_name, _slice=supf_slice, load_submasks=True)
                 if source_hdf.arinc == '717' and ((param.hz * 64) % 1) != 0:
