@@ -933,7 +933,8 @@ class hdf_file(object):    # rare case of lower case?!
         :type param_name: str
         :rtype: None
         '''
-        del self.hdf['series'][name]
+        if name not in DYNAMIC_PARAMETERS:
+            del self.hdf['series'][name]
         for cache in self._cache.values():
             if name in cache:
                 cache.remove(name)
@@ -967,6 +968,8 @@ class hdf_file(object):    # rare case of lower case?!
         :param limits: Operating limits storage
         :type limits: dict
         '''
+        if name in DYNAMIC_PARAMETERS:
+            return
         param_group = self.get_or_create(name)
         param_group.attrs['limits'] = simplejson.dumps(limits)
 
