@@ -7,7 +7,7 @@ import warnings
 
 from deprecation import deprecated
 
-from flightdatautilities.array import masked_array as ma
+from flightdatautilities.data import masked_array as ma
 
 import flightdataaccessor as fda
 
