@@ -368,7 +368,7 @@ class Parameter(object):
         :param submasks: Default value is None to avoid kwarg default being mutable.
         '''
         self.name = name
-        if values_mapping is not None:
+        if values_mapping:
             self.values_mapping = {}
             for value, state in values_mapping.items():
                 try:
