@@ -79,13 +79,10 @@ class hdf_file(object):    # rare case of lower case?!
                 raise IOError('File not found: %s' % file_path_or_obj)
             self.file_path = os.path.abspath(file_path_or_obj)
             if read_only:
-                self.compressor = ReadOnlyCompressedFile(self.file_path)
                 mode = 'r'
             else:
-                self.compressor = CompressedFile(self.file_path)
                 mode = 'a'
-            uncompressed_path = self.compressor.load()
-            self.hdf = h5py.File(uncompressed_path, mode=mode)
+            self.hdf = h5py.File(self.file_path, mode=mode)
 
         self.hdfaccess_version = self.hdf.attrs.get('hdfaccess_version', 1)
         if hdf_exists:
@@ -198,7 +195,6 @@ class hdf_file(object):    # rare case of lower case?!
     def close(self):
         self.hdf.flush()  # Q: required?
         self.hdf.close()
-        self.compressor.save()
 
     # HDF Attribute properties
     ############################################################################
