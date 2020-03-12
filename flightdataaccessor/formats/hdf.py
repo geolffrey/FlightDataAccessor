@@ -563,7 +563,7 @@ class FlightDataFile(FlightDataFormat):
         default_submask_name = sources.get(source, 'auto')
         submask_names = self.get_parameter_submask_names(name)
         if submasks is None:
-            submasks = {k: np.ma.zeros(array.size) for k in submask_names}
+            submasks = {k: np.zeros(array.size, dtype=np.bool) for k in submask_names}
             submasks[default_submask_name] = mask
         else:
             if set(submasks.keys()) != set(submask_names):
