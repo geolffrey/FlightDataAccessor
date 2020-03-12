@@ -7,6 +7,7 @@ RAM.
 """
 import copy
 import datetime
+import itertools
 import re
 from collections import defaultdict
 
@@ -235,17 +236,40 @@ class FlightDataFormat(Compatibility):
         if parameter_list is None:
             parameter_list = self.keys()
 
-        superframe_size = 64 if superframe_boundary and self.superframe_present else 4
+        if deidentify:
+            parameter_list = set(parameter_list).difference(itertools.chain.from_iterable(self.search(p) for p in (
+                'AC Ident',
+                'AC Number',
+                'AC Tail',
+                'AC Type',
+                'ACMS Software PN Code',
+                'ACMS Software Part Number Code',
+                'Date',
+                'Eng (*) Aircraft Type Code',
+                'Eng (*) Model',
+                'Fleet Number',
+                'Flight Number',
+                'Manufacturer Code',
+                'Serial Number',
+            )))
+
+        superframe_size = pad_subframes=64 if superframe_boundary and self.superframe_present else 4
 
         with compatibility.open(target, mode='x') as new_fdf:
             for name in parameter_list:
                 parameter = self.get_parameter(name, copy_param=False)
                 clone = parameter.trim(
                     start_offset=start_offset, stop_offset=stop_offset, pad_subframes=superframe_size)
+                if deidentify and name == 'Day':  # shift Day values to start at 1
+                    try:
+                        clone.array += 1 - clone.array[np.ma.flatnotmasked_edges(clone.array)[0]]
+                    except IndexError:
+                        pass  # Day array is entirely masked
                 new_fdf[name] = clone
+
             for name in self.FDF_ATTRIBUTES:
-                if name is None or name == 'version' or deidentify and name in ('aircraft_info', 'tailmark'):
-                    # XXX version is set in the __init__() of the new object and should not be copied from the source
+                if name is None or name == 'version' or deidentify and name in {'timestamp', 'tailmark'}:
+                    # XXX: version is set in the __init__() of the new object and should not be copied from the source
                     continue
                 elif name == 'timestamp' and self.timestamp is not None:
                     value = self.timestamp + start_offset
@@ -290,10 +314,7 @@ class FlightDataFormat(Compatibility):
         If a match with the regular expression is not found, then a list of params are returned that contains the
         `pattern`."""
         # XXX: is it used?
-        if lfl_keys_only:
-            keys = self.lfl_keys()
-        else:
-            keys = self.keys()
+        keys = self.lfl_keys() if lfl_keys_only else self.keys()
         if '(*)' in pattern or '(?)' in pattern:
             return wildcard_match(pattern, keys)
         else:

@@ -20,7 +20,7 @@ class CompatibilityTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def upgrade_test(self):
+    def test_upgrade(self):
         """
         Take file in old format and upgrade it.
 
@@ -30,7 +30,7 @@ class CompatibilityTest(unittest.TestCase):
             old_fdf.upgrade(self.new_fp)
 
             with FlightDataFile(self.new_fp) as new_fdf:
-                self.assertEquals(new_fdf.version, FlightDataFile.VERSION)
+                self.assertEqual(new_fdf.version, FlightDataFile.VERSION)
                 old_global_attr_names = old_fdf.file.attrs.keys()
                 new_global_attr_names = new_fdf.file.attrs.keys()
                 for old_attr_name in old_global_attr_names:

@@ -425,21 +425,15 @@ class ParameterSubmasks(collections.MutableMapping):
     """Better control over submasks."""
     def __init__(self, *args, **kwargs):
         self.compress = kwargs.pop('compress', False)
-        self.store = dict()
+        self.store = {}
         self.update(dict(*args, **kwargs))
 
     def __getitem__(self, key):
-        if self.compress:
-            return decompress_ndarray(self.store[key])
-        else:
-            return self.store[key]
+        return decompress_ndarray(self.store[key]) if self.compress else self.store[key]
 
     def __setitem__(self, key, value):
         mask = np.asanyarray(value, dtype=np.bool)
-        if self.compress:
-            self.store[key] = compress_ndarray(mask)
-        else:
-            self.store[key] = mask
+        self.store[key] = compress_ndarray(mask) if self.compress else mask
 
     def __delitem__(self, key):
         del self.store[key]

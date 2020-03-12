@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 
 from flightdataaccessor.datatypes.array import (
-    ParameterSubmasks, compress_array, compress_mask, decompress_array, decompress_mask,
+    ParameterSubmasks, compress_array, compress_ndarray, decompress_array, decompress_ndarray,
 )
 from flightdataaccessor.datatypes.parameter import MappedArray, Parameter
 
@@ -12,8 +12,8 @@ from flightdataaccessor.datatypes.parameter import MappedArray, Parameter
 class TestCompression(unittest.TestCase):
     def test_compress_mask(self):
         mask = (np.arange(100) % 7).astype(np.bool)
-        compressed = compress_mask(mask)
-        self.assertTrue(np.all(mask == decompress_mask(compressed)))
+        compressed = compress_ndarray(mask)
+        self.assertTrue(np.all(mask == decompress_ndarray(compressed)))
 
     def test_compress_numeric_array(self):
         array = np.ma.arange(100)
@@ -92,7 +92,7 @@ class TestMappedArray(unittest.TestCase):
         self.assertEqual(a[2], 'three')
 
     def test_wrong_submasks(self):
-        """Fail setting a parameter with submasks not matching mask in array."""
+        '''Fail setting a parameter with submasks not matching mask in array.'''
         values = [1, 2, 3, 3]
         mask = [False, True, False, True]
         sub1 = [False, True, True, True]

@@ -138,8 +138,7 @@ class Parameter(Legacy):
         if not submask:
             return self.array
         if submask not in self.submasks:
-            return  # TODO: this matches previous behaviour, or should this raise?
-            raise ValueError("Submask not in parameter's submasks.")
+            return
         if isinstance(self.array, MappedArray):
             return MappedArray(self.array.data, mask=self.submasks[submask].copy(),
                                values_mapping=self.array.values_mapping)
@@ -274,10 +273,9 @@ class Parameter(Legacy):
             if len(submask) != len(array):
                 raise MaskError("Submasks don't have the same length as the array")
         if isinstance(array, np.ma.MaskedArray):
-            pass  # TODO
-            #mask = self.combine_submasks(submasks, array)
-            #if not np.all(mask == np.ma.getmaskarray(array)):
-                #raise MaskError('Submasks are not equivalent to array.mask')
+            mask = self.combine_submasks(submasks, array)
+            if not np.all(mask == np.ma.getmaskarray(array)):
+                raise MaskError('Submasks are not equivalent to array.mask')
 
         return True
 

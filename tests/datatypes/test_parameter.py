@@ -88,8 +88,7 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(p.get_array().tolist(), [None, None, 30])
         self.assertEqual(p.get_array('mask1').tolist(), [None, 20, 30])
         self.assertEqual(p.get_array('mask2').tolist(), [None, None, 30])
-        with self.assertRaises(ValueError):
-            p.get_array('missing')
+        self.assertEqual(p.get_array('missing'), None)
 
     def test_get_array__mapped(self):
         array = np.ma.array([1, 2, 3], mask=[1, 1, 0])

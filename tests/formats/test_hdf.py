@@ -36,7 +36,7 @@ class FlightDataFileTestV2(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def file_mode_r_test(self):
+    def test_file_mode_r(self):
         """Open file in 'r' mode."""
         param = Parameter('Test', array=np.ma.arange(100))
         with FlightDataFile(self.fp) as fdf:
@@ -49,7 +49,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with self.assertRaises(OSError):
             FlightDataFile(self.fp + '-nonexistent')
 
-    def file_mode_w_test(self):
+    def test_file_mode_w(self):
         """Open file in 'w' mode."""
         param = Parameter('Test', array=np.ma.arange(100))
         with FlightDataFile(self.fp, mode='w') as fdf:
@@ -72,7 +72,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             # still exists and contains our changes
             self.assertIn('Test', fdf)
 
-    def file_mode_a_test(self):
+    def test_file_mode_a(self):
         """Open file in 'a' mode."""
         param = Parameter('Test', array=np.ma.arange(100))
         with FlightDataFile(self.fp, 'a') as fdf:
@@ -82,17 +82,17 @@ class FlightDataFileTestV2(unittest.TestCase):
             fdf.reliable_frame_counter = not fdf.reliable_frame_counter
 
             self.assertIn('Test', fdf)
-            self.assertEquals(fdf.reliable_frame_counter, not rfc)
+            self.assertEqual(fdf.reliable_frame_counter, not rfc)
 
         with FlightDataFile(self.fp) as fdf:
             self.assertIn('Test', fdf)
-            self.assertEquals(fdf.reliable_frame_counter, not rfc)
+            self.assertEqual(fdf.reliable_frame_counter, not rfc)
 
         with FlightDataFile(self.fp + '-nonexistent', 'a') as fdf:
             # the file is empty
             self.assertFalse(fdf)
 
-    def file_mode_x_test(self):
+    def test_file_mode_x(self):
         """Open file in 'x' mode."""
         with self.assertRaises(IOError):
             # existing file will not be opened
@@ -108,13 +108,13 @@ class FlightDataFileTestV2(unittest.TestCase):
             # still exists and contains our changes
             self.assertIn('Test', fdf)
 
-    def getitem_test(self):
+    def test_getitem(self):
         """Ensure the name of retrieved parameter is correct."""
         with FlightDataFile(self.fp) as fdf:
             airs = fdf['Heading']
-            self.assertEquals(airs.name, 'Heading')
+            self.assertEqual(airs.name, 'Heading')
 
-    def setitem_test(self):
+    def test_setitem(self):
         """__setitem__ is equivalent to set_parameter()"""
         param = Parameter('Test', array=np.ma.arange(100))
         with FlightDataFile(self.fp, mode='a') as fdf:
@@ -124,7 +124,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             data = self.get_data_from_hdf(hdf)['Test']['data']
             self.assertTrue(np.all(param.array == data))
 
-    def delitem_test(self):
+    def test_delitem(self):
         """__delitem__ is equivalent to delete_parameter()"""
         with FlightDataFile(self.fp, mode='a') as fdf:
             self.assertIn('Airspeed', fdf)
@@ -136,14 +136,14 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp) as fdf:
             self.assertNotIn('Airspeed', fdf)
 
-    def getattr_test(self):
+    def test_getattr(self):
         """Nonexistent attributes will return None."""
         with FlightDataFile(self.fp) as fdf:
             self.assertTrue(fdf.reliable_frame_counter)
             with self.assertRaises(AttributeError):
                 fdf.nonexistent
 
-    def setattr_test(self):
+    def test_setattr(self):
         """Set attribute and read the value."""
         with FlightDataFile(self.fp, mode='a') as fdf:
             fdf.new_attr = 123
@@ -151,7 +151,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp) as fdf:
             self.assertEqual(fdf.new_attr, 123)
 
-    def delattr_test(self):
+    def test_delattr(self):
         """Ensure removed attribute returns None."""
         with FlightDataFile(self.fp, mode='a') as fdf:
             del fdf.reliable_frame_counter
@@ -160,24 +160,24 @@ class FlightDataFileTestV2(unittest.TestCase):
             with self.assertRaises(AttributeError):
                 del fdf.reliable_frame_counter
 
-    def contains_test(self):
+    def test_contains(self):
         """Ensure `in` operator works for the object."""
         with FlightDataFile(self.fp) as fdf:
             self.assertTrue('Airspeed' in fdf)
 
-    def len_test(self):
+    def test_len(self):
         """Compare len of the FlightDataFile object with the len of data series in raw HDF file."""
         with FlightDataFile(self.fp) as fdf:
             self.assertTrue(len(fdf) == len(fdf.data.keys()))
 
-    def keys_test(self):
+    def test_keys(self):
         """Test the consistency of keys cache for all parameters."""
         with FlightDataFile(self.fp) as fdf:
             lfl_param_names = [p.name for p in fdf.values() if p.source == 'lfl']
             derived_param_names = [p.name for p in fdf.values() if p.source == 'derived']
             self.assertItemsEqual(sorted(derived_param_names + lfl_param_names), sorted(fdf.keys()))
 
-    def keys_valid_only_test(self):
+    def test_keys_valid_only(self):
         """Test the consistency of keys cache for valid parameters."""
         with FlightDataFile(self.fp) as fdf:
             valid_param_names = (p.name for p in fdf.values() if not p.invalid)
@@ -187,38 +187,38 @@ class FlightDataFileTestV2(unittest.TestCase):
             derived_valid_param_names = [p.name for p in fdf.values() if not p.invalid and not p.source]
             self.assertItemsEqual(derived_valid_param_names + source_valid_param_names, fdf.keys(valid_only=True))
 
-    def keys_source_test(self):
+    def test_keys_source(self):
         """Test the consistency of keys cache for source parameters."""
         with FlightDataFile(self.fp) as fdf:
             lfl_param_names = [p.name for p in fdf.values() if p.source == 'lfl']
             self.assertItemsEqual(lfl_param_names, fdf.keys(subset='lfl'))
 
-    def keys_derived_test(self):
+    def test_keys_derived(self):
         """Test the consistency of keys cache for derived parameters."""
         with FlightDataFile(self.fp) as fdf:
             derived_param_names = [p.name for p in fdf.values() if p.source == 'derived']
             self.assertItemsEqual(derived_param_names, fdf.keys(subset='derived'))
 
-    def keys_valid_source_test(self):
+    def test_keys_valid_source(self):
         """Test the consistency of keys cache for valid source parameters."""
         with FlightDataFile(self.fp) as fdf:
             source_valid_param_names = [p.name for p in fdf.values() if not p.invalid and p.source == 'lfl']
             self.assertItemsEqual(source_valid_param_names, fdf.keys(valid_only=True, subset='lfl'))
 
-    def keys_valid_derived_test(self):
+    def test_keys_valid_derived(self):
         """Test the consistency of keys cache for valid source parameters."""
         with FlightDataFile(self.fp) as fdf:
             derived_valid_param_names = [p.name for p in fdf.values() if not p.invalid and p.source == 'derived']
             self.assertItemsEqual(derived_valid_param_names, fdf.keys(valid_only=True, subset='derived'))
 
-    def keys_add_test(self):
+    def test_keys_add(self):
         """Compare keys() with raw HDF5 keys() before and after adding a parameter."""
         with h5py.File(self.fp, mode='r') as hdf:
             hdf_series_names = list(self.get_data_from_hdf(hdf).keys())
 
         with FlightDataFile(self.fp, mode='a') as fdf:
             old_keys = fdf.keys()
-            self.assertEquals(hdf_series_names, old_keys)
+            self.assertEqual(hdf_series_names, old_keys)
 
             self.assertNotIn('Test', old_keys)
             param = Parameter('Test', array=np.ma.arange(100))
@@ -231,7 +231,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             self.assertIn('Test', hdf_series_names)
             self.assertItemsEqual(hdf_series_names, new_keys)
 
-    def values_test(self):
+    def test_values(self):
         """
         Compare parameter names extracted with values() with raw HDF5 keys() (series names) before and after adding a
         parameter.
@@ -253,7 +253,7 @@ class FlightDataFileTestV2(unittest.TestCase):
 
         self.assertIn(param.name, hdf_series_names)
 
-    def items_test(self):
+    def test_items(self):
         """
         Compare parameter names extracted with values() with raw HDF5 keys() (series names) before and after adding a
         parameter.
@@ -264,13 +264,13 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp) as fdf:
             param_names = set()
             for param_name, param in fdf.items():
-                self.assertEquals(param_name, param.name)
+                self.assertEqual(param_name, param.name)
                 self.assertIn(param_name, hdf_series_names)
                 param_names.add(param_name)
 
-        self.assertEquals(param_names, hdf_series_names)
+        self.assertEqual(param_names, hdf_series_names)
 
-    def duration_test(self):
+    def test_duration(self):
         """Verify that file duration is calculated automatically on close."""
         with FlightDataFile(self.fp) as fdf:
             airs = fdf['Airspeed']
@@ -280,9 +280,9 @@ class FlightDataFileTestV2(unittest.TestCase):
             fdf['Airspeed'] = airs.trim(0, 100)
 
         with FlightDataFile(self.fp + '-copy') as fdf:
-            self.assertEquals(fdf.duration, 100)
+            self.assertEqual(fdf.duration, 100)
 
-    def frequencies_test(self):
+    def test_frequencies(self):
         """Verify that file frequencies is calculated automatically on close."""
         with FlightDataFile(self.fp) as fdf:
             airs = fdf['Airspeed']
@@ -296,7 +296,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp + '-copy') as fdf:
             np.testing.assert_array_equal(sorted(fdf.frequencies), sorted([airs.frequency, accel.frequency]))
 
-    def close_test(self):
+    def test_close(self):
         """Verify that HDF file is closed on FlightDataFile.close()."""
         fdf = FlightDataFile(self.fp)
         fdf.keys()
@@ -306,7 +306,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with self.assertRaises(AttributeError):
             fdf.file.keys()
 
-    def get_parameter_test(self):
+    def test_get_parameter(self):
         """Compare the content of the Numpy array before and after a Parameter is stored."""
         array = np.ma.arange(100)
         param = Parameter('Test', array=array)
@@ -317,7 +317,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             param = fdf.get_parameter('Test')
             self.assertTrue(np.all(param.array == array))
 
-    def get_parameter_cache_test(self):
+    def test_get_parameter_cache(self):
         """
         Get parameter, the retrieved object must be the same every time
 
@@ -327,11 +327,11 @@ class FlightDataFileTestV2(unittest.TestCase):
             param1 = fdf.get_parameter('Airspeed', copy_param=False)
             self.assertIn(param1.name, fdf.parameter_cache)
             cached = fdf.parameter_cache['Airspeed']
-            self.assertEquals(param1, cached)
+            self.assertEqual(param1, cached)
             param2 = fdf.get_parameter('Airspeed', copy_param=False)
-            self.assertEquals(param2, cached)
+            self.assertEqual(param2, cached)
 
-    def get_parameter_valid_only_test(self):
+    def test_get_parameter_valid_only(self):
         """Ensure an exception is raised on acces of invalid parameter when valid_only=True is used."""
         with FlightDataFile(self.fp, mode='a') as fdf:
             pitch = fdf['Airspeed']
@@ -342,14 +342,14 @@ class FlightDataFileTestV2(unittest.TestCase):
             with self.assertRaises(KeyError):
                 fdf.get_parameter('Airspeed', valid_only=True)
 
-    def get_parameter_slice_test(self):
+    def test_get_parameter_slice(self):
         """Ensure the parameter is cached."""
         with FlightDataFile(self.fp) as fdf:
             airspeed = fdf.get_parameter('Airspeed', _slice=slice(0, 100))
             # array size is correct
-            self.assertEquals(airspeed.array.size, 100 * airspeed.frequency)
+            self.assertEqual(airspeed.array.size, 100 * airspeed.frequency)
 
-    def get_parameter_slice_cache_test(self):
+    def test_get_parameter_slice_cache(self):
         """Ensure the fetched sliced parameter is cached."""
         with FlightDataFile(self.fp) as fdf:
             fdf.cache_param_list += fdf.keys()
@@ -357,27 +357,27 @@ class FlightDataFileTestV2(unittest.TestCase):
             # parameter is cached
             self.assertIn('Airspeed', fdf.parameter_cache)
 
-    def get_parameter_load_submasks_test(self):
+    def test_get_parameter_load_submasks(self):
         """Ensure the submasks are loaded correctly and cached."""
         with FlightDataFile(self.fp) as fdf:
             airs = fdf.get_parameter('Airspeed', load_submasks=True)
             self.assertItemsEqual(airs.submasks.keys(), json.loads(fdf.data['Airspeed'].attrs['submasks']).keys())
 
-    def get_parameter_load_submasks_cache_test(self):
+    def test_get_parameter_load_submasks_cache(self):
         """Ensure the submasks are loaded correctly and cached."""
         with FlightDataFile(self.fp) as fdf:
             fdf.cache_param_list += fdf.keys()
             airs = fdf.get_parameter('Airspeed', load_submasks=True)
             self.assertItemsEqual(fdf.parameter_cache['Airspeed'].submasks.keys(), airs.submasks.keys())
 
-    def get_parameter_copy_test(self):
+    def test_get_parameter_copy(self):
         """Get parameter with copy_param twice, the copies should differ."""
         with FlightDataFile(self.fp) as fdf:
             param1 = fdf.get_parameter('Airspeed', copy_param=True)
             param2 = fdf.get_parameter('Airspeed', copy_param=True)
             self.assertNotEquals(param1, param2)
 
-    def set_parameter_test(self):
+    def test_set_parameter(self):
         """Set parameter, compare with raw data in the file."""
         array = np.ma.arange(100)
         array.mask = np.zeros(100)
@@ -395,7 +395,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             data = self.get_data_from_hdf(hdf)['Test']['data']
             self.assertTrue(np.all(param.array == data))
 
-    def set_parameter_submasks_test(self):
+    def test_set_parameter_submasks(self):
         """Set parameter with submasks."""
         array = np.ma.arange(100)
         array.mask = np.zeros(100)
@@ -416,7 +416,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             self.assertTrue(np.all(mask[:, submasks['sub1']] == sub1))
             self.assertTrue(np.all(mask[:, submasks['sub2']] == sub2))
 
-    def delete_parameter_test(self):
+    def test_delete_parameter(self):
         """Ensure deleted parameter is not found in the file."""
         with FlightDataFile(self.fp, mode='a') as fdf:
             self.assertIn('Airspeed', fdf)
@@ -425,7 +425,7 @@ class FlightDataFileTestV2(unittest.TestCase):
         with FlightDataFile(self.fp) as fdf:
             self.assertNotIn('Airspeed', fdf)
 
-    def get_parameters_test(self):
+    def test_get_parameters(self):
         """Ensure all requested parameters are returned."""
         parameter_names = ('Airspeed', 'Heading')
         with FlightDataFile(self.fp) as fdf:
@@ -433,7 +433,7 @@ class FlightDataFileTestV2(unittest.TestCase):
 
         self.assertItemsEqual(parameter_names, (p for p in parameters))
 
-    def set_parameters_test(self):
+    def test_set_parameters(self):
         """Ensure all stored parameters are found in the file."""
         parameter_names = ('Test 1', 'Test 2')
         array = np.ma.arange(100)
@@ -445,7 +445,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             for name in parameter_names:
                 self.assertIn(name, fdf)
 
-    def delete_parameters_test(self):
+    def test_delete_parameters(self):
         """Ensure all deleted parameters are not found in the file."""
         parameter_names = ('Airspeed', 'Heading')
         with FlightDataFile(self.fp, mode='a') as fdf:
@@ -455,7 +455,7 @@ class FlightDataFileTestV2(unittest.TestCase):
             for name in parameter_names:
                 self.assertNotIn(name, fdf)
 
-    def parameter_cache_test(self):
+    def test_parameter_cache(self):
         """Ensure cache is populated on parameter access."""
         with FlightDataFile(self.fp) as fdf:
             fdf.cache_param_list += fdf.keys()
@@ -465,18 +465,18 @@ class FlightDataFileTestV2(unittest.TestCase):
             fdf['Airspeed']
             self.assertIn('Airspeed', fdf.parameter_cache)
 
-    def trim_full_test(self):
+    def test_trim_full(self):
         """Trim the file without limit (full copy)."""
         with FlightDataFile(self.fp) as fdf:
             duration = fdf.duration
             fdf.trim(self.fp + '-trim')
 
         with FlightDataFile(self.fp + '-trim') as fdf:
-            self.assertEquals(fdf.duration, duration)
+            self.assertEqual(fdf.duration, duration)
             for parameter in fdf.values():
-                self.assertEquals(len(parameter.array), math.floor(duration * parameter.frequency))
+                self.assertEqual(len(parameter.array), math.floor(duration * parameter.frequency))
 
-    def trim_slice_test(self):
+    def test_trim_slice(self):
         """Trim the file to first 100 seconds."""
         with FlightDataFile(self.fp) as fdf:
             fdf.trim(self.fp + '-trim', stop_offset=100, superframe_boundary=False)
@@ -487,18 +487,18 @@ class FlightDataFileTestV2(unittest.TestCase):
             for parameter in fdf.values():
                 if parameter.frequency < 0.25:
                     continue
-                self.assertEquals(parameter.duration, 100)
-                self.assertEquals(len(parameter.array), math.floor(100 * parameter.frequency))
+                self.assertEqual(parameter.duration, 100)
+                self.assertEqual(len(parameter.array), math.floor(100 * parameter.frequency))
 
-    def trim_slice_superframe_boundary_test(self):
+    def test_trim_slice_superframe_boundary(self):
         """Trim the file to first 100 seconds aligned to superframes."""
         with FlightDataFile(self.fp) as fdf:
             fdf.trim(self.fp + '-trim', stop_offset=100, superframe_boundary=True)
 
         with FlightDataFile(self.fp + '-trim') as fdf:
-            self.assertEquals(fdf.duration, 128)
+            self.assertEqual(fdf.duration, 128)
             for parameter in fdf.values():
-                self.assertEquals(len(parameter.array), 128 * parameter.frequency)
+                self.assertEqual(len(parameter.array), 128 * parameter.frequency)
 
 
 class FlightDataFileTestV3(FlightDataFileTestV2):
