@@ -19,7 +19,7 @@ from flightdatautilities.state_mappings import PARAMETER_CORRECTIONS
 
 from flightdataaccessor.datatypes.parameter import MappedArray
 from flightdataaccessor.file import hdf_file
-from flightdataaccessor.tools.datatypes.parameter_lists import PARAMETERS_FROM_FILES
+from flightdataaccessor.tools.parameter_lists import PARAMETERS_FROM_FILES
 
 LOGGER = logging.getLogger(__name__)
 
@@ -417,10 +417,7 @@ def validate_source_name(parameter, matched):
         LOGGER.info("'source_name': No attribute for '%s'. Attribute is "
                     "optional.", parameter.name)
     else:
-        try:
-            pname = parameter.source_name.decode('utf8')
-        except UnicodeDecodeError:
-            pname = repr(parameter.source_name)
+        pname = repr(parameter.source_name)
         add_msg = ''
         if matched:
             add_msg = 'POLARIS name '
@@ -501,7 +498,7 @@ def validate_values_mapping(hdf, parameter, states=False):
     discrete or multi-state parameter) and reports the value.
     """
     LOGGER.info("Checking parameter attribute: values_mapping")
-    if parameter.values_mapping is None:
+    if not parameter.values_mapping:
         if parameter.data_type in ('Discrete', 'Multi-state',
                                    'Enumerated Discrete'):
             LOGGER.error("'values_mapping': No attribute for '%s'. "
