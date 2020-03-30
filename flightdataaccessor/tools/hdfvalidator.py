@@ -4,7 +4,6 @@ HDFValidator checks flight data, stored in a HDF5 file format, is in a
 compatible structure meeting POLARIS pre-analysis specification.
 '''
 import argparse
-import json
 import logging
 import os
 from math import ceil
@@ -13,13 +12,12 @@ import h5py
 import numpy as np
 
 from analysis_engine.utils import list_parameters
-from flightdatautilities import units as ut
 from flightdatautilities.patterns import WILDCARD, wildcard_match
-from flightdatautilities.state_mappings import PARAMETER_CORRECTIONS
 from flightdatautilities.validation_tools.param_validator import (
     check_for_core_parameters,
     validate_arinc_429,
     validate_data_type,
+    validate_dataset,
     validate_frequency,
     validate_lfl,
     validate_name,
@@ -30,7 +28,6 @@ from flightdatautilities.validation_tools.param_validator import (
 )
 
 import flightdataaccessor as fda
-from flightdataaccessor import open as hdf_open
 from flightdataaccessor.tools.parameter_lists import PARAMETERS_FROM_FILES
 
 logger = logging.getLogger(__name__)
@@ -71,29 +68,6 @@ def log(log_records):
     for log_record in log_records:
         logger.handle(log_record)
 
-
-VALID_FREQUENCIES = {
-    # base 2 frequencies
-    0.03125,
-    0.015625,
-    0.0625,
-    0.125,
-    0.25,
-    0.5,
-    1,
-    2,
-    4,
-    8,
-    16,
-    # other non base 2 frequencies
-    0.016666667,
-    0.05,
-    0.1,
-    0.2,
-    5,
-    10,
-    20,
-}
 
 # -----------------------------------------------------------------------------
 # Collection of parameters known to Polaris
@@ -228,8 +202,11 @@ def validate_parameter_attributes(hdf, name, parameter, states=False):
     """Validates all parameter attributes."""
     log_subtitle("Checking Attribute for Parameter: %s" % (name, ))
     param_attrs = hdf.file['/series/' + name].attrs.keys()
-    for attr in ['data_type', 'frequency', 'lfl', 'name',
-                 'supf_offset', 'units']:
+    expected_attrs = ['data_type', 'frequency', 'lfl', 'name', 'supf_offset']
+    if parameter.data_type not in ('Discrete', 'Multi-state', 'ASCII',
+                                   'Enumerated Discrete', 'Derived Multistate'):
+        expected_attrs.append('units')
+    for attr in expected_attrs:
         if attr not in param_attrs:
             logger.error("Parameter attribute '%s' not present for '%s' "
                          "and is Required.", attr, name)
@@ -253,7 +230,8 @@ def validate_parameter_attributes(hdf, name, parameter, states=False):
 def validate_parameters_dataset(hdf, name, parameter):
     """Validates all parameter datasets."""
     log_subtitle("Checking dataset for Parameter: %s" % (name, ))
-    validate_dataset(hdf, name, parameter)
+    expected_size_check(hdf, parameter)
+    log(validate_dataset(parameter))
 
 
 # =============================================================================
@@ -274,39 +252,6 @@ def validate_hdf_frequency(hdf, parameter):
         elif parameter.frequency != hdf.frequencies:
             logger.warning("'frequency': Value not in the Root "
                         "attribute list of frequenices.")
-
-
-def validate_dataset(hdf, name, parameter):
-    """Check the data for size, unmasked inf/NaN values."""
-    inf_nan_check(parameter)
-
-    expected_size_check(hdf, parameter)
-    if parameter.array.data.size != parameter.array.mask.size:
-        logger.error("The data and mask sizes are different. (Data is %s, "
-                     "Mask is %s)", parameter.array.data.size,
-                     parameter.array.mask.size)
-    else:
-        logger.info("Data and Mask both have the size of %s elements.",
-                    parameter.array.data.size)
-
-    logger.info("Checking dataset type and shape.")
-    masked_array = isinstance(parameter.array, np.ma.core.MaskedArray)
-    mapped_array = isinstance(parameter.array, fda.MappedArray)
-    if not masked_array and not mapped_array:
-        logger.error("Data for %s is not a MaskedArray or MappedArray. "
-                     "Type is %s", name, type(parameter.array))
-    else:
-        # check shape, it should be 1 dimensional arrays for data and mask
-        if len(parameter.array.shape) != 1:
-            logger.error("The data and mask are not in a 1 dimensional "
-                         "array. The data's shape is %s ",
-                         parameter.array.shape)
-        else:
-            logger.info("Data is in a %s with a shape of %s",
-                        type(parameter.array).__name__, parameter.array.shape)
-    if parameter.array.mask.all():
-        logger.warning("Data for '%s' is entirely masked. Is it meant to be?",
-                       name)
 
 
 def expected_size_check(hdf, parameter):
@@ -345,45 +290,6 @@ def expected_size_check(hdf, parameter):
         logger.info("Data size of '%s' is of the expected size of %s.",
                     parameter.name, int(expected_data_size))
 
-
-def inf_nan_check(parameter):
-    '''
-    Check the dataset for NaN or inf values
-    '''
-    def _report(count, parameter, unmasked, val_str):
-        '''
-        log as warning if all are masked, error if not
-        '''
-        if count:
-            msg = "Found %s %s values in the data of '%s'. " \
-                % (count, val_str, parameter.name)
-            nan_percent = (float(count) / len(parameter.array.data)) * 100
-            msg += "This represents %.2f%% of the data. " % (nan_percent, )
-            if unmasked:
-                msg += "%s are not masked." % (unmasked,)
-                logger.error(msg)
-            else:
-                msg += "All of these values are masked."
-                logger.warning(msg)
-
-    logger.info("Checking parameter dataset for inf and NaN values.")
-    if 'int' in parameter.array.dtype.name or \
-       'float' in parameter.array.dtype.name:
-
-        nan_unmasked = np.ma.masked_equal(
-            np.isnan(parameter.array), False).count()
-        nan_count = np.ma.masked_equal(
-            np.isnan(parameter.array.data), False).count()
-        inf_unmasked = np.ma.masked_equal(
-            np.isinf(parameter.array), False).count()
-        inf_count = np.ma.masked_equal(
-            np.isinf(parameter.array.data), False).count()
-
-        _report(nan_count, parameter, nan_unmasked, 'NaN')
-        _report(inf_count, parameter, inf_unmasked, 'inf')
-
-        if nan_count == inf_count == 0:
-            logger.info("Dataset does not have any inf or NaN values.")
 
 
 def validate_namespace(hdf5):
