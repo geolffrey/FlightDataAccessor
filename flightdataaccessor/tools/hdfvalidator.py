@@ -589,7 +589,7 @@ def is_reliable_subframe_counter(hdf):
     except KeyError:
         return False
     sfc_diff = np.ma.masked_equal(np.ma.diff(sfc.array), 1)
-    if sfc_diff.count() == 0:
+    if sfc_diff.count() < len(sfc.array) / 4095:
         return True
     return False
 
