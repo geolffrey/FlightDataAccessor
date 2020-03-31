@@ -12,7 +12,6 @@ import h5py
 import numpy as np
 
 from analysis_engine.utils import list_parameters
-from flightdatautilities.patterns import WILDCARD, wildcard_match
 from flightdatautilities.validation_tools.param_validator import (
     check_for_core_parameters,
     validate_arinc_429,
@@ -69,41 +68,6 @@ def log(log_records):
         logger.handle(log_record)
 
 
-# -----------------------------------------------------------------------------
-# Collection of parameters known to Polaris
-# -----------------------------------------------------------------------------
-
-# Main list of parameters that from the Polaris analysis engine
-PARAMETERS_ANALYSIS = list_parameters()
-
-# Minimum list of parameters (including alternatives) needed in the HDF file.
-# See check_for_core_parameters method
-PARAMETERS_CORE = [
-    u'Airspeed',
-    u'Heading',
-    u'Altitude STD',
-    # Helicopter only
-    u'Nr',
-    # Alternatives
-    u'Heading True',
-    u'Nr (1)',
-    u'Nr (2)',
-]
-
-# Extra parameters not listed from list_parameter
-PARAMETERS_EXTRA = [
-    u'Day',
-    u'Hour',
-    u'Minute',
-    u'Month',
-    u'Second',
-    u'Year',
-    u'Frame Counter',
-    u'Subframe Counter',
-]
-
-PARAMETER_LIST = list(set(PARAMETERS_FROM_FILES + PARAMETERS_ANALYSIS +
-                          PARAMETERS_CORE + PARAMETERS_EXTRA))
 # -----------------------------------------------------------------------------
 
 
