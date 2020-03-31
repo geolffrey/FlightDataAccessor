@@ -120,47 +120,6 @@ def log_subtitle(subtitle):
     log_title(subtitle, line='-', section=False)
 
 
-def check_parameter_names(hdf):
-    """
-    Check if the parameter name is one recognised as a POLARIS parameter
-    name.
-    Returns two tuples.
-      The first a tuple of names matching POLARIS parameters.
-      The second, a tuple of names that do not match POLARIS parameters and
-      will be ignored by analysis.
-    """
-    log_subtitle("Checking parameter names")
-    hdf_parameters = set(hdf.keys())
-
-    matched_names = set()
-    for name in PARAMETER_LIST:
-        if WILDCARD in name:
-            found = wildcard_match(name, hdf_parameters, missing=False)
-        else:
-            found = [name for p in hdf_parameters if p == name]
-        if found:
-            matched_names.update(found)
-
-    unmatched_names = hdf_parameters - matched_names
-    if not matched_names:
-        logger.error("None of the %d parameters within HDF file are "
-                     "recognised by POLARIS.",
-                     len(unmatched_names))
-    elif unmatched_names:
-        logger.info("Number of parameter names recognised by POLARIS: %s",
-                    len(matched_names))
-        logger.warning("Number of parameters names not recognised by "
-                    "POLARIS: %s", len(unmatched_names))
-        logger.debug("The following parameters names are recognised by "
-                     "POLARIS: %s", matched_names)
-        logger.debug("The following parameters names are not recognised by "
-                     "POLARIS: %s", unmatched_names)
-    else:
-        logger.info("All %s parameters names are recognised by POLARIS.",
-                    len(matched_names))
-    return (tuple(matched_names), tuple(unmatched_names))
-
-
 # =============================================================================
 #   Parameter's Attributes
 # =============================================================================
@@ -173,7 +132,6 @@ def validate_parameters(hdf, helicopter=False, names=None, states=False):
         Data
     """
     log_title("Checking Parameters")
-    matched, _ = check_parameter_names(hdf)
     hdf_parameters = hdf.keys()
     log(check_for_core_parameters(hdf_parameters, helicopter))
     if names:
@@ -186,13 +144,6 @@ def validate_parameters(hdf, helicopter=False, names=None, states=False):
                          name, err)
             continue
         log_title("Checking Parameter: '%s'" % (name, ))
-        if name in matched:
-            logger.info("Parameter '%s' is recognised by POLARIS.", name)
-        else:
-            logger.warning("Parameter '%s' is not recognised by POLARIS.", name)
-        if name in PARAMETERS_CORE:
-            logger.info("Parameter '%s' is a core parameter required for "
-                        "analysis.", name)
         validate_parameter_attributes(hdf, name, parameter, states=states)
         validate_parameters_dataset(hdf, name, parameter)
     return
