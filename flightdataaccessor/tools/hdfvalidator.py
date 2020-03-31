@@ -5,13 +5,12 @@ compatible structure meeting POLARIS pre-analysis specification.
 '''
 import argparse
 import logging
-import os
 from math import ceil
+from pathlib import Path
 
 import h5py
 import numpy as np
 
-from analysis_engine.utils import list_parameters
 from flightdatautilities.validation_tools.param_validator import (
     check_for_core_parameters,
     validate_arinc_429,
@@ -27,7 +26,6 @@ from flightdatautilities.validation_tools.param_validator import (
 )
 
 import flightdataaccessor as fda
-from flightdataaccessor.tools.parameter_lists import PARAMETERS_FROM_FILES
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +85,7 @@ def log_subtitle(subtitle):
 # =============================================================================
 #   Parameter's Attributes
 # =============================================================================
-def validate_parameters(hdf, helicopter=False, names=None, states=False):
+def validate_parameters(fdf, helicopter=False, names=None, states=False):
     """
     Iterates through all the parameters within the 'series' namespace and
     validates:
@@ -96,27 +94,27 @@ def validate_parameters(hdf, helicopter=False, names=None, states=False):
         Data
     """
     log_title("Checking Parameters")
-    hdf_parameters = hdf.keys()
-    log(check_for_core_parameters(hdf_parameters, helicopter))
+    fdf_parameters = fdf.keys()
+    log(check_for_core_parameters(fdf_parameters, helicopter))
     if names:
-        hdf_parameters = [param for param in hdf_parameters if param in names]
-    for name in hdf_parameters:
+        fdf_parameters = [param for param in fdf_parameters if param in names]
+    for name in fdf_parameters:
         try:
-            parameter = hdf.get_parameter(name)
+            parameter = fdf.get_parameter(name)
         except np.ma.core.MaskError as err:
             logger.error("MaskError: Cannot get parameter '%s' (%s).",
                          name, err)
             continue
         log_title("Checking Parameter: '%s'" % (name, ))
-        validate_parameter_attributes(hdf, name, parameter, states=states)
-        validate_parameters_dataset(hdf, name, parameter)
+        validate_parameter_attributes(fdf, name, parameter, states=states)
+        validate_parameters_dataset(fdf, name, parameter)
     return
 
 
-def validate_parameter_attributes(hdf, name, parameter, states=False):
+def validate_parameter_attributes(fdf, name, parameter, states=False):
     """Validates all parameter attributes."""
     log_subtitle("Checking Attribute for Parameter: %s" % (name, ))
-    param_attrs = hdf.file['/series/' + name].attrs.keys()
+    param_attrs = fdf.file['/series/' + name].attrs.keys()
     expected_attrs = ['data_type', 'frequency', 'lfl', 'name', 'supf_offset']
     if parameter.data_type not in ('Discrete', 'Multi-state', 'ASCII',
                                    'Enumerated Discrete', 'Derived Multistate'):
@@ -133,7 +131,7 @@ def validate_parameter_attributes(hdf, name, parameter, states=False):
         log(validate_data_type(parameter))
     if 'frequency' in param_attrs:
         log(validate_frequency(parameter))
-        validate_hdf_frequency(hdf, parameter)
+        validate_fdf_frequency(fdf, parameter)
     if 'lfl' in param_attrs:
         log(validate_lfl(parameter))
     if 'name' in param_attrs:
@@ -142,10 +140,10 @@ def validate_parameter_attributes(hdf, name, parameter, states=False):
         log(validate_units(parameter))
 
 
-def validate_parameters_dataset(hdf, name, parameter):
+def validate_parameters_dataset(fdf, name, parameter):
     """Validates all parameter datasets."""
     log_subtitle("Checking dataset for Parameter: %s" % (name, ))
-    expected_size_check(hdf, parameter)
+    expected_size_check(fdf, parameter)
     log(validate_dataset(parameter))
 
 
@@ -154,35 +152,35 @@ def validate_parameters_dataset(hdf, name, parameter):
 # =============================================================================
 
 
-def validate_hdf_frequency(hdf, parameter):
+def validate_fdf_frequency(fdf, parameter):
     """
     Checks if the parameter attribute frequency is listed in the root
     attribute frequencies.
     """
-    if hdf.frequencies is not None  and parameter.frequency is not None:
-        if 'array' in type(hdf.frequencies).__name__:
-            if parameter.frequency not in hdf.frequencies:
+    if fdf.frequencies is not None  and parameter.frequency is not None:
+        if 'array' in type(fdf.frequencies).__name__:
+            if parameter.frequency not in fdf.frequencies:
                 logger.warning("'frequency': Value not in the Root "
                             "attribute list of frequenices.")
-        elif parameter.frequency != hdf.frequencies:
+        elif parameter.frequency != fdf.frequencies:
             logger.warning("'frequency': Value not in the Root "
                         "attribute list of frequenices.")
 
 
-def expected_size_check(hdf, parameter):
-    boundary = 64.0 if hdf.superframe_present else 4.0
-    frame = 'super frame' if hdf.superframe_present else 'frame'
+def expected_size_check(fdf, parameter):
+    boundary = 64.0 if fdf.superframe_present else 4.0
+    frame = 'super frame' if fdf.superframe_present else 'frame'
     logger.info('Boundary size is %s for a %s.', boundary, frame)
     # Expected size of the data is duration * the parameter's frequency,
     # includes any padding required to the next frame/super frame boundary
-    if hdf.duration and parameter.frequency:
+    if fdf.duration and parameter.frequency:
         expected_data_size = \
-            ceil(hdf.duration / boundary) * boundary * parameter.frequency
+            ceil(fdf.duration / boundary) * boundary * parameter.frequency
     else:
         logger.error("%s: Not enough information to calculate expected data "
                      "size. Duration: %s, Parameter Frequency: %s",
                      parameter.name,
-                     'None' if hdf.duration is None else hdf.duration,
+                     'None' if fdf.duration is None else fdf.duration,
                      'None' if parameter.frequency is None else
                      parameter.frequency)
         return
@@ -191,7 +189,7 @@ def expected_size_check(hdf, parameter):
                 "aligned size of %s.", int(expected_data_size))
     logger.debug("Calculated: ceil(Duration(%s) / Boundary(%s)) * "
                  "Boundary(%s) * Parameter Frequency (%s) = %s.",
-                 hdf.duration, boundary, boundary, parameter.frequency,
+                 fdf.duration, boundary, boundary, parameter.frequency,
                  expected_data_size)
 
     if expected_data_size != parameter.array.size:
@@ -256,79 +254,79 @@ def validate_namespace(hdf5):
 # =============================================================================
 #   Root Attributes
 # =============================================================================
-def validate_root_attribute(hdf):
+def validate_root_attribute(fdf):
     """Validates all the root attributes."""
     log_title("Checking the Root attributes")
-    root_attrs = hdf.file.attrs.keys()
+    root_attrs = fdf.file.attrs.keys()
     for attr in ['duration', 'reliable_frame_counter',
                  'reliable_subframe_counter',]:
         if attr not in root_attrs:
             logger.error("Root attribute '%s' not present and is required.",
                          attr)
     if 'duration' in root_attrs:
-        validate_duration_attribute(hdf)
-    validate_frequencies_attribute(hdf)
+        validate_duration_attribute(fdf)
+    validate_frequencies_attribute(fdf)
     if 'reliable_frame_counter' in root_attrs:
-        validate_reliable_frame_counter_attribute(hdf)
+        validate_reliable_frame_counter_attribute(fdf)
     if 'reliable_subframe_counter' in root_attrs:
-        validate_reliable_subframe_counter_attribute(hdf)
-    validate_start_timestamp_attribute(hdf)
-    validate_superframe_present_attribute(hdf)
+        validate_reliable_subframe_counter_attribute(fdf)
+    validate_start_timestamp_attribute(fdf)
+    validate_superframe_present_attribute(fdf)
 
 
-def validate_duration_attribute(hdf):
+def validate_duration_attribute(fdf):
     """
     Check if the root attribute duration exists (It is required)
     and report the value.
     """
     logger.info("Checking Root Attribute: duration")
-    if hdf.duration:
+    if fdf.duration:
         logger.info("'duration': Attribute present with a value of %s.",
-                    hdf.file.attrs['duration'])
-        if 'int' in type(hdf.file.attrs['duration']).__name__:
+                    fdf.file.attrs['duration'])
+        if 'int' in type(fdf.file.attrs['duration']).__name__:
             logger.debug("'duration': Attribute is an int.")
         else:
             logger.error("'duration': Attribute is not an int. Type "
                          "reported as '%s'.",
-                         type(hdf.file.attrs['duration']).__name__)
+                         type(fdf.file.attrs['duration']).__name__)
     else:
         logger.error("'duration': No root attribrute found. This is a "
                      "required attribute.")
 
 
-def validate_frequencies_attribute(hdf):
+def validate_frequencies_attribute(fdf):
     """
         Check if the root attribute frequencies exists (It is optional).
         Report all the values and if the list covers all frequencies used
         by the store parameters.
     """
     logger.info("Checking Root Attribute: 'frequencies'")
-    if hdf.frequencies is None:
+    if fdf.frequencies is None:
         logger.info("'frequencies': Attribute not present and is optional.")
         return
 
     logger.info("'frequencies': Attribute present.")
-    name = type(hdf.frequencies).__name__
+    name = type(fdf.frequencies).__name__
     if 'array' in name or 'list' in name:
         floatcount = 0
-        rootfreq = set(list(hdf.frequencies))
-        for value in hdf.frequencies:
+        rootfreq = set(list(fdf.frequencies))
+        for value in fdf.frequencies:
             if 'float' in type(value).__name__:
                 floatcount += 1
             else:
                 logger.error("'frequencies': Value %s should be a float.",
                              value)
-        if floatcount == len(hdf.frequencies):
+        if floatcount == len(fdf.frequencies):
             logger.info("'frequencies': All values listed are float values.")
         else:
             logger.error("'frequencies': Not all values are float values.")
     elif 'float' in name:
         logger.info("'frequencies': Value is a float.")
-        rootfreq = set([hdf.frequencies])
+        rootfreq = set([fdf.frequencies])
     else:
         logger.error("'frequencies': Value is not a float.")
 
-    paramsfreq = set([v.frequency for _, v in hdf.items()])
+    paramsfreq = set([v.frequency for _, v in fdf.items()])
     if rootfreq == paramsfreq:
         logger.info("Root frequency list covers all the frequencies "
                     "used by parameters.")
@@ -342,10 +340,10 @@ def validate_frequencies_attribute(hdf):
                     list(paramsfreq - rootfreq))
 
 
-def is_reliable_frame_counter(hdf):
+def is_reliable_frame_counter(fdf):
     """returns if the parameter 'Frame Counter' is reliable."""
     try:
-        pfc = hdf['Frame Counter']
+        pfc = fdf['Frame Counter']
     except KeyError:
         return False
     if np.ma.masked_inside(pfc, 0, 4095).count() != 0:
@@ -359,16 +357,16 @@ def is_reliable_frame_counter(hdf):
     return False
 
 
-def validate_reliable_frame_counter_attribute(hdf):
+def validate_reliable_frame_counter_attribute(fdf):
     """
     Check if the root attribute reliable_frame_counter exists (It is required)
     and report the value and if the value is correctly set.
     """
     logger.info("Checking Root Attribute: 'reliable_frame_counter'")
-    parameter_exists = 'Frame Counter' in hdf.keys()
-    reliable = is_reliable_frame_counter(hdf)
-    attribute_value = hdf.reliable_frame_counter
-    correct_type = isinstance(hdf.reliable_frame_counter, bool)
+    parameter_exists = 'Frame Counter' in fdf.keys()
+    reliable = is_reliable_frame_counter(fdf)
+    attribute_value = fdf.reliable_frame_counter
+    correct_type = isinstance(fdf.reliable_frame_counter, bool)
     if attribute_value is None:
         logger.error("'reliable_frame_counter': Attribute not present "
                      "and is required.")
@@ -400,13 +398,13 @@ def validate_reliable_frame_counter_attribute(hdf):
         if not correct_type:
             logger.error("'reliable_frame_counter': Attribute is not a "
                          "Boolean type. Type is %s",
-                         type(hdf.reliable_frame_counter).__name__)
+                         type(fdf.reliable_frame_counter).__name__)
 
 
-def is_reliable_subframe_counter(hdf):
+def is_reliable_subframe_counter(fdf):
     """returns if the parameter 'Subframe Counter' is reliable."""
     try:
-        sfc = hdf['Subframe Counter']
+        sfc = fdf['Subframe Counter']
     except KeyError:
         return False
     sfc_diff = np.ma.masked_equal(np.ma.diff(sfc.array), 1)
@@ -415,16 +413,16 @@ def is_reliable_subframe_counter(hdf):
     return False
 
 
-def validate_reliable_subframe_counter_attribute(hdf):
+def validate_reliable_subframe_counter_attribute(fdf):
     """
     Check if the root attribute reliable_subframe_counter exists
     (It is required) and report the value and if the value is correctly set.
     """
     logger.info("Checking Root Attribute: 'reliable_subframe_counter'")
-    parameter_exists = 'Subframe Counter' in hdf.keys()
-    reliable = is_reliable_subframe_counter(hdf)
-    attribute_value = hdf.reliable_subframe_counter
-    correct_type = isinstance(hdf.reliable_subframe_counter, bool)
+    parameter_exists = 'Subframe Counter' in fdf.keys()
+    reliable = is_reliable_subframe_counter(fdf)
+    attribute_value = fdf.reliable_subframe_counter
+    correct_type = isinstance(fdf.reliable_subframe_counter, bool)
     if attribute_value is None:
         logger.error("'reliable_subframe_counter': Attribute not present "
                      "and is required.")
@@ -456,87 +454,78 @@ def validate_reliable_subframe_counter_attribute(hdf):
         if not correct_type:
             logger.error("'reliable_subframe_counter': Attribute is not a "
                          "Boolean type. Type is %s",
-                         type(hdf.reliable_subframe_counter).__name__)
+                         type(fdf.reliable_subframe_counter).__name__)
 
 
-def validate_start_timestamp_attribute(hdf):
+def validate_start_timestamp_attribute(fdf):
     """
     Check if the root attribute start_timestamp exists
     and report the value.
     """
     logger.info("Checking Root Attribute: start_timestamp")
-    if hdf.start_datetime:
+    if fdf.start_datetime:
         logger.info("'start_timestamp' attribute present.")
-        logger.info("Time reported to be, %s", hdf.start_datetime)
+        logger.info("Time reported to be, %s", fdf.start_datetime)
         logger.info("Epoch timestamp value is: %s",
-                    hdf.file.attrs['start_timestamp'])
-        if 'float' in type(hdf.file.attrs['start_timestamp']).__name__:
+                    fdf.file.attrs['start_timestamp'])
+        if 'float' in type(fdf.file.attrs['start_timestamp']).__name__:
             logger.info("'start_timestamp': Attribute is a float.")
         else:
             logger.error("'start_timestamp': Attribute is not a float. Type "
                          "reported as '%s'.",
-                         type(hdf.file.attrs['start_timestamp']).__name__)
+                         type(fdf.file.attrs['start_timestamp']).__name__)
     else:
         logger.info("'start_timestamp': Attribute not present and is "
                     "optional.")
 
 
-def validate_superframe_present_attribute(hdf):
+def validate_superframe_present_attribute(fdf):
     """
     Check if the root attribute superframe_present exists
     and report.
     """
     logger.info("Checking Root Attribute: superframe_present.")
-    if hdf.superframe_present:
+    if fdf.superframe_present:
         logger.info("'superframe_present': Attribute present.")
     else:
         logger.info("'superframe_present': Attribute is not present and "
                     "is optional.")
 
 
-def validate_file(hdffile, helicopter=False, names=None, states=False):
+def validate_file(fdf, helicopter=False, names=None, states=False):
     """
-    Attempts to open the HDF5 file in using FlightDataAccessor and run all the
-    validation tests. If the file cannot be opened, it will attempt to open
-    the file using the h5py package and validate the namespace to test the
-    HDF5 group structure.
+    Attempts to open the Flight Data File using FlightDataAccessor and run all the
+    validation tests. If the FDF cannot be opened and if it's a HDF5 file, it will
+    attempt to open it using the h5py package and validate the namespace
+    to test the HDF5 group structure.
     """
-    filename = hdffile.split(os.sep)[-1]
-    open_with_h5py = False
-    hdf = None
-    logger.info("Verifying file '%s' with FlightDataAccessor.", filename)
+    logger.info("Verifying '%r' with FlightDataAccessor.", fdf)
     try:
-        hdf = fda.open(hdffile, read_only=True)
-    except Exception as err:
-        logger.error("FlightDataAccessor cannot open '%s'. "
-                     "Exception(%s: %s)", filename, type(err).__name__, err)
-        open_with_h5py = True
-    # If FlightDataAccessor errors upon opening it maybe because '/series'
-    # is not included in the file. hdf_open attempts to create and fails
-    # because we opening it as readonly. Verify the group structure by
-    # using H5PY
-    if open_with_h5py:
-        logger.info("Checking that H5PY package can read the file.")
-        try:
-            hdf_alt = h5py.File(hdffile, 'r')
-        except Exception as err:
-            logger.error("Cannot open '%s' using H5PY. Exception(%s: %s)",
-                         filename, type(err).__name__, err)
-            return
-        logger.info("File %s can be opened by H5PY, suggesting the format "
-                    "is not compatible for POLARIS to use.",
-                    filename)
-        logger.info("Will just verify the HDF5 structure and exit.")
-        validate_namespace(hdf_alt)
-        hdf_alt.close()
-    else:
-        validate_namespace(hdf.file)
-        # continue testing using FlightDataAccessor
-        validate_root_attribute(hdf)
-        validate_parameters(hdf, helicopter, names=names, states=states)
-    if hdf:
-        hdf.close()
+        with fda.open(fdf, read_only=True) as fdf:
+            validate_namespace(fdf.file)
+            # continue testing using FlightDataAccessor
+            validate_root_attribute(fdf)
+            validate_parameters(fdf, helicopter, names=names, states=states)
 
+    except OSError as err:
+        logger.error("FlightDataAccessor cannot open '%r'. "
+                     "Exception(%s: %s)", fdf, type(err).__name__, err)
+        if isinstance(fdf, str) and Path(fdf).suffix.lower() == '.hdf5':
+            # If FlightDataAccessor errors upon opening it maybe because '/series'
+            # is not included in the file. fda.open attempts to create and fails
+            # because we opening it as readonly. Verify the group structure by
+            # using H5PY
+            logger.info("Checking that H5PY package can read the file.")
+            try:
+                with h5py.File(fdf, 'r') as fdf_alt:
+                    logger.info("File %r can be opened by H5PY, suggesting the format "
+                                "is not compatible for POLARIS to use.",
+                                fdf)
+                    logger.info("Will just verify the HDF5 structure and exit.")
+                    validate_namespace(fdf_alt)
+            except OSError as err:
+                logger.error("Cannot open '%r' using H5PY. Exception(%s: %s)",
+                             fdf, type(err).__name__, err)
 
 def main():
     """Main"""
