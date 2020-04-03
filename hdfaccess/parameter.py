@@ -177,6 +177,8 @@ masked_%(name)s(values = %(sdata)s,
 
         e.g. 'one' -> 1, ['one', 'two'] -> [1, 2]
         '''
+        if isinstance(other, MappedArray):
+            return other.raw
         try:
             if hasattr(self, 'values_mapping') and other not in self.values_mapping:
                 # the caller is 2 frames statedown on the stack

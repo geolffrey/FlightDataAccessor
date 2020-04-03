@@ -200,6 +200,15 @@ masked_array(data = [False False  True False False],
         # can't compare lists with numpy arrays
         np.testing.assert_array_equal(ma[:2] == [np.ma.masked, 'two'], [True, True])
 
+        # comparing MappedArray among themselves using numpy assert_array_equal works
+        np.testing.assert_array_equal(ma, ma)
+
+        with self.assertRaises(ValueError):
+            # Behave like numpy.array
+            # Exception: ValueError: The truth value of an array with more than one
+            # element is ambiguous. Use a.any() or a.all()
+            bool(ma == ma)
+
     def test_array_inequality_type_and_mask(self):
         data = [0, 0, 0, 0, 1, 1, 0, 0, 1, 0]
 
@@ -237,11 +246,11 @@ masked_array(data = [False False  True False False],
         # AttributeError: 'MappedArray' object has no attribute 'values_mapping'
         result = np.ma.masked_less(array, 1.0)
         self.assertEquals(array.values_mapping, result.values_mapping)
-    
+
     def test_duplicate_values(self):
         values_mapping = {0: 'A', 1: 'A', 2: 'B', 3: 'C', 5: 'C'}
         data = [0, 1, 2, 3, 4, 5]
-        
+
         array = np.ma.masked_array(data, mask=False)
         array = MappedArray(array, values_mapping=values_mapping)
         self.assertEqual(array[0], 'A')
@@ -250,13 +259,13 @@ masked_array(data = [False False  True False False],
         self.assertEqual(array[3], 'C')
         self.assertEqual(array[4], '?')
         self.assertEqual(array[5], 'C')
-        
+
         self.assertEqual(array.state['A'], [0, 1])
         self.assertEqual(array.state['B'], [2])
         self.assertEqual(array.state['C'], [3, 5])
-        
+
         self.assertEqual((array == 'A').tolist(), [True, True, False, False, False, False])
-    
+
     def test_missing_state(self):
         values_mapping = {0: 'A', 1: 'B', 2: 'C'}
         array = MappedArray([0, 0, 0, 1, 2, 1, 0, 0], mask=[True] * 2 + [False] * 5 + [True], values_mapping=values_mapping)
