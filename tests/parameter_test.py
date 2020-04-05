@@ -247,6 +247,17 @@ masked_array(data = [False False  True False False],
         result = np.ma.masked_less(array, 1.0)
         self.assertEquals(array.values_mapping, result.values_mapping)
 
+    def test_view_from_ndarray(self):
+        """
+        Making a MappedArray view from a ndarray should result in a
+        MappedArray with an empty values_mapping.
+        """
+        array = np.array([0, 0, 0, 0, 1, 1, 0, 0, 1, 0])
+        mapped_array = array.view(MappedArray)
+        np.testing.assert_array_equal(mapped_array, array)
+        np.testing.assert_array_equal(mapped_array.mask, [False] * len(array))
+        self.assertDictEqual(mapped_array.values_mapping, {})
+
     def test_duplicate_values(self):
         values_mapping = {0: 'A', 1: 'A', 2: 'B', 3: 'C', 5: 'C'}
         data = [0, 1, 2, 3, 4, 5]
@@ -276,6 +287,16 @@ masked_array(data = [False False  True False False],
         self.assertRaises(KeyError, array.__ge__, 'G')
         self.assertRaises(KeyError, array.__lt__, 'H')
         self.assertRaises(KeyError, array.__le__, 'I')
+
+    def test_ufuncs_mapped_arrays(self):
+        a = MappedArray(np.ma.arange(1, 4), values_mapping={1: 'one', 2: 'two'})
+        b = MappedArray(np.ma.arange(1, 4), values_mapping={2: '2', 3: '3'})
+        result = np.subtract(a, b)
+        expected = MappedArray(np.ma.zeros(3), values_mapping={1: 'one', 2: '2', 3: '3'})
+        np.testing.assert_array_equal(result, expected)
+        np.testing.assert_array_equal(result.mask, expected.mask)
+        # values_mapping is updated with the latest items
+        self.assertDictEqual(result.values_mapping, expected.values_mapping)
 
 
 class TestParameter(unittest.TestCase):

@@ -44,8 +44,7 @@ class MappedArray(MaskedArray):
         No default mapping - use empty dictionary.
         '''
         values_mapping = kwargs.pop('values_mapping', {})
-        obj = MaskedArray.__new__(MaskedArray, *args, **kwargs)
-        obj.__class__ = MappedArray
+        obj = super(MappedArray, cls).__new__(cls, *args, **kwargs)
 
         # Must occur after class change for obj.state to update!
         obj.values_mapping = values_mapping
@@ -57,16 +56,76 @@ class MappedArray(MaskedArray):
         Finalise the newly created object.
         '''
         super(MappedArray, self).__array_finalize__(obj)
-        if not hasattr(self, 'values_mapping'):
-            master_values_mapping = getattr(obj, 'values_mapping', None)
-            if master_values_mapping:
-                self.values_mapping = master_values_mapping
+        # ``self`` is a new object resulting from
+        # ndarray.__new__(MappedArray, ...), therefore it only has
+        # attributes that the ndarray.__new__ constructor gave it -
+        # i.e. those of a standard ndarray.
+        #
+        # We could have got to the ndarray.__new__ call in 3 ways:
+        # From an explicit constructor - e.g. MappedArray():
+        #    obj is None
+        #    (we're in the middle of the MappedArray.__new__
+        #    constructor, and self.values_mapping will be set when we return to
+        #    MappedArray.__new__)
+        if obj is None:
+            return
+        # From view casting - e.g arr.view(MappedArray):
+        #    obj is arr
+        #    (type(obj) can be MappedArray)
+        # From new-from-template - e.g mappedarr[:3]
+        #    type(obj) is MappedArray
+        #
+        # Note that it is here, rather than in the __new__ method,
+        # that we set the default value for 'values_mapping', because this
+        # method sees all creation of default objects - with the
+        # MappedArray.__new__ constructor, but also with
+        # arr.view(MappedArray).
+        self.values_mapping = getattr(obj, 'values_mapping', {})
 
-    def __array_wrap__(self, out_arr, context=None):
-        '''
-        Convert the result into correct type.
-        '''
-        return self.__apply_attributes__(out_arr)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        args = []
+        values_mapping = {}
+        for i, input_ in enumerate(inputs):
+            if isinstance(input_, MappedArray):
+                values_mapping.update(input_.values_mapping)
+                args.append(input_.view(np.ndarray))
+            else:
+                args.append(input_)
+
+        outputs = kwargs.pop('out', None)
+        values_mappings = []
+        if outputs:
+            out_args = []
+            for j, output in enumerate(outputs):
+                if isinstance(output, MappedArray):
+                    values_mappings.append(output.values_mapping)
+                    out_args.append(output.view(np.ndarray))
+                else:
+                    out_args.append(output)
+            kwargs['out'] = tuple(out_args)
+        else:
+            outputs = (None,) * ufunc.nout
+
+        results = super(MappedArray, self).__array_ufunc__(ufunc, method,
+                                                           *args, **kwargs)
+        if results is NotImplemented:
+            return NotImplemented
+
+        if method == 'at':
+            if isinstance(inputs[0], MappedArray):
+                inputs[0].values_mapping = values_mapping
+            return
+
+        if ufunc.nout == 1:
+            results = (results,)
+
+        results = tuple((np.asarray(result).view(MappedArray)
+                         if output is None else output)
+                        for result, output in zip(results, outputs))
+        if results and isinstance(results[0], MappedArray):
+            results[0].values_mapping = values_mapping
+
+        return results[0] if len(results) == 1 else results
 
     def __apply_attributes__(self, result):
         result.values_mapping = self.values_mapping
