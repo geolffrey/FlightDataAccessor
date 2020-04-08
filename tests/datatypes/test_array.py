@@ -264,6 +264,40 @@ class TestMappedArray(unittest.TestCase):
         # can't compare lists with numpy arrays
         np.testing.assert_array_equal(ma[:2] == [np.ma.masked, 'two'], [True, True])
 
+    def test_mapped_arrays_equality(self):
+        # Same arrays using values_mapping (underlying buffer is different)
+        ma = MappedArray(np.ma.arange(1, 4), values_mapping={1: 'one', 2: 'two', 3: 'three'})
+        ma2 = MappedArray([11, 12, 13], values_mapping={11: 'one', 12: 'two', 13: 'three'})
+        np.testing.assert_array_equal(ma == ma2, [True, True, True])
+
+        # One value not in values_mapping
+        ma2 = MappedArray([11, 12, 14], values_mapping={11: 'one', 12: 'two', 13: 'three'})
+        np.testing.assert_array_equal(ma == ma2, [True, True, False])
+
+        # Values not in values_mapping are compared among themselves
+        ma = MappedArray([1, 2, 3, 3], values_mapping={1: 'one', 2: 'two'})
+        ma2 = MappedArray([11, 12, 14, 13], values_mapping={11: 'one', 12: 'two'})
+        np.testing.assert_array_equal(ma == ma2, [True, True, False, False])
+
+        ma = MappedArray([1, 2, 3, 13], values_mapping={1: 'one', 2: 'two'})
+        ma2 = MappedArray([11, 12, 14, 13], values_mapping={11: 'one', 12: 'two'})
+        np.testing.assert_array_equal(ma == ma2, [True, True, False, True])
+
+        # One value missing from values_mapping in one mapped array
+        ma = MappedArray([1, 2, 3, 13], values_mapping={1: 'one', 2: 'two', 13: 'three'})
+        ma2 = MappedArray([11, 12, 14, 13], values_mapping={11: 'one', 12: 'two'})
+        np.testing.assert_array_equal(ma == ma2, [True, True, False, False])
+
+        # Masked values are ignored (like numpy masked arrays)
+        ma = MappedArray([1, 2, 3, 13], values_mapping={1: 'one', 2: 'two'})
+        ma[1] = np.ma.masked
+        ma2 = MappedArray([11, 12, 14, 13], values_mapping={11: 'one', 12: 'two'})
+        ma2[2] = np.ma.masked
+        np.testing.assert_array_equal(
+            ma == ma2,
+            np.ma.array([True, True, False, True], mask=[False, True, True, False])
+        )
+
     def test_array_inequality_type_and_mask(self):
         data = [0, 0, 0, 0, 1, 1, 0, 0, 1, 0]
 

@@ -283,11 +283,30 @@ masked_%(name)s(values = %(sdata)s,
         Test equality or inequality allowing for multiple raw values matching a
         state.
         '''
+        method = MaskedArray.__ne__ if invert else MaskedArray.__eq__
+        if isinstance(other, MappedArray):
+            # Find the translation between our raw values to the other raw values
+            # Use np.nan when one of our value cannot map to the other values
+            translation_mapping = {k: other.state.get(state, [np.nan])[0]
+                for k, state in self.values_mapping.items()
+            }
+            # Find the unique raw values used and their indices in our array
+            uniques, indices = np.unique(self.raw.data, return_inverse=True)
+            # Create an array with the corresponding unique values from the other array
+            # If we have {1: 'red', 2: 'green'} and they have {10: 'red', 11: 'green'}
+            # and if we have both 1 and 2 in our array, uniques will be [1, 2].
+            # translated_uniques will then be [10, 11].
+            translated_uniques = np.ma.array([translation_mapping.get(x, x) for x in uniques])
+            # Apply the translated uniques at the same position as what we have
+            translated_array = translated_uniques[indices]
+            translated_array.mask = self.mask
+            # Now we can compare our translated array to the other raw array
+            return method(translated_array, other.raw)
+
         raw_values = self.__raw_values__(other)
         if raw_values:
             return MaskedArray(in1d(self.raw.data, raw_values, invert=invert), mask=self.mask)
         else:
-            method = MaskedArray.__ne__ if invert else MaskedArray.__eq__
             return method(self.raw, self.__coerce_type(other))
 
     def __relational__(self, other, method, aggregate):
