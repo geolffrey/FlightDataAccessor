@@ -346,6 +346,17 @@ class TestMappedArray(unittest.TestCase):
         for raw, state in values_mapping.items():
             self.assertEqual(array.get_state_value(state), [raw])
 
+    def test_view_from_ndarray(self):
+        """
+        Making a MappedArray view from a ndarray should result in a
+        MappedArray with an empty values_mapping.
+        """
+        array = np.array([0, 0, 0, 0, 1, 1, 0, 0, 1, 0])
+        mapped_array = array.view(MappedArray)
+        np.testing.assert_array_equal(mapped_array.raw, array)
+        np.testing.assert_array_equal(mapped_array.mask, [False] * len(array))
+        self.assertDictEqual(mapped_array.values_mapping, {})
+
 
 class TestParameterSubmasks(unittest.TestCase):
     """Test ParameterSubmasks proxy."""

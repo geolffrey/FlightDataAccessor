@@ -73,8 +73,7 @@ class MappedArray(np.ma.MaskedArray):
         No default mapping - use empty dictionary.
         '''
         values_mapping = kwargs.pop('values_mapping', {})
-        obj = MaskedArray.__new__(MaskedArray, *args, **kwargs)
-        obj.__class__ = MappedArray
+        obj = super(MappedArray, cls).__new__(cls, *args, **kwargs)
 
         # Must occur after class change for obj.state to update!
         obj.values_mapping = values_mapping
@@ -86,10 +85,31 @@ class MappedArray(np.ma.MaskedArray):
         Finalise the newly created object.
         '''
         super(MappedArray, self).__array_finalize__(obj)
-        if not hasattr(self, 'values_mapping'):
-            master_values_mapping = getattr(obj, 'values_mapping', None)
-            if master_values_mapping:
-                self.values_mapping = master_values_mapping
+        # ``self`` is a new object resulting from
+        # ndarray.__new__(MappedArray, ...), therefore it only has
+        # attributes that the ndarray.__new__ constructor gave it -
+        # i.e. those of a standard ndarray.
+        #
+        # We could have got to the ndarray.__new__ call in 3 ways:
+        # From an explicit constructor - e.g. MappedArray():
+        #    obj is None
+        #    (we're in the middle of the MappedArray.__new__
+        #    constructor, and self.values_mapping will be set when we return to
+        #    MappedArray.__new__)
+        if obj is None:
+            return
+        # From view casting - e.g arr.view(MappedArray):
+        #    obj is arr
+        #    (type(obj) can be MappedArray)
+        # From new-from-template - e.g mappedarr[:3]
+        #    type(obj) is MappedArray
+        #
+        # Note that it is here, rather than in the __new__ method,
+        # that we set the default value for 'values_mapping', because this
+        # method sees all creation of default objects - with the
+        # MappedArray.__new__ constructor, but also with
+        # arr.view(MappedArray).
+        self.values_mapping = getattr(obj, 'values_mapping', {})
 
     def __array_wrap__(self, out_arr, context=None):
         '''
