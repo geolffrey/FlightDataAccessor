@@ -312,7 +312,7 @@ masked_%(name)s(values = %(sdata)s,
                     raise ValueError("Ambiguous length of values '%s' for "
                                      "array section '%s'." % (val, self[key]))
                 if isinstance(val, MaskedArray) and val.dtype.kind in (
-                        'i', 'f'):
+                        'u', 'i', 'f'):
                     mapped_val = val
                 else:
                     mapped_val = zeros(len(val))
