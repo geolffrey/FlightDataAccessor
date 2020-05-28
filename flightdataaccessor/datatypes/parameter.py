@@ -67,6 +67,7 @@ class Parameter(Legacy):
         self.unit = unit
         self.data_type = data_type
         self.source = source if source else 'lfl'
+        self.lfl = self.source == 'lfl'  # Fixme: remove when source is fully implemented
         self.source_name = source_name
         self.description = description
         self.invalid = invalid

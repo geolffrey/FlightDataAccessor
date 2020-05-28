@@ -25,7 +25,7 @@ LIBRARY_VERSION = (1, 10, 1)
 CURRENT_VERSION = 3
 PARAMETER_ATTRIBUTES = (
     'arinc_429', 'data_type', 'frequency', 'invalid', 'invalidity_reason', 'limits', 'offset', 'source', 'source_name',
-    'unit', 'values_mapping',
+    'unit', 'values_mapping', 'lfl',
 )
 
 
@@ -423,6 +423,7 @@ class FlightDataFile(FlightDataFormat):
         elif source is None:
             source = 'lfl' if attrs.get('lfl', True) else 'derived'
         kwargs['source'] = source
+        kwargs['lfl'] = source == 'lfl'
         kwargs['offset'] = attrs.get('offset', attrs.get('supf_offset', 0))
         kwargs['unit'] = attrs.get('unit', attrs.get('units'))
 
