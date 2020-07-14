@@ -1,18 +1,9 @@
-include AUTHORS
-include CHANGES
 include LICENSE
-include README.rst
-include TODO
-include *.py
-include requirements*.txt
+include MANIFEST.in
+include pyproject.toml
+include *.rst
+graft flightdataaccessor
+global-exclude __pycache__
+global-exclude *.py[cdo]
 recursive-include doc *
 prune doc/build
-exclude .git
-exclude build
-exclude dist
-exclude .coverage
-exclude coverage.xml
-exclude nosetests.xml
-
-# Project specific
-exclude tests/test_data/temp/*

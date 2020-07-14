@@ -1,2 +1,6 @@
-.. include:: ../../AUTHORS
+Credits
+=======
 
+
+This package is written and maintained by Flight Data Services, Ltd
+<developers@flightdataservices.com>.

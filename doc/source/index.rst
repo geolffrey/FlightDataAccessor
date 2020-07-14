@@ -9,7 +9,6 @@ Contents:
    Introduction
    Overview
    Changes
-   TODO
    Authors
    API <modules>
 

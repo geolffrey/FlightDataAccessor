@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Documentation build configuration file, created by
 # sphinx-quickstart on Wed Feb 22 13:45:59 2012.
 #
@@ -13,8 +11,6 @@
 
 import os
 import sys
-
-import flightdataaccessor as pkg
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -50,15 +46,15 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = pkg.__packagename__
-copyright = pkg.__author__
+project = 'FlightDataAccessor'
+copyright = 'Flight Data Services Ltd'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = pkg.__version__
+version = '3.0.0b'  # FIXME
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -174,7 +170,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = pkg.__packagename__ + 'doc'
+htmlhelp_basename = 'FlightDataAccessordoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -193,8 +189,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', pkg.__packagename__ + '.tex', pkg.__packagename__ + ' Documentation',
-   pkg.__author__, 'manual'),
+  ('index', 'FlightDataAccessor.tex', 'FlightDataAccessor Documentation',
+   'Flight Data Services Ltd', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -223,8 +219,8 @@ latex_logo = 'fds-icon.png'
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', pkg.__packagename__.lower(), pkg.__packagename__ + ' Documentation',
-     [pkg.__author__], 1)
+    ('index', 'flightdataaccessor', 'FlightDataAccessor Documentation',
+     ['Flight Data Services Ltd'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -237,8 +233,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', pkg.__packagename__, pkg.__packagename__ + ' Documentation',
-   pkg.__author__, pkg.__packagename__, pkg.__description__,
+  ('index', 'FlightDataAccessor', 'FlightDataAccessor Documentation',
+   'Flight Data Services Ltd', 'FlightDataAccessor', 'An interface for accessing Flight Data Files.',
    'Miscellaneous'),
 ]
 
