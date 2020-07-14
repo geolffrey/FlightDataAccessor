@@ -5,16 +5,16 @@ The FlightDataFormat class defines in-memory functionality. It can be used by it
 required. Please note that this is in memory representation and in case of large data frames it will use a lot of
 RAM.
 """
+import collections
 import copy
 import datetime
 import itertools
 import re
-from collections import defaultdict
 
 import numpy as np
 import pytz
 import simplejson
-from sortedcontainers import SortedSet
+import sortedcontainers as sc
 
 from flightdatautilities.patterns import wildcard_match
 
@@ -46,7 +46,7 @@ class FlightDataFormat(Compatibility):
     def __init__(self, **kwargs):
         super(FlightDataFormat, self).__init__()
         self.compress = kwargs.get('compress', False)
-        self.keys_cache = defaultdict(SortedSet)
+        self.keys_cache = collections.defaultdict(sc.SortedSet)
         self.data = {}
 
         # FDF attributes

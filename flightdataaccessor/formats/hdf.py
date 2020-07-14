@@ -4,16 +4,16 @@
 # [ ] Modification of "old" format file will update the old format file and parameter attributes preserving data types
 #     etc.
 import base64
+import collections
 import functools
 import os
 import warnings
 import zlib
-from collections import defaultdict
 
 import h5py
 import numpy as np
 import simplejson
-from sortedcontainers import SortedSet
+import sortedcontainers as sc
 
 from flightdatautilities.array_operations import merge_masks
 from flightdatautilities.compression import CompressedFile
@@ -87,7 +87,7 @@ class FlightDataFile(FlightDataFormat):
         self.compress = kwargs.get('compress', False)
         self.disposable = kwargs.get('disposable', False)  # allow fdf to be changed in read-only mode (won't flush)
         self.mode = mode
-        self.keys_cache = defaultdict(SortedSet)
+        self.keys_cache = collections.defaultdict(sc.SortedSet)
         self.parameter_cache = {}
         self.path = None
         self.file = None

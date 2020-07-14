@@ -6,8 +6,8 @@ compatible structure meeting POLARIS pre-analysis specification.
 import argparse
 import json
 import logging
+import math
 import os
-from math import ceil
 
 import h5py
 import numpy as np
@@ -614,7 +614,7 @@ def expected_size_check(hdf, parameter):
     # includes any padding required to the next frame/super frame boundary
     if hdf.duration and parameter.frequency:
         expected_data_size = \
-            ceil(hdf.duration / boundary) * boundary * parameter.frequency
+            math.ceil(hdf.duration / boundary) * boundary * parameter.frequency
     else:
         LOGGER.error("%s: Not enough information to calculate expected data "
                      "size. Duration: %s, Parameter Frequency: %s",
