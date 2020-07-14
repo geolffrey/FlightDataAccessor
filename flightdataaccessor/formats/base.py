@@ -226,11 +226,7 @@ class FlightDataFormat(Compatibility):
 
     def trim(self, target=None, start_offset=0, stop_offset=None, superframe_boundary=True, parameter_list=None,
              deidentify=False):
-<<<<<<< HEAD
-        """Create a copy of the object trimmed to given range"""
-=======
-        """Create a copy of the object trimmed to given range."""
->>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
+        '''Create a copy of the object trimmed to given range.'''
         if target is None:
             target = self.__class__
 
@@ -302,8 +298,6 @@ class FlightDataFormat(Compatibility):
                 for to_append in fdf.values():
                     self.extend_parameter(to_append.name, to_append)
 
-<<<<<<< HEAD
-=======
     def clone(self, fdf=None, parameters=None):
         """
         Clone ``self`` into ``fdf``, creating an in-memory FDF if ``fdf`` is not specified.
@@ -320,7 +314,6 @@ class FlightDataFormat(Compatibility):
             if parameters is None or parameter.name in parameters:
                 fdf.set_parameter(parameter)
 
->>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
     def get(self, name, default=None, **kwargs):
         """Dictionary like .get operator. Additional kwargs are passed into the get_parameter() method."""
         try:

@@ -121,23 +121,16 @@ class FlightDataFile(FlightDataFormat):
         return self.__repr__().lstrip('<').rstrip('>')
 
     def __enter__(self):
-<<<<<<< HEAD
         """Context manager API"""
         self._context_level += 1
-=======
->>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
         self.open()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-<<<<<<< HEAD
         """Context manager API"""
         self._context_level -= 1
         if not self._context_level:
             self.close()
-=======
-        self.close()
->>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
 
     @property
     def duration(self):
@@ -275,14 +268,9 @@ class FlightDataFile(FlightDataFormat):
                         zlib.compress(simplejson.dumps(value, separators=(',', ':')).encode()))
                 elif name in {'arinc'} and value not in {'717', '767'}:
                     raise ValueError('Unknown ARINC standard: %s.' % value)
-<<<<<<< HEAD
                 # XXX should we attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
                 if not self.disposable:
                     self.file.attrs[name] = value
-=======
-                # XXX Attempt to store non-standard attributes in HDF file or raise an AttributeError instead?
-                self.file.attrs[name] = value
->>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
                 self.hdf_attributes[name] = value
 
         elif name in self.hdf_attributes:
