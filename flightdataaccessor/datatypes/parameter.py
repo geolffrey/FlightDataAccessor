@@ -314,9 +314,11 @@ class Parameter(Legacy):
             submasks[self.default_submask_name] = mask_array
 
         if self.data_type == 'Multi-state':
-            submasks['invalid_states'] = ~np.isin(array, list(self.values_mapping))
+            invalid_states = ~np.isin(array, list(self.values_mapping))
+            array.mask = np.ma.getmaskarray(array) | invalid_states
+            submasks['invalid_states'] = invalid_states
 
-        return submasks
+        return array, submasks
 
     def build_array_submasks(self, data, submasks=None):
         """Build array and submasks from passed data.
@@ -329,7 +331,7 @@ class Parameter(Legacy):
             array = data
 
         self.validate_mask(array=array, submasks=submasks)
-        submasks = self.submasks_from_array(array, submasks)
+        array, submasks = self.submasks_from_array(array, submasks)
 
         return array, submasks
 

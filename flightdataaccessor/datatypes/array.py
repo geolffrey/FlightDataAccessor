@@ -413,12 +413,10 @@ class ParameterArray(object):
                     'Consider using Parameter.set_array(array, submasks) instead.',
                     DeprecationWarning
                 )
-                parameter.submasks = parameter.submasks_from_array(array)
+                array, submasks = parameter.submasks_from_array(array)
+                parameter.submasks = submasks
 
-        if getattr(parameter, 'compress', False):
-            parameter._array = compress_array(array)
-        else:
-            parameter._array = array
+        parameter._array = compress_array(array) if getattr(parameter, 'compress', False) else array
 
 
 class ParameterSubmasks(collections.MutableMapping):
