@@ -1,9 +1,9 @@
 import collections
+import collections.abc
 import inspect
 import logging
 import traceback
 import warnings
-from collections import defaultdict
 
 import blosc
 import numpy as np
@@ -120,7 +120,7 @@ class MappedArray(np.ma.MaskedArray):
     def __setattr__(self, key, value):
         # Update the reverse mappings in self.state
         if key == 'values_mapping' and value:
-            self.state = defaultdict(list)
+            self.state = collections.defaultdict(list)
             for k, v in value.items():
                 self.state[v].append(k)
             self.state = dict(self.state)
@@ -419,7 +419,7 @@ class ParameterArray(object):
         parameter._array = compress_array(array) if getattr(parameter, 'compress', False) else array
 
 
-class ParameterSubmasks(collections.MutableMapping):
+class ParameterSubmasks(collections.abc.MutableMapping):
     """Better control over submasks."""
     def __init__(self, *args, **kwargs):
         self.compress = kwargs.pop('compress', False)
