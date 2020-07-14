@@ -14,7 +14,7 @@ import flightdataaccessor as fda
 
 @deprecated(details='Use FlightDataFormat.concatenate() instead')
 def concat_hdf(sources, dest=None):
-    """
+    '''
     Takes in a list of HDF file paths and concatenates the parameter
     datasets which match the path 'series/<Param Name>/data'. The first file
     in the list of paths is the template for the output file, with only the
@@ -28,7 +28,7 @@ def concat_hdf(sources, dest=None):
     :type dest: dict
     :return: path to concatenated hdf file.
     :rtype: str
-    """
+    '''
     target = dest if dest is not None else None
     if isinstance(sources[0], str):
         # the first source needs to be upgraded first
@@ -52,7 +52,7 @@ def concat_hdf(sources, dest=None):
 
 @deprecated(details='Use FlightDataFormat.trim() instead')
 def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
-    """
+    '''
     Strip an HDF file of all parameters apart from those in params_to_keep.
     Does not raise an exception if any of the params_to_keep are not in the
     HDF file.
@@ -65,13 +65,8 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
     :type dest: str
     :return: all parameters names within the output hdf file
     :rtype: [str]
-<<<<<<< HEAD
     '''
     with fda.open(hdf_path) as fdf:
-=======
-    """
-    with flightdataaccessor.open(hdf_path) as fdf:
->>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
         fdf.trim(dest, parameter_list=params_to_keep, deidentify=deidentify)
 
     # XXX: filter the param_to_keep list to the list of existing parameters
@@ -81,7 +76,7 @@ def strip_hdf(hdf_path, params_to_keep, dest, deidentify=True):
 
 @deprecated(details='Use FlightDataFormat.trim() instead')
 def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4, submasks=None):
-    """
+    '''
     Writes a segment of the HDF file stored in hdf_path to dest defined by
     segments, a slice in seconds. Expects the HDF file to contain whole
     superframes.
@@ -109,7 +104,7 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
 
     TODO: Support segmenting parameter masks. Q: Does this mean copying the mask along
     with data? If so, this is already done.
-    """
+    '''
     # XXX: handle source / dest logic somewhere else
     if dest is None:
         if isinstance(source, str):
@@ -144,17 +139,16 @@ def write_segment(source, segment, part=0, dest=None, dest_dir=None, boundary=4,
         if not fdf.superframe_present and boundary not in (1, 4):
             # boundary in subframes
             warnings.warn(
-                'Alignment to %d subframes was requested. Alignment to 64 subframes is supported only for data '
-                'with superframes otherwise alignment to 4 subframes is used. Default alignment will be used instead.'
-                % boundary, DeprecationWarning)
+                f'Alignment to {boundary} subframes was requested. Alignment to 64 subframes is supported only for '
+                'data with superframes otherwise alignment to 4 subframes is used. Default alignment will be used '
+                'instead.', DeprecationWarning)
         return fdf.trim(dest, start_offset=segment.start, stop_offset=segment.stop, superframe_boundary=boundary != 1)
 
 
 def segment_boundaries(segment, boundary):
-    """
-    Calculate start and stop boundaries from segment slice and amount of
-    padding needed to fill to boundary edge
-    """
+    '''
+    Calculate start and stop boundaries from segment slice and amount of padding needed to fill to boundary edge
+    '''
     supf_stop_secs = segment.stop
 
     if segment.start:
@@ -170,26 +164,20 @@ def segment_boundaries(segment, boundary):
         supf_stop_secs = segment.stop // boundary * boundary
 
         if segment.stop % boundary != 0:
-            # Segment does not end on a frame/superframe boundary, include the
-            # following frame/superframe.
+            # Segment does not end on a frame/superframe boundary, include the following frame/superframe.
             supf_stop_secs += boundary
             array_stop_secs = boundary - (segment.stop % boundary)
     return supf_start_secs, supf_stop_secs, array_start_secs, array_stop_secs
 
 
 def revert_masks(hdf_path, params=None, delete_derived=False):
-    """
+    '''
     :type hdf_path: str
     :type params: params to revert or delete.
     :type params: [str] or None
     :type delete_derived: bool
-<<<<<<< HEAD
     '''
     with fda.open(hdf_path, mode='a') as fdf:
-=======
-    """
-    with flightdataaccessor.open(hdf_path, mode='a') as fdf:
->>>>>>> 452de94... cleanup: partial effort to satisfy flake8/isort.
         if not params:
             params = fdf.keys() if delete_derived else fdf.lfl_keys()
 
@@ -224,37 +212,30 @@ def align(array, slave_frequency, slave_offset, master_frequency, master_offset=
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    subparser = parser.add_subparsers(dest='command',
-                                      description="Utility command, either 'strip' or 'revert'")
-    strip_parser = subparser.add_parser('strip', help='Strip a file to a '
-                                        'subset of parameters.')
+    subparser = parser.add_subparsers(dest='command', description="Utility command, either 'strip' or 'revert'")
+    strip_parser = subparser.add_parser('strip', help='Strip a file to a subset of parameters.')
     strip_parser.add_argument('input_file_path', help='Input hdf filename.')
     strip_parser.add_argument('output_file_path', help='Output hdf filename.')
-    strip_parser.add_argument('parameters', nargs='+',
-                              help='Store this list of parameters into the '
-                              'output hdf file. All other parameters will be '
-                              'stripped.')
-    revert_parser = subparser.add_parser('revert',
-                                         help='Revert masks of parameters')
+    strip_parser.add_argument(
+        'parameters',
+        nargs='+',
+        help='Store this list of parameters into the output hdf file. All other parameters will be stripped.')
+    revert_parser = subparser.add_parser('revert', help='Revert masks of parameters')
     revert_parser.add_argument('file_path', help='File path.')
-    revert_parser.add_argument('-p', '--parameters', nargs='+', default=None,
-                               help='Parameter names to revert.')
-    revert_parser.add_argument('-d', '--delete-derived', action='store_true',
-                               help='Delete derived parameters.')
+    revert_parser.add_argument('-p', '--parameters', nargs='+', default=None, help='Parameter names to revert.')
+    revert_parser.add_argument('-d', '--delete-derived', action='store_true', help='Delete derived parameters.')
     args = parser.parse_args()
     if args.command == 'strip':
         if not os.path.isfile(args.input_file_path):
-            parser.error("Input file path '%s' does not exist.", args.input_file_path)
+            parser.error(f'Input file path does not exist: {args.input_file_path}')
         if os.path.exists(args.output_file_path):
-            parser.error("Output file path '%s' already exists.", args.output_file_path)
-        output_parameters = strip_hdf(args.input_file_path, args.parameters,
-                                      args.output_file_path)
+            parser.error(f'Output file path already exists: {args.output_file_path}')
+        output_parameters = strip_hdf(args.input_file_path, args.parameters, args.output_file_path)
         if output_parameters:
             print('The following parameters are in the output hdf file:')
             for name in output_parameters:
-                print(' * %s' % name)
+                print(f' * {name}')
         else:
             print('No matching parameters were found in the hdf file.')
     elif args.command == 'revert':
-        revert_masks(args.file_path, params=args.parameters,
-                     delete_derived=args.delete_derived)
+        revert_masks(args.file_path, params=args.parameters, delete_derived=args.delete_derived)
