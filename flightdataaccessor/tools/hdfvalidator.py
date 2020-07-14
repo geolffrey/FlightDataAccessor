@@ -87,27 +87,27 @@ PARAMETERS_ANALYSIS = list_parameters()
 # Minimum list of parameters (including alternatives) needed in the HDF file.
 # See check_for_core_parameters method
 PARAMETERS_CORE = [
-    u'Airspeed',
-    u'Heading',
-    u'Altitude STD',
+    'Airspeed',
+    'Heading',
+    'Altitude STD',
     # Helicopter only
-    u'Nr',
+    'Nr',
     # Alternatives
-    u'Heading True',
-    u'Nr (1)',
-    u'Nr (2)',
+    'Heading True',
+    'Nr (1)',
+    'Nr (2)',
 ]
 
 # Extra parameters not listed from list_parameter
 PARAMETERS_EXTRA = [
-    u'Day',
-    u'Hour',
-    u'Minute',
-    u'Month',
-    u'Second',
-    u'Year',
-    u'Frame Counter',
-    u'Subframe Counter',
+    'Day',
+    'Hour',
+    'Minute',
+    'Month',
+    'Second',
+    'Year',
+    'Frame Counter',
+    'Subframe Counter',
 ]
 
 PARAMETER_LIST = list(set(PARAMETERS_FROM_FILES + PARAMETERS_ANALYSIS +

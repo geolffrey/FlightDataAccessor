@@ -230,30 +230,30 @@ The `hdf_file` class defines a number of properties which are stored within the 
 
 
 .. code-block:: python
-   
+
    >>> hdf.superframe_present = True
    >>> print dict(hdf.hdf.attrs)
-   {u'superframe_present': True}
+   {'superframe_present': True}
    >>> print hdf.superframe_present
    True
 
 Some properties are converted to and from `Python` types automatically for convenience.
 
 .. code-block:: python
-   
+
    >>> import datetime
    >>> hdf.start_datetime = datetime.datetime(2013, 2, 22, 5, 6, 10)
    >>> print dict(hdf.hdf.attrs)
-   {u'start_timestamp': 1361509570}
+   {'start_timestamp': 1361509570}
    >>> print hdf.start_datetime
    datetime.datetime(2013, 2, 22, 5, 6, 10)
 
 Dictionaries are stored in `JSON <http://www.json.org/>`_ format for interoperability.
 
 .. Currently excluded from documentation as it's confusing. To overcome the limitation whereby the attributes of a group cannot exceed 64KB, large dictionaries such as the dependency tree are compressed and base64 encoded when saved to the file.
-   
+
    code-block:: python
-   
+
    >>> hdf.dependency_tree = [{'adjacencies': [{'data': {},
                                                 'nodeTo': 'Event Marker'},
                               {'data': {}, 'nodeTo': 'Airborne'}],
@@ -262,7 +262,7 @@ Dictionaries are stored in `JSON <http://www.json.org/>`_ format for interoperab
                                'id': 'Event Marker Pressed',
                                'name': '14: Event Marker Pressed'}]
    >>> print dict(hdf.hdf.attrs)
-   {u'dependency_tree': 'eJx9jrEOwjAMRH/FMmsHEIihGwMjEgNb1cGJPQSCIzkVS9R/...zS0c5\n'}
+   {'dependency_tree': 'eJx9jrEOwjAMRH/FMmsHEIihGwMjEgNb1cGJPQSCIzkVS9R/...zS0c5\n'}
    >>> print hdf.dependency_tree
    [{'adjacencies': [{'data': {}, 'nodeTo': 'Event Marker'},
                      {'data': {}, 'nodeTo': 'Airborne'}],
@@ -278,14 +278,14 @@ Parameters are stored underneath a group named `series`.
 .. code-block:: python
 
    >>> print hdf.hdf.keys()
-   [u'series']
+   ['series']
    >>> print hdf.hdf['series'].keys()
-   [u'Altitude Radio', u'Altitude STD']
+   ['Altitude Radio', 'Altitude STD']
 
 A parameter is stored as a group containing attributes and two datasets – `data` and `mask`. Datasets are stored with gzip compression level 6 which is transparently built-in to the HDF5 library.
 
 .. code-block:: none
-   
+
    /
    |-- /series
    |   -- /series/"Altitude Radio"
@@ -297,11 +297,11 @@ A parameter is stored as a group containing attributes and two datasets – `dat
 Example code accessing the parameter group and its datasets.
 
 .. code-block:: python
-   
+
    >>> print hdf.hdf['series']['Altitude Radio']
    <HDF5 group "/series/Altitude Radio" (3 members)>
    >>> print hdf.hdf['series']['Altitude Radio'].keys()
-   [u'data', u'levels', u'mask']
+   ['data', 'levels', 'mask']
    >>> print hdf.hdf['series']['Altitude Radio']['data']
    <HDF5 dataset "data": shape (4,), type "<f8">
    >>> print hdf.hdf['series']['Altitude Radio']['mask']
@@ -310,7 +310,7 @@ Example code accessing the parameter group and its datasets.
 A `MaskedArray` is comprised of two arrays which are stored separately within the `data` and `mask` datasets. The `data` dataset stores the recorded values of the parameter, typically as an array of 64-bit floating point numbers, while the `mask` dataset stores the boolean mask array.
 
 .. code-block:: python
-   
+
        # Read datasets into memory.
    >>> data = hdf.hdf['series']['Altitude Radio']['data'][:]
    >>> mask = hdf.hdf['series']['Altitude Radio']['mask'][:]
@@ -336,16 +336,16 @@ A `MaskedArray` is comprised of two arrays which are stored separately within th
 Information about a parameter is stored within the attributes of the parameter group.
 
 .. code-block:: python
-   
+
    >>> print dict(f['series']['Latitude'].attrs)
-   {u'arinc_429': False,
-    u'data_type': 'Signed',
-    u'description': 'The east-west position of the aircraft in decimal degrees.',
-    u'frequency': 1.0,
-    u'lfl': True,
-    u'name': 'Latitude',
-    u'supf_offset': 0.2265625,
-    u'units': 'deg'}
+   {'arinc_429': False,
+    'data_type': 'Signed',
+    'description': 'The east-west position of the aircraft in decimal degrees.',
+    'frequency': 1.0,
+    'lfl': True,
+    'name': 'Latitude',
+    'supf_offset': 0.2265625,
+    'units': 'deg'}
 
 .. image:: hdfview-03.png
 
@@ -359,7 +359,7 @@ Caching Parameters
 When a `Parameter` object is loaded from the HDF file, the entire data and mask datasets are read from the file and combined to create the `Parameter`'s array attribute. To speed up loading of the parameters which have already been read from the file, an optional argument `cache_param_list`, a list of parameter names to be cached, can be provided to `hdf_file`'s constructor.
 
 .. code-block:: python
-   
+
    >>> from timeit import timeit
    >>> # Loading the parameter for the first time.
    >>> timeit("hdf['Acceleration Normal']",
@@ -378,7 +378,7 @@ Caching Parameter names
 Retrieving the contents of a group within `h5py` is much slower than native Python types, therefore this list is cached on the `hdf_file` object and updated when parameters are saved or deleted.
 
 .. code-block:: python
-   
+
    >>> from timeit import timeit
    >>> print len(hdf.keys())
    1043
