@@ -73,8 +73,14 @@ class Parameter(Legacy):
         self.limits = limits
         self.compress = compress
 
+        # TODO: do not reassign submask arrays
         submasks = {k: np.array(v, dtype=np.bool) for k, v in submasks.items()} if submasks else {}
         self.submasks = ParameterSubmasks(submasks, compress=self.compress)
+        array, submasks = self.submasks_from_array(array, submasks)
+        for submask_name, submask_array in submasks.items():
+            if submask_name not in self.submasks:
+                self.submasks[submask_name] = submask_array
+
         self.validate_mask(array, submasks)
         self.array = array
 
@@ -336,8 +342,8 @@ class Parameter(Legacy):
         else:
             array = data
 
-        self.validate_mask(array=array, submasks=submasks)
         array, submasks = self.submasks_from_array(array, submasks)
+        self.validate_mask(array=array, submasks=submasks)
 
         return array, submasks
 
